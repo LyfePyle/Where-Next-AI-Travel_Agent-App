@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "nextjs",
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

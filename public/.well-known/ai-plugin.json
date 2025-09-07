@@ -1,0 +1,19 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Where Next AI Travel Agent",
+  "name_for_model": "where_next_travel",
+  "description_for_human": "AI-powered travel planning assistant that helps users discover destinations, plan itineraries, and book trips.",
+  "description_for_model": "A comprehensive travel planning assistant that can help users plan trips, discover destinations, generate itineraries, and provide travel recommendations. The app has a modern UI with trip suggestions, detailed trip pages, and booking integration.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://your-domain.com/api/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://your-domain.com/logo.png",
+  "contact_email": "support@wherenext.com",
+  "legal_info_url": "https://your-domain.com/legal"
+}
+

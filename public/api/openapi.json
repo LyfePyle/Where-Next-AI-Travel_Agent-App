@@ -1,0 +1,121 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Where Next AI Travel Agent API",
+    "description": "API for AI-powered travel planning and recommendations",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://your-domain.com"
+    }
+  ],
+  "paths": {
+    "/api/ai/suggestions": {
+      "post": {
+        "summary": "Generate AI trip suggestions",
+        "description": "Generate personalized trip suggestions based on user preferences",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "from": { "type": "string" },
+                  "tripDuration": { "type": "number" },
+                  "budgetAmount": { "type": "number" },
+                  "budgetStyle": { "type": "string", "enum": ["thrifty", "comfortable", "splurge"] },
+                  "vibes": { "type": "array", "items": { "type": "string" } },
+                  "additionalDetails": { "type": "string" },
+                  "adults": { "type": "number" },
+                  "kids": { "type": "number" },
+                  "startDate": { "type": "string" },
+                  "endDate": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trip suggestions generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "suggestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "destination": { "type": "string" },
+                          "fitScore": { "type": "number" },
+                          "description": { "type": "string" },
+                          "estimatedTotal": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/trip-details": {
+      "post": {
+        "summary": "Get detailed trip information",
+        "description": "Get comprehensive details about a specific trip",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tripId": { "type": "string" },
+                  "preferences": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trip details retrieved successfully"
+          }
+        }
+      }
+    },
+    "/api/ai/itinerary-builder": {
+      "post": {
+        "summary": "Generate detailed itinerary",
+        "description": "Create a day-by-day itinerary for a trip",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tripId": { "type": "string" },
+                  "preferences": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Itinerary generated successfully"
+          }
+        }
+      }
+    }
+  }
+}
+

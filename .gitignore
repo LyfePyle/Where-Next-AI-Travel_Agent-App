@@ -1,0 +1,17 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.vercel/
+
+# Env / local
+.env
+.env.local
+.env.*.local
+*.log

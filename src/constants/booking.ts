@@ -1,39 +1,38 @@
 export const BOOKING_SERVICES = {
   flights: [
     {
-      provider: 'Skyscanner',
-      title: 'Compare Flight Prices',
-      description: 'Find the best deals from hundreds of airlines worldwide',
+      provider: 'Expedia',
+      title: 'Best Flight Deals',
+      description: 'Compare prices from hundreds of airlines worldwide',
       rating: 4.8,
-      features: ['Price Alerts', 'Flexible Dates', 'Best Price Guarantee'],
-      url: 'https://www.skyscanner.com/transport/flights/anywhere/{destination}/?ref=wherenext'
+      features: ['Price Comparison', 'Bundle Deals', 'Rewards Program'],
+      url: 'https://www.expedia.com/Flights-Search?flight-type=on&starDate={startDate}&endDate={endDate}&_xpid=11905%7C1&mode=search&trip=roundtrip&leg1=from%3A{origin}%2Cto%3A{destination}%2Cdeparture%3A{startDate}TANYT&leg2=from%3A{destination}%2Cto%3A{origin}%2Cdeparture%3A{endDate}TANYT&passengers=children%3A0%2Cadults%3A2%2Cseniors%3A0%2Cinfantinlap%3AY&options=cabinclass%3Aeconomy&ref=wherenext'
     },
     {
-      provider: 'Expedia',
-      title: 'Book Flights + Hotels',
-      description: 'Save up to $500 when you book flight + hotel together',
-      rating: 4.6,
-      discount: '20%',
-      features: ['Bundle Savings', '24/7 Support', 'Free Cancellation'],
-      url: 'https://www.expedia.com/Flights-Search?destination={destination}&ref=wherenext'
+      provider: 'Kayak',
+      title: 'Smart Flight Search',
+      description: 'AI-powered flight recommendations and price tracking',
+      rating: 4.7,
+      features: ['Price Alerts', 'Flexible Dates', 'Trip Planning'],
+      url: 'https://www.kayak.com/flights/{origin}-{destination}/{startDate}/{endDate}?sort=bestflight_a&ref=wherenext'
     }
   ],
   hotels: [
     {
-      provider: 'Booking.com',
-      title: 'Hotels & Accommodations',
-      description: 'Over 28 million listings worldwide with free cancellation',
-      rating: 4.7,
-      features: ['Free Cancellation', 'No Booking Fees', 'Best Price Guarantee'],
-      url: 'https://www.booking.com/searchresults.html?ss={destination}&ref=wherenext'
+      provider: 'Hotels.com',
+      title: 'Hotel Rewards & Deals',
+      description: 'Earn rewards nights and access exclusive member prices',
+      rating: 4.8,
+      features: ['Rewards Program', 'Member Prices', 'Free Cancellation'],
+      url: 'https://www.hotels.com/search.do?q-destination={destination}&q-check-in={startDate}&q-check-out={endDate}&q-rooms=1&q-room-0-adults=2&q-room-0-children=0&ref=wherenext'
     },
     {
-      provider: 'Airbnb',
-      title: 'Unique Stays & Experiences',
-      description: 'Stay in unique homes and experience local culture',
-      rating: 4.5,
-      features: ['Unique Properties', 'Local Experiences', 'Host Support'],
-      url: 'https://www.airbnb.com/s/{destination}?ref=wherenext'
+      provider: 'Expedia Hotels',
+      title: 'Bundle & Save',
+      description: 'Save more when you book hotel + flight together',
+      rating: 4.7,
+      features: ['Bundle Discounts', 'Instant Confirmation', '24/7 Support'],
+      url: 'https://www.expedia.com/Hotels-Search?destination={destination}&startDate={startDate}&endDate={endDate}&rooms=1&adults=2&ref=wherenext'
     }
   ],
   cars: [

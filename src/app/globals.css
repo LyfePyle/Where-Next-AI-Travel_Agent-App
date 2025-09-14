@@ -5,13 +5,6 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -25,17 +18,14 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Ensure all input fields have black text for better readability */
 input, textarea, select {
   color: #000000 !important;
 }
 
-/* Ensure input placeholders are visible but not too light */
 input::placeholder, textarea::placeholder {
   color: #6b7280 !important;
 }
 
-/* Custom slider styles */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;

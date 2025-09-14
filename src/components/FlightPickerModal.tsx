@@ -52,8 +52,8 @@ export default function FlightPickerModal({
       duration: '8h 15m',
       stops: 0,
       price: 720,
-      provider: 'Skyscanner',
-      link: 'https://skyscanner.com/flight/AC680'
+      provider: 'Expedia',
+      link: 'https://www.expedia.com/Flights-Search?flight-type=on&mode=search&trip=roundtrip&leg1=from%3AVancouver%2Cto%3AKyoto&passengers=adults%3A2&ref=wherenext'
     },
     {
       id: '2',
@@ -66,8 +66,8 @@ export default function FlightPickerModal({
       duration: '9h 30m',
       stops: 1,
       price: 650,
-      provider: 'Skyscanner',
-      link: 'https://skyscanner.com/flight/WS1234'
+      provider: 'Expedia',
+      link: 'https://www.expedia.com/Flights-Search?flight-type=on&mode=search&trip=roundtrip&leg1=from%3AVancouver%2Cto%3AKyoto&passengers=adults%3A2&ref=wherenext'
     },
     {
       id: '3',
@@ -80,8 +80,8 @@ export default function FlightPickerModal({
       duration: '8h 15m',
       stops: 0,
       price: 780,
-      provider: 'Skyscanner',
-      link: 'https://skyscanner.com/flight/IB567'
+      provider: 'Expedia',
+      link: 'https://www.expedia.com/Flights-Search?flight-type=on&mode=search&trip=roundtrip&leg1=from%3AVancouver%2Cto%3AKyoto&passengers=adults%3A2&ref=wherenext'
     },
     {
       id: '4',
@@ -94,8 +94,8 @@ export default function FlightPickerModal({
       duration: '8h 35m',
       stops: 1,
       price: 690,
-      provider: 'Skyscanner',
-      link: 'https://skyscanner.com/flight/LH890'
+      provider: 'Expedia',
+      link: 'https://www.expedia.com/Flights-Search?flight-type=on&mode=search&trip=roundtrip&leg1=from%3AVancouver%2Cto%3AKyoto&passengers=adults%3A2&ref=wherenext'
     }
   ];
 

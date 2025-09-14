@@ -3,9 +3,9 @@ const path = require('path');
 
 console.log('🔧 Updating environment variables with your Supabase credentials...\n');
 
-const envContent = `# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://brumjujpccoftqqosyek.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJydW1qdWpwY2NvZnRxcW9zeWVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NTUyODksImV4cCI6MjA3MDUzMTI4OX0.9k7m7a1cPAGz-lk9HFoJt5F4McE-cylkJl4SIVXEmlQ
+const envContent = `# Supabase Configuration (REPLACE WITH YOUR CREDENTIALS)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 
 # OpenAI Configuration

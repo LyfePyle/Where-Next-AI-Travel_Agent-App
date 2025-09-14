@@ -448,15 +448,15 @@ function SuggestionsContent() {
                        
                        if (response.ok) {
                          const trip = await response.json();
-                         // Navigate to the trip page with destination info
+                         // Navigate to the enhanced trip details page with destination info
                          const destinationParam = `destination=${encodeURIComponent(suggestion.destination)}`;
-                         window.location.href = `/trip/${trip.id}?${searchParams.toString()}&${destinationParam}`;
+                         window.location.href = `/trip-details/${trip.id}?${searchParams.toString()}&${destinationParam}`;
                        }
                      } catch (error) {
                        console.error('Error creating trip:', error);
-                       // Fallback to old behavior with destination info
+                       // Fallback to enhanced trip details page with destination info
                        const destinationParam = `destination=${encodeURIComponent(suggestion.destination)}`;
-                       window.location.href = `/trip/${suggestion.id}?${searchParams.toString()}&${destinationParam}`;
+                       window.location.href = `/trip-details/${suggestion.id}?${searchParams.toString()}&${destinationParam}`;
                      }
                    }}
                    className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center"

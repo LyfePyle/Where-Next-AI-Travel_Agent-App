@@ -9,9 +9,9 @@ Your Next.js app is now running at `http://localhost:3000`! Here's what you need
 Create a `.env.local` file in the `where-next` directory with the following content:
 
 ```bash
-# Supabase Configuration (YOUR ACTUAL CREDENTIALS)
-NEXT_PUBLIC_SUPABASE_URL=https://ufyimcilzjctylwfdqsy.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmeWltY2lsempjdHlsd2ZkcXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDc5OTAsImV4cCI6MjA2OTgyMzk5MH0.chylCo4ALFZLE-fkLaKvcAgAbNKQ8ruxb4rjX_iED78
+# Supabase Configuration (REPLACE WITH YOUR ACTUAL CREDENTIALS)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 
 # OpenAI Configuration

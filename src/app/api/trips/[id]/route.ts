@@ -9,43 +9,50 @@ export async function GET(
 
     // In a real app, you would fetch the trip from a database
     // For now, we'll return a mock trip based on the ID
+    
+    // Try to get destination from query params
+    const destination = request.nextUrl.searchParams.get('destination') || 'Lisbon, Portugal';
+    const [city, country] = destination.includes(',') 
+      ? [destination.split(',')[0].trim(), destination.split(',')[1].trim()]
+      : [destination, 'Unknown Country'];
+    
     const mockTrip = {
       id: tripId,
       suggestion: {
         id: tripId,
-        destination: 'Lisbon, Portugal',
-        country: 'Portugal',
-        city: 'Lisbon',
+        destination: destination,
+        country: country,
+        city: city,
         fitScore: 92,
-        description: 'Historic charm meets modern culture in Portugal\'s vibrant capital',
+        description: `Explore the amazing destination of ${city} with our curated recommendations`,
         weather: { temp: 22, condition: 'Sunny', icon: '☀️' },
         crowdLevel: 'Medium',
         seasonality: 'Perfect weather, moderate crowds',
         estimatedTotal: 1350,
         flightBand: { min: 650, max: 780 },
-        hotelBand: { min: 90, max: 130, style: 'Boutique', area: 'Alfama/Baixa' },
-        highlights: ['Historic tram rides', 'Pasteis de Belém', 'Fado music', 'Time Out Market'],
-        whyItFits: 'Perfect for food lovers with amazing local cuisine and cultural experiences',
+        hotelBand: { min: 90, max: 130, style: 'Comfortable', area: 'City Center' },
+        highlights: ['Local attractions', 'Cultural experiences', 'Great food', 'Beautiful sights'],
+        whyItFits: `Perfect destination for your travel preferences and budget in ${city}`,
         dailyItinerary: [
           {
             day: 1,
-            title: 'Arrival & Alfama Exploration',
-            activities: ['Airport transfer', 'Check-in at hotel', 'Alfama neighborhood walk', 'Fado dinner'],
+            title: `Arrival & First Impressions`,
+            activities: ['Airport transfer', 'Check-in at hotel', `Explore ${city} center`, 'Local dinner'],
             estimatedCost: 120,
-            tips: ['Book Fado dinner in advance', 'Wear comfortable walking shoes']
+            tips: ['Book airport transfer in advance', 'Wear comfortable walking shoes']
           },
           {
             day: 2,
-            title: 'Historic Lisbon',
-            activities: ['Tram 28 ride', 'São Jorge Castle', 'Miradouro viewpoints', 'Time Out Market lunch'],
+            title: `${city} Discovery`,
+            activities: [`${city} highlights tour`, 'Visit local attractions', 'Cultural experience', 'Traditional lunch'],
             estimatedCost: 85,
-            tips: ['Buy tram ticket in advance', 'Visit castle early to avoid crowds']
+            tips: ['Visit attractions early to avoid crowds', 'Bring water and comfortable shoes']
           }
         ],
-        bestTimeToVisit: 'March to June, September to November',
-        localCurrency: 'Euro (€)',
-        language: 'Portuguese',
-        timezone: 'WET/WEST (UTC+0/+1)'
+        bestTimeToVisit: 'Year-round destination',
+        localCurrency: 'Local currency',
+        language: 'Local language',
+        timezone: 'Local timezone'
       },
       selections: [],
       createdAt: new Date().toISOString(),

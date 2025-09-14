@@ -210,7 +210,7 @@ Make each day's itinerary specific and actionable with real place names, timing,
 }
 
 async function generateMockTripDetails(tripId: string, preferences: TripPreferences, destination?: string): Promise<TripDetail | null> {
-  const actualDestination = destination || 'Lisbon, Portugal';
+  const actualDestination = destination || 'Unknown Destination';
   const [city, country] = actualDestination.includes(',') 
     ? [actualDestination.split(',')[0].trim(), actualDestination.split(',')[1].trim()]
     : [actualDestination, 'Unknown Country'];

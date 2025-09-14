@@ -46,8 +46,8 @@ export default function HotelPickerModal({
       price: 120,
       amenities: ['Free WiFi', 'Pool', 'Spa', 'Restaurant'],
       image: '🏨',
-      provider: 'Booking.com',
-      link: 'https://booking.com/hotel/valencia-palace'
+      provider: 'Hotels.com',
+      link: 'https://www.hotels.com/Hotel-Search?destination=Valencia&startDate=2024-06-01&endDate=2024-06-03&rooms=1&adults=2&children=0&ref=wherenext'
     },
     {
       id: '2',
@@ -57,8 +57,8 @@ export default function HotelPickerModal({
       price: 95,
       amenities: ['Free WiFi', 'Bar', 'Garden', 'Air Conditioning'],
       image: '🏨',
-      provider: 'Booking.com',
-      link: 'https://booking.com/hotel/seville-grand'
+      provider: 'Hotels.com',
+      link: 'https://www.hotels.com/Hotel-Search?destination=Seville&startDate=2024-06-01&endDate=2024-06-03&rooms=1&adults=2&children=0&ref=wherenext'
     },
     {
       id: '3',
@@ -68,8 +68,8 @@ export default function HotelPickerModal({
       price: 110,
       amenities: ['Free WiFi', 'Breakfast', 'Terrace', 'City View'],
       image: '🏨',
-      provider: 'Booking.com',
-      link: 'https://booking.com/hotel/lisbon-boutique'
+      provider: 'Hotels.com',
+      link: 'https://www.hotels.com/Hotel-Search?destination=Lisbon&startDate=2024-06-01&endDate=2024-06-03&rooms=1&adults=2&children=0&ref=wherenext'
     },
     {
       id: '4',
@@ -79,8 +79,8 @@ export default function HotelPickerModal({
       price: 140,
       amenities: ['Free WiFi', 'Kitchen', 'Balcony', 'Gym'],
       image: '🏨',
-      provider: 'Booking.com',
-      link: 'https://booking.com/hotel/barcelona-modern'
+      provider: 'Hotels.com',
+      link: 'https://www.hotels.com/Hotel-Search?destination=Barcelona&startDate=2024-06-01&endDate=2024-06-03&rooms=1&adults=2&children=0&ref=wherenext'
     }
   ];
 

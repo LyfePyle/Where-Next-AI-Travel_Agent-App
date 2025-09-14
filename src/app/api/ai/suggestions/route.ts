@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 async function generateAISuggestions(preferences: any) {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
-  const prompt = `You are an expert travel AI assistant. Generate 3 personalized trip suggestions based on the following preferences:
+  const prompt = `You are an expert travel AI assistant. Generate 4 personalized trip suggestions based on the following preferences:
 
 Traveler Details:
 - Departing from: ${preferences.from}
@@ -194,6 +194,22 @@ function getMockSuggestions() {
       hotelBand: { min: 70, max: 110, style: 'Historic', area: 'Ribeira' },
       highlights: ['Port wine tasting', 'Historic center', 'River views', 'Authentic cuisine'],
       whyItFits: 'Great value destination perfect for wine lovers and authentic experiences'
+    },
+    {
+      id: '4',
+      destination: 'Seville, Spain',
+      country: 'Spain',
+      city: 'Seville',
+      fitScore: 90,
+      description: 'Passionate flamenco culture meets stunning Moorish architecture',
+      weather: { temp: 26, condition: 'Sunny', icon: '☀️' },
+      crowdLevel: 'Medium',
+      seasonality: 'Excellent weather, moderate tourism',
+      estimatedTotal: 1400,
+      flightBand: { min: 680, max: 820 },
+      hotelBand: { min: 85, max: 125, style: 'Traditional', area: 'Santa Cruz Quarter' },
+      highlights: ['Alcázar Palace', 'Flamenco shows', 'Cathedral & Giralda', 'Tapas tours'],
+      whyItFits: 'Perfect for culture lovers seeking authentic Spanish traditions and stunning architecture'
     }
   ];
 

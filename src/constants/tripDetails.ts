@@ -1,6 +1,6 @@
 export const AFFILIATE_LINKS = {
-  flight: 'https://www.skyscanner.com/transport/flights/anywhere/{destination}/?ref=wherenext',
-  hotel: 'https://www.booking.com/searchresults.html?ss={destination}&ref=wherenext',
+  flight: 'https://www.expedia.com/Flights-Search?flight-type=on&mode=search&trip=roundtrip&leg1=to%3A{destination}&passengers=adults%3A2&ref=wherenext',
+  hotel: 'https://www.hotels.com/search.do?q-destination={destination}&q-check-in={startDate}&q-check-out={endDate}&q-rooms=1&q-room-0-adults=2&q-room-0-children=0&ref=wherenext',
   car: 'https://www.rentalcars.com/SearchResults?puCity={destination}&ref=wherenext',
   restaurant: 'https://www.opentable.com/s/?covers=2&datetime={date}&metroId=&query={destination}&ref=wherenext',
   insurance: 'https://www.worldnomads.com/?ref=wherenext&destination={destination}'

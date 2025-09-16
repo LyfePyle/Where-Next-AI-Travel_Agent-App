@@ -1,378 +1,338 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { TripSuggestion, FullItinerary } from '@/types/trips';
+import { 
+  Heart, 
+  MapPin, 
+  Calendar, 
+  DollarSign, 
+  Users, 
+  Trash2, 
+  Eye, 
+  Navigation,
+  Star,
+  Crown,
+  Sparkles
+} from 'lucide-react';
 
 interface SavedTrip {
   id: string;
-  type: 'suggestion' | 'itinerary';
-  data: TripSuggestion | FullItinerary;
+  destination: string;
+  estimatedCost: number;
+  reason?: string;
+  fitScore?: number;
+  bestTime?: string;
+  source: string;
   savedAt: string;
-  notes?: string;
+  tripDuration?: number;
+  travelers?: number;
 }
 
 export default function SavedTripsPage() {
+  const router = useRouter();
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
-  const [filter, setFilter] = useState<'all' | 'suggestions' | 'itineraries'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [editingTrip, setEditingTrip] = useState<string | null>(null);
-  const [editNotes, setEditNotes] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [deletingTrip, setDeletingTrip] = useState<string | null>(null);
 
   useEffect(() => {
     loadSavedTrips();
   }, []);
 
-  const loadSavedTrips = () => {
+  const loadSavedTrips = async () => {
     try {
-      const saved = localStorage.getItem('savedTrips');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setSavedTrips(parsed);
+      const response = await fetch('/api/trips/saved');
+      if (response.ok) {
+        const trips = await response.json();
+        setSavedTrips(trips);
+      } else {
+        console.error('Failed to load saved trips');
       }
     } catch (error) {
       console.error('Error loading saved trips:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const deleteTrip = (tripId: string) => {
-    if (confirm('Are you sure you want to delete this saved trip?')) {
-      const updatedTrips = savedTrips.filter(trip => trip.id !== tripId);
-      setSavedTrips(updatedTrips);
-      localStorage.setItem('savedTrips', JSON.stringify(updatedTrips));
+  const handleDeleteTrip = async (tripId: string) => {
+    if (!confirm('Are you sure you want to remove this saved trip?')) {
+      return;
     }
-  };
 
-  const saveNotes = (tripId: string) => {
-    const updatedTrips = savedTrips.map(trip => 
-      trip.id === tripId ? { ...trip, notes: editNotes } : trip
-    );
-    setSavedTrips(updatedTrips);
-    localStorage.setItem('savedTrips', JSON.stringify(updatedTrips));
-    setEditingTrip(null);
-    setEditNotes('');
-  };
-
-  const startEditing = (trip: SavedTrip) => {
-    setEditingTrip(trip.id);
-    setEditNotes(trip.notes || '');
-  };
-
-  const filteredTrips = savedTrips.filter(trip => {
-    const matchesFilter = filter === 'all' || trip.type === filter;
-    const matchesSearch = searchQuery === '' || 
-      (trip.type === 'suggestion' && 
-       (trip.data as TripSuggestion).destination.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (trip.type === 'itinerary' && 
-       (trip.data as FullItinerary).destination.toLowerCase().includes(searchQuery.toLowerCase()));
+    setDeletingTrip(tripId);
     
-    return matchesFilter && matchesSearch;
-  });
+    try {
+      const response = await fetch(`/api/trips/saved/${tripId}`, {
+        method: 'DELETE',
+      });
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const getTripCard = (trip: SavedTrip) => {
-    if (trip.type === 'suggestion') {
-      const suggestion = trip.data as TripSuggestion;
-      return (
-        <div key={trip.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-          <div className="relative h-48 bg-gradient-to-br from-blue-400 to-purple-500">
-            {suggestion.imageUrl ? (
-              <img 
-                src={suggestion.imageUrl} 
-                alt={`${suggestion.destination}, ${suggestion.country}`}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-white text-6xl">✈️</div>
-              </div>
-            )}
-            
-            <div className="absolute top-3 right-3 bg-green-500 text-white rounded-full px-3 py-1 text-sm font-bold">
-              ${suggestion.estTotalUSD.toLocaleString()}
-            </div>
-          </div>
-
-          <div className="p-6">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">
-                  {suggestion.destination}, {suggestion.country}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Saved on {formatDate(trip.savedAt)}
-                </p>
-              </div>
-            </div>
-
-            <p className="text-gray-700 mb-4 leading-relaxed">
-              {suggestion.summary}
-            </p>
-
-            <div className="flex flex-wrap gap-2 mb-4">
-              {suggestion.highlights.map((highlight, index) => (
-                <span 
-                  key={index}
-                  className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs font-medium"
-                >
-                  {highlight}
-                </span>
-              ))}
-            </div>
-
-            {trip.notes && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-yellow-800">
-                  <strong>Notes:</strong> {trip.notes}
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <Link
-                href={`/itinerary/${encodeURIComponent(suggestion.id)}`}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
-              >
-                View Itinerary
-              </Link>
-              
-              <button
-                onClick={() => startEditing(trip)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Edit notes"
-              >
-                ✏️
-              </button>
-              
-              <button
-                onClick={() => deleteTrip(trip.id)}
-                className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
-                title="Delete trip"
-              >
-                🗑️
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    } else {
-      const itinerary = trip.data as FullItinerary;
-      return (
-        <div key={trip.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-          <div className="relative h-48 bg-gradient-to-br from-green-400 to-blue-500">
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-white text-6xl">🗺️</div>
-            </div>
-            
-            <div className="absolute top-3 right-3 bg-green-500 text-white rounded-full px-3 py-1 text-sm font-bold">
-              ${itinerary.estTotals.totalUSD.toLocaleString()}
-            </div>
-          </div>
-
-          <div className="p-6">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">
-                  {itinerary.destination}, {itinerary.country}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {itinerary.days.length} days • Saved on {formatDate(trip.savedAt)}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-              <div>
-                <span className="text-gray-600">Flights:</span>
-                <div className="font-semibold">${itinerary.estTotals.flightsUSD.toLocaleString()}</div>
-              </div>
-              <div>
-                <span className="text-gray-600">Hotels:</span>
-                <div className="font-semibold">${itinerary.estTotals.staysUSD.toLocaleString()}</div>
-              </div>
-              <div>
-                <span className="text-gray-600">Activities:</span>
-                <div className="font-semibold">${itinerary.estTotals.activitiesUSD.toLocaleString()}</div>
-              </div>
-              <div>
-                <span className="text-gray-600">Food:</span>
-                <div className="font-semibold">${itinerary.estTotals.foodUSD.toLocaleString()}</div>
-              </div>
-            </div>
-
-            {trip.notes && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-yellow-800">
-                  <strong>Notes:</strong> {trip.notes}
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <Link
-                href={`/itinerary/${encodeURIComponent(itinerary.id)}`}
-                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-center"
-              >
-                View Itinerary
-              </Link>
-              
-              <button
-                onClick={() => startEditing(trip)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Edit notes"
-              >
-                ✏️
-              </button>
-              
-              <button
-                onClick={() => deleteTrip(trip.id)}
-                className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
-                title="Delete trip"
-              >
-                🗑️
-              </button>
-            </div>
-          </div>
-        </div>
-      );
+      if (response.ok) {
+        setSavedTrips(prev => prev.filter(trip => trip.id !== tripId));
+      } else {
+        alert('Failed to delete trip. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting trip:', error);
+      alert('Error deleting trip. Please try again.');
+    } finally {
+      setDeletingTrip(null);
     }
   };
+
+  const handleViewDetails = (trip: SavedTrip) => {
+    const params = new URLSearchParams({
+      from: 'Vancouver',
+      dateMode: 'flexible',
+      tripDuration: '7',
+      budgetStyle: 'comfortable',
+      budgetAmount: trip.estimatedCost.toString(),
+      destination: trip.destination,
+      autoSearch: 'true'
+    });
+    
+    router.push(`/suggestions?${params.toString()}`);
+  };
+
+  const handleCreateItinerary = (trip: SavedTrip) => {
+    const tripId = `trip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const params = new URLSearchParams({
+      from: 'Vancouver',
+      dateMode: 'flexible',
+      tripDuration: '7',
+      budgetStyle: 'comfortable',
+      budgetAmount: trip.estimatedCost.toString(),
+      destination: trip.destination,
+      adults: '2',
+      kids: '0'
+    });
+    
+    router.push(`/itinerary-builder/${tripId}?${params.toString()}`);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your saved trips...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Saved Trips</h1>
-              <p className="mt-1 text-sm text-gray-500">
-                Your collection of trip suggestions and itineraries
-              </p>
-            </div>
-            <Link href="/" className="text-blue-600 hover:text-blue-700">
-              ← Back to Home
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <Link href="/" className="text-2xl font-bold text-purple-600">
+              Where Next
             </Link>
+            <nav className="hidden md:flex space-x-8">
+              <Link href="/plan-trip" className="text-gray-700 hover:text-purple-600">Plan Trip</Link>
+              <Link href="/ai-travel-agent" className="text-gray-700 hover:text-purple-600">AI Agent</Link>
+              <Link href="/profile" className="text-gray-700 hover:text-purple-600">Profile</Link>
+            </nav>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Filters and Search */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === 'all' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              All ({savedTrips.length})
-            </button>
-            <button
-              onClick={() => setFilter('suggestions')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === 'suggestions' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              Suggestions ({savedTrips.filter(t => t.type === 'suggestion').length})
-            </button>
-            <button
-              onClick={() => setFilter('itineraries')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === 'itineraries' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              Itineraries ({savedTrips.filter(t => t.type === 'itinerary').length})
-            </button>
-          </div>
-          
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Search saved trips..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+                <Heart className="w-8 h-8 text-purple-600 mr-3" />
+                Saved Trips
+              </h1>
+              <p className="text-gray-600 mt-2">Your collection of dream destinations</p>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500">Free Plan</div>
+              <div className="text-lg font-semibold text-gray-900">
+                {savedTrips.length}/3 trips saved
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Free Plan Upgrade Banner */}
+        {savedTrips.length >= 2 && (
+          <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-6 mb-8 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Crown className="w-8 h-8 mr-3" />
+                <div>
+                  <h3 className="text-lg font-semibold">Almost at your limit!</h3>
+                  <p className="text-purple-100">
+                    {savedTrips.length === 2 ? '1 more trip' : 'No more trips'} can be saved on the free plan
+                  </p>
+                </div>
+              </div>
+              <button className="bg-white text-purple-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                Upgrade to Pro
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Saved Trips Grid */}
-        {filteredTrips.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📚</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {savedTrips.length === 0 ? 'No saved trips yet' : 'No trips match your search'}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {savedTrips.length === 0 
-                ? 'Start planning your next adventure and save trips you love!'
-                : 'Try adjusting your filters or search terms.'
-              }
-            </p>
-            {savedTrips.length === 0 && (
-              <Link
-                href="/trips/plan"
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Plan Your First Trip
-              </Link>
-            )}
+        {savedTrips.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {savedTrips.map((trip) => (
+              <div key={trip.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
+                <div className="p-6">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center">
+                      <MapPin className="w-5 h-5 text-purple-600 mr-2" />
+                      <span className="text-sm text-gray-500">
+                        {new Date(trip.savedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {trip.fitScore && (
+                      <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold">
+                        {trip.fitScore}% Match
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Destination */}
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    {trip.destination}
+                  </h3>
+
+                  {/* Description */}
+                  {trip.reason && (
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {trip.reason}
+                    </p>
+                  )}
+
+                  {/* Details */}
+                  <div className="space-y-2 mb-6">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Estimated Cost</span>
+                      <span className="font-semibold text-green-600">
+                        ${trip.estimatedCost.toLocaleString()}
+                      </span>
+                    </div>
+                    {trip.bestTime && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Best Time</span>
+                        <span className="font-medium text-gray-900">{trip.bestTime}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Source</span>
+                      <span className="font-medium text-blue-600 capitalize">
+                        {trip.source.replace('-', ' ')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => handleViewDetails(trip)}
+                      className="flex items-center justify-center px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      View Details
+                    </button>
+                    
+                    <button
+                      onClick={() => handleCreateItinerary(trip)}
+                      className="flex items-center justify-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                    >
+                      <Navigation className="w-4 h-4 mr-1" />
+                      Build Trip
+                    </button>
+                  </div>
+
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => handleDeleteTrip(trip.id)}
+                    disabled={deletingTrip === trip.id}
+                    className="w-full mt-3 flex items-center justify-center px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    {deletingTrip === trip.id ? 'Removing...' : 'Remove'}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTrips.map(getTripCard)}
+          /* Empty State */
+          <div className="text-center py-16">
+            <Heart className="w-24 h-24 text-gray-300 mx-auto mb-6" />
+            <h3 className="text-2xl font-semibold text-gray-500 mb-4">No saved trips yet</h3>
+            <p className="text-gray-400 mb-8 max-w-md mx-auto">
+              Start saving your favorite destinations and AI recommendations to build your dream trip collection.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/ai-travel-agent"
+                className="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Get AI Recommendations
+              </Link>
+              <Link
+                href="/plan-trip"
+                className="inline-flex items-center px-6 py-3 bg-white text-purple-600 border-2 border-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
+              >
+                Plan New Trip
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Pro Features Preview */}
+        {savedTrips.length >= 2 && (
+          <div className="mt-12 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div className="text-center">
+              <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Unlock Pro Features</h3>
+              <p className="text-gray-600 mb-6">Get unlimited saved trips and premium travel planning tools</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="text-center">
+                  <div className="bg-purple-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                    <Heart className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <h4 className="font-semibold text-gray-900">Unlimited Saves</h4>
+                  <p className="text-sm text-gray-600">Save as many trips as you want</p>
+                </div>
+                <div className="text-center">
+                  <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                    <Star className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h4 className="font-semibold text-gray-900">Premium AI</h4>
+                  <p className="text-sm text-gray-600">Advanced personalization</p>
+                </div>
+                <div className="text-center">
+                  <div className="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                    <Navigation className="w-6 h-6 text-green-600" />
+                  </div>
+                  <h4 className="font-semibold text-gray-900">Trip Sharing</h4>
+                  <p className="text-sm text-gray-600">Share with friends & family</p>
+                </div>
+              </div>
+              
+              <button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300">
+                Upgrade to Pro - $9.99/month
+              </button>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Edit Notes Modal */}
-      {editingTrip && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Notes</h3>
-            <textarea
-              value={editNotes}
-              onChange={(e) => setEditNotes(e.target.value)}
-              placeholder="Add your personal notes about this trip..."
-              className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-            />
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => {
-                  setEditingTrip(null);
-                  setEditNotes('');
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => saveNotes(editingTrip)}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Save Notes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

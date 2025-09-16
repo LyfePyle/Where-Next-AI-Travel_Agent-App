@@ -337,8 +337,26 @@ function TripDetailEnhancedContent() {
   };
 
   const handleAffiliateClick = (url: string, type: string) => {
-    window.open(url, '_blank');
-    // Track affiliate click analytics here
+    // Route to internal booking pages instead of external affiliates
+    let internalUrl = '';
+    
+    if (type === 'flight') {
+      internalUrl = `/booking/flights?from=${encodeURIComponent(from)}&to=${encodeURIComponent(tripDetail?.destination || '')}&price=${tripDetail?.flightOptions[0]?.price || 1200}`;
+    } else if (type === 'hotel') {
+      internalUrl = `/booking/hotels?destination=${encodeURIComponent(tripDetail?.destination || '')}&checkin=${startDate}&checkout=${endDate}`;
+    } else if (type === 'tours') {
+      // For tours, still route externally or to our future tours page
+      internalUrl = `/tours?destination=${encodeURIComponent(tripDetail?.destination || '')}`;
+    }
+    
+    if (internalUrl) {
+      window.open(internalUrl, '_blank');
+    } else {
+      window.open(url, '_blank');
+    }
+    
+    // Track booking click analytics here
+    console.log(`Booking click tracked: ${type} for ${tripDetail?.destination}`);
   };
 
   if (isLoading) {
@@ -450,7 +468,7 @@ function TripDetailEnhancedContent() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2">
@@ -532,7 +550,7 @@ function TripDetailEnhancedContent() {
                       <h4 className="font-medium text-gray-900 mb-2">Cultural Tips</h4>
                       <ul className="space-y-2">
                         {tripDetail.localInsights.culturalTips.map((tip, index) => (
-                          <li key={index} className="flex items-start space-x-2">
+                          <li key={`cultural-tip-${index}`} className="flex items-start space-x-2">
                             <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
                             <span className="text-gray-700 text-sm">{tip}</span>
                           </li>
@@ -543,7 +561,7 @@ function TripDetailEnhancedContent() {
                       <h4 className="font-medium text-gray-900 mb-2">Local Customs</h4>
                       <ul className="space-y-2">
                         {tripDetail.localInsights.localCustoms.map((custom, index) => (
-                          <li key={index} className="flex items-start space-x-2">
+                          <li key={`local-custom-${index}`} className="flex items-start space-x-2">
                             <div className="w-2 h-2 bg-pink-500 rounded-full mt-2 flex-shrink-0"></div>
                             <span className="text-gray-700 text-sm">{custom}</span>
                           </li>
@@ -558,7 +576,7 @@ function TripDetailEnhancedContent() {
                   <h3 className="text-lg font-semibold text-black mb-4">Top Highlights</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {tripDetail.highlights.map((highlight, index) => (
-                      <div key={index} className="flex items-center space-x-3">
+                      <div key={`highlight-${index}`} className="flex items-center space-x-3">
                         <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                         <span className="text-gray-700">{highlight}</span>
                       </div>
@@ -641,7 +659,7 @@ function TripDetailEnhancedContent() {
                             <div className="text-sm text-gray-700 mb-3">{hotel.whyRecommended}</div>
                             <div className="flex flex-wrap gap-2">
                               {hotel.amenities.map((amenity, index) => (
-                                <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                                <span key={`hotel-amenity-${index}`} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
                                   {amenity}
                                 </span>
                               ))}
@@ -803,6 +821,55 @@ function TripDetailEnhancedContent() {
               </div>
             </div>
 
+            {/* AI Walking Tours Section */}
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl shadow-sm p-6 text-white">
+              <div className="text-center">
+                <div className="text-3xl mb-3">🚶‍♂️</div>
+                <h3 className="text-lg font-bold mb-2">AI Walking Tours</h3>
+                <p className="text-purple-100 text-sm mb-4">
+                  Discover {tripDetail.destination.split(',')[0]} through personalized walking routes with local insights and hidden gems
+                </p>
+                
+                <div className="bg-white bg-opacity-20 rounded-lg p-3 mb-4">
+                  <div className="text-xs text-purple-100 mb-1">Starting from</div>
+                  <div className="text-2xl font-bold">$25</div>
+                  <div className="text-xs text-purple-100">per person</div>
+                </div>
+
+                <div className="space-y-2 text-left text-sm text-purple-100 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span>✨</span>
+                    <span>AI-curated routes based on your interests</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span>📱</span>
+                    <span>Mobile app with audio guide & GPS</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span>🎯</span>
+                    <span>Hidden local spots & photo opportunities</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span>⏰</span>
+                    <span>Flexible timing - start anytime</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    alert(`🎉 AI Walking Tour for ${tripDetail.destination.split(',')[0]}!\n\nThis premium feature will create a personalized walking tour based on your interests, featuring:\n\n• Local hidden gems\n• Cultural insights\n• Perfect photo spots\n• Flexible self-guided routes\n\nComing Soon! Pre-order now for early access.`);
+                  }}
+                  className="w-full bg-white text-purple-700 py-3 px-4 rounded-lg font-bold hover:bg-gray-100 transition-colors"
+                >
+                  🎯 Book AI Walking Tour
+                </button>
+                
+                <div className="text-xs text-purple-200 mt-2">
+                  💡 100% Profit - Pure AI Experience
+                </div>
+              </div>
+            </div>
+
             {/* Quick Book */}
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border p-6">
               <h3 className="text-lg font-semibold text-black mb-4">Quick Book</h3>
@@ -859,10 +926,10 @@ function TripDetailEnhancedContent() {
               </div>
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={() => window.open(`/walking-tours/${tripDetail.city}`, '_blank')}
+                  onClick={() => alert('🚀 AI Walking Tours Coming Soon!\n\nOur AI-powered walking tours will be available in beta soon. You\'ll be able to:\n\n• Get personalized route recommendations\n• Discover hidden local gems\n• Access real-time audio guides\n• Enjoy interactive cultural insights\n\nJoin our waitlist to be notified when this feature launches!')}
                   className="bg-white text-indigo-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors text-sm"
                 >
-                  Explore Tours
+                  Book AI Walking Tour
                 </button>
                 <div className="text-white/80 text-sm">
                   <span className="line-through">$29</span>

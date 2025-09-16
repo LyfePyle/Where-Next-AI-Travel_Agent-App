@@ -488,7 +488,14 @@ export default function MyTripsPage() {
                         <Eye className="w-3 h-3" />
                         View Details
                       </Link>
-                      <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                      <button 
+                        onClick={() => {
+                          // Route to itinerary builder to edit the trip
+                          window.location.href = `/itinerary-builder/${trip.id}?destination=${encodeURIComponent(trip.destination)}&startDate=${trip.dates.startDate}&endDate=${trip.dates.endDate}&edit=true`;
+                        }}
+                        className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                        title="Edit Trip"
+                      >
                         <Edit3 className="w-4 h-4" />
                       </button>
                       <button 

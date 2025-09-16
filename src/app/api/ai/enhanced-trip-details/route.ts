@@ -428,7 +428,7 @@ function generateFlightOptions(
       duration: '12h 30m',
       stops: 0,
       type: 'fastest' as const,
-      affiliateUrl: `https://www.skyscanner.com/transport/flights/${from.toLowerCase().replace(' ', '')}/${to.toLowerCase().replace(' ', '')}/?ref=wherenext`
+      affiliateUrl: `/booking/flights?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=fastest&price=${Math.floor(Math.random() * 500) + 800}`
     },
     {
       id: 'flight2',
@@ -437,7 +437,7 @@ function generateFlightOptions(
       duration: '16h 45m',
       stops: 1,
       type: 'cheapest' as const,
-      affiliateUrl: `https://www.skyscanner.com/transport/flights/${from.toLowerCase().replace(' ', '')}/${to.toLowerCase().replace(' ', '')}/?ref=wherenext`
+      affiliateUrl: `/booking/flights?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=fastest&price=${Math.floor(Math.random() * 500) + 800}`
     },
     {
       id: 'flight3',
@@ -446,7 +446,7 @@ function generateFlightOptions(
       duration: '14h 15m',
       stops: 1,
       type: 'best_value' as const,
-      affiliateUrl: `https://www.skyscanner.com/transport/flights/${from.toLowerCase().replace(' ', '')}/${to.toLowerCase().replace(' ', '')}/?ref=wherenext`
+      affiliateUrl: `/booking/flights?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=fastest&price=${Math.floor(Math.random() * 500) + 800}`
     }
   ];
 }
@@ -468,7 +468,7 @@ function generateHotelOptions(
       amenities: ['Free WiFi', 'Breakfast', 'Gym', 'Concierge'],
       type: 'mid_range' as const,
       whyRecommended: 'Perfect location in the heart of the city with excellent transport links and amenities',
-      affiliateUrl: `https://www.booking.com/searchresults.html?ss=${city}&ref=wherenext`
+      affiliateUrl: `/booking/hotels?destination=${encodeURIComponent(city)}&checkin=${new Date().toISOString().split('T')[0]}&checkout=${new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]}`
     },
     {
       id: 'hotel2',
@@ -479,7 +479,7 @@ function generateHotelOptions(
       amenities: ['Free WiFi', 'Basic Breakfast'],
       type: 'budget' as const,
       whyRecommended: 'Clean, comfortable accommodation with great value and easy access to attractions',
-      affiliateUrl: `https://www.booking.com/searchresults.html?ss=${city}&ref=wherenext`
+      affiliateUrl: `/booking/hotels?destination=${encodeURIComponent(city)}&checkin=${new Date().toISOString().split('T')[0]}&checkout=${new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]}`
     },
     {
       id: 'hotel3',
@@ -490,7 +490,7 @@ function generateHotelOptions(
       amenities: ['Spa', 'Pool', 'Fine Dining', 'Butler Service', 'Premium Location'],
       type: 'luxury' as const,
       whyRecommended: 'Ultimate luxury experience with world-class amenities and service',
-      affiliateUrl: `https://www.booking.com/searchresults.html?ss=${city}&ref=wherenext`
+      affiliateUrl: `/booking/hotels?destination=${encodeURIComponent(city)}&checkin=${new Date().toISOString().split('T')[0]}&checkout=${new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]}`
     }
   ];
 }

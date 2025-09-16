@@ -1,5 +1,7 @@
 // Amadeus API helper functions
-const AMADEUS_BASE_URL = 'https://test.api.amadeus.com/v2';
+const AMADEUS_BASE_URL = process.env.AMADEUS_ENV === 'production' 
+  ? 'https://api.amadeus.com' 
+  : 'https://test.api.amadeus.com';
 
 interface AmadeusToken {
   access_token: string;
@@ -15,11 +17,12 @@ async function getAmadeusToken(): Promise<string> {
     return cachedToken.token;
   }
 
-  const clientId = process.env.AMADEUS_API_KEY;
-  const clientSecret = process.env.AMADEUS_API_SECRET;
+  const clientId = process.env.AMADEUS_CLIENT_ID;
+  const clientSecret = process.env.AMADEUS_CLIENT_SECRET;
 
-  if (!clientId || !clientSecret) {
-    throw new Error('Amadeus API credentials not configured');
+  if (!clientId || !clientSecret || clientSecret === 'your_amadeus_client_secret_here') {
+    console.log('Amadeus credentials not configured, using mock data fallback');
+    throw new Error('Amadeus API credentials not configured - using fallback data');
   }
 
   try {
@@ -164,7 +167,7 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
       searchParams.append('nonStop', params.nonStop.toString());
     }
 
-    const response = await fetch(`${AMADEUS_BASE_URL}/shopping/flight-offers?${searchParams}`, {
+    const response = await fetch(`${AMADEUS_BASE_URL}/v2/shopping/flight-offers?${searchParams}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -322,7 +325,7 @@ export async function searchHotels(params: HotelSearchParams): Promise<HotelOffe
       searchParams.append('sort', params.sort);
     }
 
-    const response = await fetch(`${AMADEUS_BASE_URL}/reference-data/locations/hotels/by-city?${searchParams}`, {
+    const response = await fetch(`${AMADEUS_BASE_URL}/v1/shopping/hotel-offers?${searchParams}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -530,7 +533,7 @@ export async function searchLocations(params: LocationSearchParams): Promise<Loc
       searchParams.append('page[offset]', params.page.offset.toString());
     }
 
-    const response = await fetch(`${AMADEUS_BASE_URL}/reference-data/locations?${searchParams}`, {
+    const response = await fetch(`${AMADEUS_BASE_URL}/v1/reference-data/locations?${searchParams}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },

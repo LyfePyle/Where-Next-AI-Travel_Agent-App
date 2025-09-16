@@ -3,7 +3,12 @@ const path = require('path');
 
 console.log('🔧 Updating environment variables with your Supabase credentials...\n');
 
-const envContent = `# Supabase Configuration (REPLACE WITH YOUR CREDENTIALS)
+const envContent = `# Amadeus API Configuration (VERIFIED WORKING!)
+AMADEUS_CLIENT_ID=3sY9VNvXIjyJYd5mmOtOzJLuL1BzJBBp
+AMADEUS_CLIENT_SECRET=your_amadeus_client_secret_here
+AMADEUS_ENV=sandbox
+
+# Supabase Configuration (REPLACE WITH YOUR CREDENTIALS)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
@@ -23,11 +28,13 @@ NEXTAUTH_URL=http://localhost:3000
 const envPath = path.join(__dirname, '.env.local');
 
 fs.writeFileSync(envPath, envContent);
-console.log('✅ Updated .env.local file with your Supabase credentials');
+console.log('✅ Updated .env.local file with Amadeus + Supabase credentials');
 console.log('📝 You still need to add:');
+console.log('   - AMADEUS_CLIENT_SECRET (you have this from the working curl test)');
 console.log('   - SUPABASE_SERVICE_ROLE_KEY (from Supabase dashboard)');
 console.log('   - OPENAI_API_KEY (optional)');
 console.log('   - Other API keys (optional)');
+console.log('\n🔑 Your Amadeus Client ID is already configured and working!');
 
 console.log('\n🧪 Testing connection...');
 console.log('Run: node test-db-connection.js');

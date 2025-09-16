@@ -322,8 +322,8 @@ export default function PlanTripPage() {
                     onClick={() => setPreferences(prev => ({ ...prev, budgetStyle: option.id as any }))}
                     className={`p-4 rounded-lg border-2 text-left transition-colors ${
                       preferences.budgetStyle === option.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-200 hover:bg-purple-25'
                     }`}
                   >
                     <div className="font-medium text-gray-900">{option.label}</div>
@@ -344,8 +344,8 @@ export default function PlanTripPage() {
                     onClick={() => handleVibeToggle(vibe.id)}
                     className={`p-3 rounded-lg border-2 text-center transition-colors ${
                       preferences.vibes.includes(vibe.id)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-200 hover:bg-purple-25'
                     }`}
                   >
                     <div className="text-2xl mb-1">{vibe.icon}</div>
@@ -378,7 +378,7 @@ export default function PlanTripPage() {
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full p-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+              className="w-full p-6 text-left flex items-center justify-between hover:bg-purple-50 transition-colors"
             >
               <div>
                 <h3 className="text-lg font-medium text-gray-900">Advanced Options</h3>
@@ -451,7 +451,12 @@ export default function PlanTripPage() {
             <button
               type="submit"
               disabled={isLoading || !isFormValid()}
-              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-4 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition-all text-lg shadow-lg disabled:from-purple-400 disabled:to-purple-500 disabled:cursor-not-allowed disabled:shadow-none"
+              style={{
+                background: isLoading || !isFormValid() 
+                  ? 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)' 
+                  : 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'
+              }}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
@@ -462,6 +467,13 @@ export default function PlanTripPage() {
                 'See Trip Ideas'
               )}
             </button>
+            
+            {/* Helpful message when button is disabled */}
+            {!isFormValid() && !isLoading && (
+              <p className="text-sm text-purple-600 mt-2 text-center">
+                ✈️ Please fill in your departure location to get started
+              </p>
+            )}
           </div>
         </form>
       </div>

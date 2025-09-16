@@ -79,13 +79,13 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
                 href="/ai-travel-agent"
-                className="bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-800 transition-colors"
+                className="bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-800 transition-colors no-underline"
               >
                 Start AI Travel Planning
               </Link>
               <Link 
                 href="/auth/register"
-                className="bg-white text-purple-700 px-8 py-3 rounded-lg font-semibold border-2 border-purple-700 hover:bg-purple-50 transition-colors"
+                className="bg-white text-purple-700 px-8 py-3 rounded-lg font-semibold border-2 border-purple-700 hover:bg-purple-50 transition-colors no-underline"
               >
                 Create Account
               </Link>
@@ -262,7 +262,7 @@ export default function HomePage() {
               <p className="text-gray-600 mb-4">
                 Get personalized destination recommendations and detailed itineraries based on your preferences and budget.
               </p>
-              <Link href="/trips/plan" className="text-blue-600 font-medium hover:underline">
+              <Link href="/trips/plan" className="text-blue-600 font-medium hover:no-underline no-underline">
                 Start Planning →
               </Link>
             </div>
@@ -276,7 +276,7 @@ export default function HomePage() {
               <p className="text-gray-600 mb-4">
                 Track expenses across categories, get spending insights, and stay within your travel budget.
               </p>
-              <Link href="/budget" className="text-green-600 font-medium hover:underline">
+              <Link href="/budget" className="text-green-600 font-medium hover:no-underline no-underline">
                 Manage Budget →
               </Link>
             </div>
@@ -290,7 +290,7 @@ export default function HomePage() {
               <p className="text-gray-600 mb-4">
                 Discover personalized walking routes with local insights, hidden gems, and cultural experiences.
               </p>
-              <Link href="/tours" className="text-purple-600 font-medium hover:underline">
+              <Link href="/tours" className="text-purple-600 font-medium hover:no-underline no-underline">
                 Explore Tours →
               </Link>
             </div>
@@ -304,7 +304,7 @@ export default function HomePage() {
               <p className="text-gray-600 mb-4">
                 Get instant travel advice, recommendations, and answers to all your travel questions.
               </p>
-              <Link href="/assistant" className="text-orange-600 font-medium hover:underline">
+              <Link href="/assistant" className="text-orange-600 font-medium hover:no-underline no-underline">
                 Chat with AI →
               </Link>
             </div>
@@ -318,7 +318,7 @@ export default function HomePage() {
               <p className="text-gray-600 mb-4">
                 Weather forecasts, currency conversion, travel phrases, and essential travel tools.
               </p>
-              <Link href="/utilities" className="text-pink-600 font-medium hover:underline">
+              <Link href="/utilities" className="text-pink-600 font-medium hover:no-underline no-underline">
                 Use Utilities →
               </Link>
             </div>
@@ -332,7 +332,7 @@ export default function HomePage() {
               <p className="text-gray-600 mb-4">
                 Find and book flights, hotels, tours, and activities with price comparison and deals.
               </p>
-              <Link href="/booking" className="text-indigo-600 font-medium hover:underline">
+              <Link href="/booking" className="text-indigo-600 font-medium hover:no-underline no-underline">
                 Book Now →
               </Link>
             </div>
@@ -347,7 +347,7 @@ export default function HomePage() {
             Backend API Demo
           </h2>
           
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md-grid-cols-2 gap-8">
             {/* Weather Demo */}
             <div className="bg-white p-6 rounded-xl shadow-sm">
               <h3 className="text-xl font-semibold text-black mb-4">Weather API</h3>

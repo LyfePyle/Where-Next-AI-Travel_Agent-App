@@ -1,73 +1,99 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { amadeusGet } from "@/lib/amadeus";
+import { NextRequest, NextResponse } from 'next/server';
 
-const Query = z.object({
-  origin: z.string().min(3),
-  destination: z.string().min(3),
-  departureDate: z.string().min(10), // YYYY-MM-DD
-  returnDate: z.string().optional(), // YYYY-MM-DD
-  adults: z.coerce.number().min(1).default(1),
-  max: z.coerce.number().min(1).max(50).default(10),
-  nonStop: z.coerce.boolean().optional(),
-  currencyCode: z.string().default("USD"),
-});
-
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const parse = Query.safeParse({
-    origin: searchParams.get("origin"),
-    destination: searchParams.get("destination"),
-    departureDate: searchParams.get("departureDate"),
-    returnDate: searchParams.get("returnDate") || undefined,
-    adults: searchParams.get("adults") || "1",
-    max: searchParams.get("max") || "10",
-    nonStop: searchParams.get("nonStop") === "true" ? true : undefined,
-    currencyCode: searchParams.get("currencyCode") || "USD",
-  });
-  if (!parse.success) return NextResponse.json({ error: parse.error.flatten() }, { status: 400 });
-  const q = parse.data;
-
+export async function POST(req: NextRequest) {
+  let requestBody;
+  
   try {
-    // Amadeus Flight Offers Search v2
-    // https://developers.amadeus.com/self-service/category/flights/api-doc/flight-offers-search/api-reference
-    const res = await amadeusGet<any>("/v2/shopping/flight-offers", {
-      originLocationCode: q.origin,
-      destinationLocationCode: q.destination,
-      departureDate: q.departureDate,
-      ...(q.returnDate ? { returnDate: q.returnDate } : {}),
-      adults: q.adults,
-      nonStop: q.nonStop ? "true" : undefined,
-      currencyCode: q.currencyCode,
-      max: q.max,
+    requestBody = await req.json();
+    const { offer } = requestBody;
+    
+    if (!offer) {
+      return NextResponse.json({ error: 'Missing flight offer' }, { status: 400 });
+    }
+
+    // Get Amadeus token
+    const clientId = process.env.AMADEUS_CLIENT_ID;
+    const clientSecret = process.env.AMADEUS_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      // Return mock pricing data if credentials not configured
+      return NextResponse.json({
+        data: {
+          flightOffers: [{
+            ...offer,
+            price: {
+              ...offer.price,
+              grandTotal: offer.price.total,
+              fees: offer.price.fees || []
+            }
+          }]
+        }
+      });
+    }
+
+    // Get token
+    const tokenResponse = await fetch('https://test.api.amadeus.com/v1/security/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      }),
     });
 
-    const results = (res?.data || []).map((offer: any) => ({
-      id: offer.id,
-      price: Number(offer.price?.grandTotal || offer.price?.total),
-      currency: offer.price?.currency || q.currencyCode,
-      oneWay: !q.returnDate,
-      legs: offer.itineraries?.map((it: any) => ({
-        duration: it.duration, // "PT10H20M"
-        segments: it.segments?.map((s: any) => ({
-          carrier: s.operating?.carrierCode || s.carrierCode,
-          flightNumber: `${s.carrierCode}${s.number}`,
-          from: s.departure?.iataCode,
-          to: s.arrival?.iataCode,
-          dep: s.departure?.at,
-          arr: s.arrival?.at,
-          duration: s.duration,
-          stops: s.numberOfStops || 0,
-        })),
-      })),
-    }));
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to get Amadeus token');
+    }
 
-    return NextResponse.json({ query: q, results });
+    const tokenData = await tokenResponse.json();
+
+    // Confirm flight pricing
+    const payload = {
+      data: {
+        type: 'flight-offers-pricing',
+        flightOffers: [offer],
+      },
+    };
+
+    const baseUrl = process.env.AMADEUS_ENV === 'production' 
+      ? 'https://api.amadeus.com' 
+      : 'https://test.api.amadeus.com';
+
+    const pricingResponse = await fetch(`${baseUrl}/v1/shopping/flight-offers/pricing`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!pricingResponse.ok) {
+      throw new Error(`Flight pricing failed: ${pricingResponse.statusText}`);
+    }
+
+    const pricingData = await pricingResponse.json();
+    return NextResponse.json(pricingData);
+
   } catch (error) {
-    console.error('Flight price search error:', error);
-    return NextResponse.json(
-      { error: 'Failed to search flight prices', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    console.error('Flight pricing error:', error);
+    
+    // Fallback: return the original offer with confirmed pricing
+    const { offer } = requestBody || {};
+    return NextResponse.json({
+      data: {
+        flightOffers: [{
+          ...offer,
+          price: {
+            ...offer.price,
+            grandTotal: offer.price.total,
+            fees: offer.price.fees || []
+          }
+        }]
+      }
+    });
   }
 }

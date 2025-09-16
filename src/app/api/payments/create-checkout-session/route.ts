@@ -1,76 +1,82 @@
-import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
-
-// Initialize Stripe inside the function to avoid build-time issues
-function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return null
-  }
-  
-  try {
-    return new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2024-12-18.acacia',
-    })
-  } catch (error) {
-    console.error('Failed to initialize Stripe:', error)
-    return null
-  }
-}
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    // Initialize Stripe
-    const stripe = getStripe()
+    const body = await request.json();
+    const { bookingType, item, travelers, totalAmount, metadata } = body;
+
+    // For development/demo, we'll simulate Stripe integration
+    // In production, you'd use the real Stripe API
     
-    // Check if Stripe is configured
-    if (!stripe) {
-      return NextResponse.json(
-        { error: 'Stripe is not configured. Please set STRIPE_SECRET_KEY in environment variables.' },
-        { status: 503 }
-      )
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    
+    if (!stripeSecretKey || stripeSecretKey === 'your_stripe_secret_key_here') {
+      // Demo mode - simulate successful session creation
+      const mockSessionId = `cs_demo_${Date.now()}`;
+      
+      console.log('🔧 Demo Mode: Stripe not configured');
+      console.log('Booking Details:', {
+        type: bookingType,
+        amount: totalAmount,
+        travelers: travelers.length,
+        item: bookingType === 'flight' ? `${item.airline} ${item.id}` : item.name
+      });
+      
+      return NextResponse.json({ 
+        sessionId: mockSessionId,
+        demoMode: true,
+        message: 'Demo booking - no actual payment processed'
+      });
     }
 
-    const { 
-      priceId = process.env.STRIPE_PRICE_ID,
-      quantity = 1,
-      successUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/booking/success`,
-      cancelUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/booking/cancel`,
-      metadata = {}
-    } = await request.json()
-
-    if (!priceId) {
-      return NextResponse.json(
-        { error: 'Price ID is required. Set STRIPE_PRICE_ID in environment variables or pass priceId in request body.' },
-        { status: 400 }
-      )
-    }
-
+    // Real Stripe integration (uncomment when ready)
+    /*
+    const stripe = require('stripe')(stripeSecretKey);
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          price: priceId,
-          quantity: quantity,
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: bookingType === 'flight' 
+                ? `Flight: ${metadata.from} → ${metadata.to}`
+                : `Hotel: ${item.name}`,
+              description: bookingType === 'flight'
+                ? `${item.airline} Flight ${item.id} - ${item.departure}`
+                : `${item.neighborhood} - ${metadata.checkin} to ${metadata.checkout}`,
+            },
+            unit_amount: totalAmount,
+          },
+          quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      success_url: `${process.env.NEXTAUTH_URL}/booking/confirmation?session_id={CHECKOUT_SESSION_ID}&type=${bookingType}`,
+      cancel_url: `${process.env.NEXTAUTH_URL}/booking/${bookingType === 'flight' ? 'flights' : 'hotels'}`,
       metadata: {
-        ...metadata,
-        created_at: new Date().toISOString(),
+        bookingType,
+        travelerCount: travelers.length.toString(),
+        ...metadata
       },
-    })
+      customer_email: travelers[0]?.email,
+    });
 
-    return NextResponse.json({
-      sessionId: session.id,
-      url: session.url,
-    })
+    return NextResponse.json({ sessionId: session.id });
+    */
+
+    // For now, return demo session
+    return NextResponse.json({ 
+      sessionId: `cs_demo_${Date.now()}`,
+      demoMode: true 
+    });
+    
   } catch (error) {
-    console.error('Error creating checkout session:', error)
+    console.error('Checkout session creation failed:', error);
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }
-    )
+    );
   }
 }

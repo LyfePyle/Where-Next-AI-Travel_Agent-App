@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import BudgetChart from '@/components/budget/BudgetChart';
 
 interface Expense {
   id: string;
@@ -163,42 +164,99 @@ export default function BudgetPage() {
                 </div>
               </div>
 
-              {/* Category Breakdown Chart */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Spending by Category</h3>
-                  <div className="space-y-4">
-                    {categories.map((category) => {
-                      const spent = getCategorySpent(category.name);
-                      const percentage = (spent / category.allocated) * 100;
-                      return (
-                        <div key={category.name} className="flex items-center space-x-4">
-                          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: category.color }}></div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-sm font-medium">{category.name}</span>
-                              <span className="text-sm text-gray-600">${spent} / ${category.allocated}</span>
+              {/* Enhanced Budget Charts */}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                {/* Donut Chart */}
+                <BudgetChart
+                  data={categories.map(cat => ({
+                    name: cat.name,
+                    value: getCategorySpent(cat.name),
+                    color: cat.color,
+                    icon: cat.name === 'Flights' ? '✈️' : 
+                          cat.name === 'Accommodation' ? '🏨' :
+                          cat.name === 'Food' ? '🍽️' :
+                          cat.name === 'Activities' ? '🎯' :
+                          cat.name === 'Transport' ? '🚗' :
+                          cat.name === 'Shopping' ? '🛍️' : '💳'
+                  }))}
+                  type="donut"
+                  title="Current Spending Distribution"
+                  totalAmount={totalSpent}
+                />
+                
+                {/* Bar Chart */}
+                <BudgetChart
+                  data={categories.map(cat => ({
+                    name: cat.name,
+                    value: cat.allocated,
+                    color: cat.color,
+                    icon: cat.name === 'Flights' ? '✈️' : 
+                          cat.name === 'Accommodation' ? '🏨' :
+                          cat.name === 'Food' ? '🍽️' :
+                          cat.name === 'Activities' ? '🎯' :
+                          cat.name === 'Transport' ? '🚗' :
+                          cat.name === 'Shopping' ? '🛍️' : '💳'
+                  }))}
+                  type="bar"
+                  title="Budget Allocation"
+                  totalAmount={categories.reduce((sum, cat) => sum + cat.allocated, 0)}
+                />
+              </div>
+
+              {/* Budget vs Actual Comparison */}
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-4">Budget vs Actual Spending</h3>
+                <div className="space-y-4">
+                  {categories.map((category) => {
+                    const spent = getCategorySpent(category.name);
+                    const percentage = (spent / category.allocated) * 100;
+                    const remaining = category.allocated - spent;
+                    return (
+                      <div key={category.name} className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: category.color }}></div>
+                            <span className="font-medium text-gray-900">{category.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-gray-900">
+                              ${spent.toLocaleString()} / ${category.allocated.toLocaleString()}
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="h-2 rounded-full transition-all duration-300"
-                                style={{ 
-                                  width: `${Math.min(percentage, 100)}%`,
-                                  backgroundColor: category.color
-                                }}
-                              ></div>
+                            <div className={`text-xs ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {remaining >= 0 ? `$${remaining} remaining` : `$${Math.abs(remaining)} over budget`}
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3 relative overflow-hidden">
+                          <div 
+                            className="h-3 rounded-full transition-all duration-500"
+                            style={{ 
+                              width: `${Math.min(percentage, 100)}%`,
+                              backgroundColor: percentage > 100 ? '#ef4444' : category.color
+                            }}
+                          />
+                          {percentage > 100 && (
+                            <div className="absolute top-0 right-0 h-3 w-1 bg-red-600 rounded-r-full" />
+                          )}
+                        </div>
+                        <div className="flex justify-between mt-2 text-xs text-gray-600">
+                          <span>0%</span>
+                          <span className={percentage > 100 ? 'text-red-600 font-semibold' : ''}>
+                            {percentage.toFixed(1)}%
+                          </span>
+                          <span>100%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+              </div>
 
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Recent Expenses</h3>
-                  <div className="space-y-3">
-                    {expenses.slice(0, 5).map((expense) => (
+              {/* Recent Expenses Section */}
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-4">Recent Expenses</h3>
+                <div className="space-y-3">
+                  {expenses.slice(0, 5).map((expense) => (
                       <div key={expense.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div>
                           <p className="font-medium">{expense.description}</p>

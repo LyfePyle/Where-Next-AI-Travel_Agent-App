@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Amadeus Integration</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-button { 
+            background: #7c3aed; 
+            color: white; 
+            padding: 15px 30px; 
+            margin: 10px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 16px;
+        }
+        .test-button:hover { background: #6d28d9; }
+        .results { 
+            margin-top: 20px; 
+            padding: 20px; 
+            background: #f3f4f6; 
+            border-radius: 8px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Your Amadeus Integration</h1>
+    
+    <h2>📱 Test Booking Pages:</h2>
+    <p>Click these buttons to test your booking pages in new tabs:</p>
+    
+    <button class="test-button" onclick="testFlights()">
+        ✈️ Test Flight Booking Page
+    </button>
+    
+    <button class="test-button" onclick="testHotels()">
+        🏨 Test Hotel Booking Page  
+    </button>
+    
+    <button class="test-button" onclick="testTripDetails()">
+        🗺️ Test Trip Details Page
+    </button>
+
+    <h2>🔧 Test API Endpoints:</h2>
+    <button class="test-button" onclick="testAPI()">
+        🔍 Test API Endpoints
+    </button>
+
+    <div id="results" class="results" style="display: none;">
+        <h3>API Test Results:</h3>
+        <div id="apiResults"></div>
+    </div>
+
+    <h2>📝 What to Look For:</h2>
+    <ul>
+        <li><strong>✅ Flight Page:</strong> Should show flight search with loading, then display flights (real or fallback data)</li>
+        <li><strong>✅ Hotel Page:</strong> Should show hotel search with loading, then display hotels (real or fallback data)</li>
+        <li><strong>✅ Trip Details:</strong> Flight/Hotel buttons should route to internal pages (not external sites)</li>
+        <li><strong>✅ Professional UI:</strong> No external redirects, consistent branding</li>
+    </ul>
+
+    <h2>🔑 Environment Status:</h2>
+    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <h4>Current Setup:</h4>
+        <p>✅ AMADEUS_CLIENT_ID: Configured and working</p>
+        <p>⚠️ AMADEUS_CLIENT_SECRET: Add your secret for live data</p>
+        <p>✅ Fallback data will be used if API fails</p>
+    </div>
+
+    <script>
+        function testFlights() {
+            const url = 'http://localhost:3000/booking/flights?from=Vancouver&to=Madrid&price=1200';
+            window.open(url, '_blank');
+            console.log('🧪 Testing flight booking page:', url);
+        }
+
+        function testHotels() {
+            const url = 'http://localhost:3000/booking/hotels?destination=Madrid&checkin=2025-10-15&checkout=2025-10-22';
+            window.open(url, '_blank');
+            console.log('🧪 Testing hotel booking page:', url);
+        }
+
+        function testTripDetails() {
+            const url = 'http://localhost:3000/trip-details/madrid-test?from=Vancouver&to=Madrid';
+            window.open(url, '_blank');
+            console.log('🧪 Testing trip details page:', url);
+        }
+
+        async function testAPI() {
+            const resultsDiv = document.getElementById('results');
+            const apiResultsDiv = document.getElementById('apiResults');
+            
+            resultsDiv.style.display = 'block';
+            apiResultsDiv.innerHTML = '<p>🔄 Testing API endpoints...</p>';
+
+            const tests = [
+                {
+                    name: 'Airport Search',
+                    url: '/api/airports/search?q=madrid',
+                    method: 'GET'
+                },
+                {
+                    name: 'Flight Search',
+                    url: '/api/amadeus/flights',
+                    method: 'POST',
+                    body: {
+                        originLocationCode: 'YVR',
+                        destinationLocationCode: 'MAD',
+                        departureDate: '2025-10-15',
+                        adults: 2
+                    }
+                }
+            ];
+
+            let results = '';
+
+            for (const test of tests) {
+                try {
+                    const options = {
+                        method: test.method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    };
+
+                    if (test.body) {
+                        options.body = JSON.stringify(test.body);
+                    }
+
+                    const response = await fetch(test.url, options);
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        results += `<p>✅ ${test.name}: SUCCESS (${response.status})</p>`;
+                        if (data.flights) results += `<p>&nbsp;&nbsp;&nbsp;Found ${data.flights.length} flights</p>`;
+                        if (data.data) results += `<p>&nbsp;&nbsp;&nbsp;Found ${data.data.length} results</p>`;
+                    } else {
+                        results += `<p>❌ ${test.name}: FAILED (${response.status})</p>`;
+                        results += `<p>&nbsp;&nbsp;&nbsp;Error: ${data.error || 'Unknown error'}</p>`;
+                    }
+                } catch (error) {
+                    results += `<p>❌ ${test.name}: ERROR - ${error.message}</p>`;
+                }
+            }
+
+            apiResultsDiv.innerHTML = results;
+        }
+
+        console.log('🚀 Amadeus Integration Test Page Loaded');
+        console.log('📝 Use the buttons above to test your booking integration');
+    </script>
+</body>
+</html>

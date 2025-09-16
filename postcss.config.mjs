@@ -1,5 +1,6 @@
+// Temporarily disable PostCSS plugins to fix CSS parsing issues
 const config = {
-  plugins: ["@tailwindcss/postcss"],
+  plugins: {},
 };
 
 export default config;

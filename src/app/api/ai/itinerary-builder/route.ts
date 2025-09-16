@@ -165,7 +165,35 @@ Make it practical, detailed, and perfectly tailored to their preferences.`;
     });
 
     const response = completion.choices[0].message.content;
-    const itinerary = JSON.parse(response || '[]');
+    
+    // Clean and extract JSON from the response
+    let jsonString = response || '[]';
+    
+    // Try to extract JSON if it's wrapped in markdown or other text
+    const jsonMatch = jsonString.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      jsonString = jsonMatch[0];
+    }
+    
+    // Clean up common issues
+    jsonString = jsonString
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+      .trim();
+    
+    let itinerary;
+    try {
+      itinerary = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError);
+      console.log('Raw response:', response);
+      console.log('Cleaned JSON string:', jsonString);
+      
+      // Fallback to mock data if JSON parsing fails
+      console.log('Using fallback mock data due to JSON parse error');
+      return generateMockItinerary(tripId, preferences);
+    }
     
     return itinerary;
     

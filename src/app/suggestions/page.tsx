@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import FlightPickerModal from '@/components/FlightPickerModal';
 import HotelPickerModal from '@/components/HotelPickerModal';
+import BudgetSuggestionCard from '@/components/budget/BudgetSuggestionCard';
 
 interface TripSuggestion {
   id: string;
@@ -358,10 +359,23 @@ function SuggestionsContent() {
           )}
         </div>
 
+        {/* Budget Suggestion Card */}
+        {suggestions.length > 0 && (
+          <div className="mb-8">
+            <BudgetSuggestionCard
+              destination={suggestions[0].destination}
+              duration={tripDuration}
+              travelers={adults + kids}
+              totalBudget={budgetAmount}
+              budgetStyle={budgetStyle as 'budget' | 'comfortable' | 'luxury'}
+            />
+          </div>
+        )}
+
         {/* Suggestions Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {suggestions.map((suggestion) => (
-            <div key={suggestion.id} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-lg transition-shadow">
+            <div key={suggestion.id} className="trip-card bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
               {/* Header */}
               <div className="p-6 border-b border-gray-200">
                 <div className="flex justify-between items-start mb-4">
@@ -423,7 +437,7 @@ function SuggestionsContent() {
                 <div className="flex flex-wrap gap-2 mb-4">
                   {suggestion.highlights.map((highlight, index) => (
                     <span
-                      key={index}
+                      key={`${suggestion.id}-highlight-${index}`}
                       className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs"
                     >
                       {highlight}
@@ -465,15 +479,15 @@ function SuggestionsContent() {
                  </button>
                   <button 
                     onClick={() => handleSwapFlight(suggestion.id)}
-                    className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                    className="flex-1 btn btn-purple-light"
                   >
-                    Swap Flight
+                    ✈️ Swap Flight
                   </button>
                   <button 
                     onClick={() => handleSwapHotel(suggestion.id)}
-                    className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                    className="flex-1 btn btn-purple-light"
                   >
-                    Swap Hotel
+                    🏨 Swap Hotel
                   </button>
                 </div>
 

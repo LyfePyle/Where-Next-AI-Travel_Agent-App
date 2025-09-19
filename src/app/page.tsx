@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import BudgetDashboard from '@/components/BudgetDashboard';
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -55,12 +56,7 @@ export default function HomePage() {
                 <h1 className="text-2xl font-bold text-blue-600">Where Next</h1>
               </div>
             </div>
-            <nav className="hidden md:flex space-x-8">
-              <Link href="/ai-travel-agent" className="text-gray-700 hover:text-blue-600">AI Travel Agent</Link>
-              <Link href="/plan-trip" className="text-gray-700 hover:text-blue-600">Plan Trip</Link>
-              <Link href="/profile" className="text-gray-700 hover:text-blue-600">Profile</Link>
-              <Link href="/auth/login" className="text-gray-700 hover:text-blue-600">Login</Link>
-            </nav>
+            {/* Navigation moved to persistent header */}
           </div>
         </div>
       </header>
@@ -95,10 +91,24 @@ export default function HomePage() {
       </section>
 
       {/* Budget Dashboard Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-black mb-4">Your Travel Budget</h2>
+            <p className="text-gray-600">Smart budget tracking for your saved trips</p>
+          </div>
+          
+          <div className="max-w-2xl mx-auto">
+            <BudgetDashboard />
+          </div>
+        </div>
+      </section>
+
+      {/* Original Budget Overview Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-black mb-4">Your Travel Budget Overview</h2>
+            <h2 className="text-3xl font-bold text-black mb-4">Budget Analytics</h2>
             <p className="text-gray-600">Track your spending and stay on budget with our smart analytics</p>
           </div>
           

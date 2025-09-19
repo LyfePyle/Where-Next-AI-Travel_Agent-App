@@ -61,7 +61,21 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { tripId, preferences, destination }: { tripId: string; preferences: TripPreferences; destination?: string } = await request.json();
+    const body = await request.json();
+    
+    // Handle different parameter formats
+    const tripId = body.tripId || `trip_${Date.now()}`;
+    const destination = body.destination;
+    const preferences = body.preferences || {
+      from: body.from || 'Unknown',
+      tripDuration: body.duration || 5,
+      budgetAmount: body.budget || 3000,
+      budgetStyle: 'medium',
+      vibes: body.interests || ['culture'],
+      additionalDetails: '',
+      adults: 2,
+      kids: 0
+    };
     
     // Generate AI-powered trip details based on preferences and destination
     const tripDetail = await generateAITripDetails(tripId, preferences, destination);
@@ -85,6 +99,7 @@ export async function POST(request: NextRequest) {
         warning: 'Using fallback data due to AI service issue'
       });
     } catch (fallbackError) {
+      console.error('Fallback also failed:', fallbackError);
       return NextResponse.json(
         { error: 'Failed to generate trip details' },
         { status: 500 }

@@ -1,41 +1,90 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { suggestionCache, generateCacheKey, cacheMetrics } from '@/lib/cache';
+import seedSuggestions from '@/data/seed/suggestions.json';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { from, tripDuration, budgetAmount, budgetStyle, vibes, additionalDetails, adults, kids, startDate, endDate } = body;
+    const { from, budget, budgetAmount, vibes, additionalDetails, adults, kids, startDate, endDate } = body;
+    
+    // Normalize parameters
+    const normalizedParams = {
+      from: from || 'Vancouver',
+      budget: budget || budgetAmount || 2000,
+      vibes: Array.isArray(vibes) ? vibes : [],
+      adults: adults || 2,
+      kids: kids || 0
+    };
 
-    // Check if OpenAI API key is configured
+    // Generate cache key
+    const cacheKey = generateCacheKey.suggestions(normalizedParams);
+    
+    // Check cache first
+    const cachedSuggestions = suggestionCache.get(cacheKey);
+    if (cachedSuggestions) {
+      cacheMetrics.recordHit();
+      console.log('Cache hit for suggestions:', cacheKey);
+      return NextResponse.json({
+        suggestions: cachedSuggestions,
+        source: 'cache',
+        cacheStats: cacheMetrics.getStats()
+      });
+    }
+    
+    cacheMetrics.recordMiss();
+
+    // Check if OpenAI API key is configured and feature flag enabled
     const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
-      console.log('OpenAI API key not configured, using mock data');
-      return getMockSuggestions();
+    const useAI = process.env.ENABLE_AI_SUGGESTIONS !== 'false' && openaiApiKey;
+    
+    let suggestions;
+    let source = 'fallback';
+
+    if (useAI) {
+      try {
+        // Try AI-powered suggestions
+        suggestions = await generateAISuggestions({
+          from: normalizedParams.from,
+          budget: normalizedParams.budget,
+          vibes: normalizedParams.vibes,
+          additionalDetails,
+          adults: normalizedParams.adults,
+          kids: normalizedParams.kids,
+          startDate,
+          endDate
+        });
+        source = 'ai';
+        
+        // Cache successful AI results
+        suggestionCache.set(cacheKey, suggestions);
+      } catch (aiError) {
+        console.log('AI suggestions failed, falling back to seeded data:', aiError);
+        suggestions = getSeededSuggestions(normalizedParams);
+      }
+    } else {
+      console.log('AI disabled or not configured, using seeded data');
+      suggestions = getSeededSuggestions(normalizedParams);
     }
 
-    // Generate AI-powered suggestions
-    const suggestions = await generateAISuggestions({
-      from,
-      tripDuration,
-      budgetAmount,
-      budgetStyle,
-      vibes,
-      additionalDetails,
-      adults,
-      kids,
-      startDate,
-      endDate
-    });
+    // Cache the results
+    if (suggestions) {
+      suggestionCache.set(cacheKey, suggestions);
+    }
 
     return NextResponse.json({
-      suggestions,
-      source: 'ai'
+      suggestions: suggestions || getDefaultSuggestions(),
+      source,
+      cacheStats: cacheMetrics.getStats()
     });
   } catch (error) {
-    console.error('Error generating AI suggestions:', error);
+    console.error('Error in suggestions API:', error);
     
-    // Fallback to mock data if AI fails
-    console.log('Falling back to mock data due to AI error');
-    return getMockSuggestions();
+    // Final fallback to default suggestions
+    return NextResponse.json({
+      suggestions: getDefaultSuggestions(),
+      source: 'default_fallback',
+      error: 'Service temporarily unavailable'
+    });
   }
 }
 
@@ -217,4 +266,65 @@ function getMockSuggestions() {
     suggestions,
     source: 'mock'
   });
+}
+
+// Get seeded suggestions based on origin and budget
+function getSeededSuggestions(params: { from: string; budget: number; vibes: string[]; adults: number; kids: number }) {
+  const key = `${params.from.toLowerCase()}_budget_${Math.round(params.budget / 1000) * 1000}`;
+  
+  // Check for exact match in seed data
+  if ((seedSuggestions as any)[key]) {
+    return (seedSuggestions as any)[key];
+  }
+  
+  // Fallback based on origin city
+  const fromLower = params.from.toLowerCase();
+  if (fromLower.includes('vancouver') || fromLower.includes('seattle') || fromLower.includes('portland')) {
+    return (seedSuggestions as any)['vancouver_budget_2000'] || getDefaultSuggestions();
+  }
+  
+  if (fromLower.includes('toronto') || fromLower.includes('montreal') || fromLower.includes('ottawa')) {
+    return (seedSuggestions as any)['toronto_budget_3000'] || getDefaultSuggestions();
+  }
+  
+  // Default to first available suggestions
+  return Object.values(seedSuggestions)[0] || getDefaultSuggestions();
+}
+
+// Default fallback suggestions
+function getDefaultSuggestions() {
+  return [
+    {
+      id: 'default_1',
+      destination: 'Paris, France',
+      country: 'France',
+      city: 'Paris',
+      fitScore: 88,
+      description: 'The city of light with world-class museums, cuisine, and romance',
+      weather: { temp: 18, condition: 'Mild', icon: '🌤️' },
+      crowdLevel: 'High',
+      seasonality: 'Spring season, moderate crowds',
+      estimatedTotal: 2200,
+      flightBand: { min: 700, max: 1000 },
+      hotelBand: { min: 150, max: 250, style: 'Classic', area: 'Saint-Germain' },
+      highlights: ['Eiffel Tower', 'Louvre Museum', 'Seine River cruises', 'French cuisine'],
+      whyItFits: 'Classic European destination perfect for first-time visitors to Europe'
+    },
+    {
+      id: 'default_2',
+      destination: 'Tokyo, Japan',
+      country: 'Japan',
+      city: 'Tokyo',
+      fitScore: 90,
+      description: 'Modern metropolis blending traditional culture with cutting-edge technology',
+      weather: { temp: 20, condition: 'Pleasant', icon: '🌸' },
+      crowdLevel: 'High',
+      seasonality: 'Cherry blossom season',
+      estimatedTotal: 2800,
+      flightBand: { min: 800, max: 1200 },
+      hotelBand: { min: 120, max: 200, style: 'Modern', area: 'Shibuya' },
+      highlights: ['Cherry blossoms', 'Sushi & ramen', 'Traditional temples', 'Modern districts'],
+      whyItFits: 'Unique cultural experience with amazing food and technology'
+    }
+  ];
 }

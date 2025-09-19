@@ -132,9 +132,10 @@ export default function SavedTripsPage() {
               Where Next
             </Link>
             <nav className="hidden md:flex space-x-8">
+              <Link href="/ai-travel-agent" className="text-gray-700 hover:text-purple-600">AI Travel Agent</Link>
               <Link href="/plan-trip" className="text-gray-700 hover:text-purple-600">Plan Trip</Link>
-              <Link href="/ai-travel-agent" className="text-gray-700 hover:text-purple-600">AI Agent</Link>
               <Link href="/profile" className="text-gray-700 hover:text-purple-600">Profile</Link>
+              <Link href="/auth/login" className="text-gray-700 hover:text-purple-600">Login</Link>
             </nav>
           </div>
         </div>

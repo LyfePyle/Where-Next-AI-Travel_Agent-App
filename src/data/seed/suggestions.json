@@ -1,0 +1,171 @@
+{
+  "vancouver_budget_2000": [
+    {
+      "id": "seed_1",
+      "destination": "Seattle, USA",
+      "country": "USA",
+      "city": "Seattle",
+      "fitScore": 89,
+      "description": "Vibrant Pacific Northwest city with amazing coffee culture, tech scene, and natural beauty nearby",
+      "weather": {
+        "temp": 18,
+        "condition": "Partly cloudy",
+        "icon": "🌤️"
+      },
+      "crowdLevel": "Medium",
+      "seasonality": "Perfect spring weather with blooming flowers",
+      "estimatedTotal": 1400,
+      "flightBand": {
+        "min": 200,
+        "max": 350
+      },
+      "hotelBand": {
+        "min": 120,
+        "max": 200,
+        "style": "Modern boutique",
+        "area": "Capitol Hill"
+      },
+      "highlights": [
+        "Pike Place Market and original Starbucks",
+        "Space Needle and city skyline views",
+        "Underground Seattle tours",
+        "Waterfront and ferry rides"
+      ],
+      "whyItFits": "Close to Vancouver with easy driving or short flights, perfect for a weekend getaway with urban experiences and natural beauty"
+    },
+    {
+      "id": "seed_2", 
+      "destination": "Portland, USA",
+      "country": "USA",
+      "city": "Portland",
+      "fitScore": 87,
+      "description": "Quirky city known for incredible food scene, craft breweries, and 'Keep Portland Weird' culture",
+      "weather": {
+        "temp": 16,
+        "condition": "Light rain",
+        "icon": "🌦️"
+      },
+      "crowdLevel": "Medium",
+      "seasonality": "Spring showers bringing lush greenery",
+      "estimatedTotal": 1300,
+      "flightBand": {
+        "min": 250,
+        "max": 400
+      },
+      "hotelBand": {
+        "min": 100,
+        "max": 180,
+        "style": "Boutique",
+        "area": "Pearl District"
+      },
+      "highlights": [
+        "Food truck pods and local cuisine",
+        "Powell's Books - largest independent bookstore",
+        "Craft brewery tours",
+        "Japanese Garden and rose gardens"
+      ],
+      "whyItFits": "Perfect for foodies and culture lovers, with a laid-back vibe and excellent value for money"
+    },
+    {
+      "id": "seed_3",
+      "destination": "San Francisco, USA", 
+      "country": "USA",
+      "city": "San Francisco",
+      "fitScore": 85,
+      "description": "Iconic California city with Golden Gate Bridge, tech culture, and diverse neighborhoods",
+      "weather": {
+        "temp": 20,
+        "condition": "Foggy mornings, sunny afternoons",
+        "icon": "🌤️"
+      },
+      "crowdLevel": "High",
+      "seasonality": "Classic SF spring weather - bring layers!",
+      "estimatedTotal": 1900,
+      "flightBand": {
+        "min": 400,
+        "max": 650
+      },
+      "hotelBand": {
+        "min": 180,
+        "max": 300,
+        "style": "Historic",
+        "area": "Union Square"
+      },
+      "highlights": [
+        "Golden Gate Bridge and Alcatraz",
+        "Fisherman's Wharf and Pier 39",
+        "Lombard Street and cable cars",
+        "Chinatown and diverse neighborhoods"
+      ],
+      "whyItFits": "Major international city with world-class attractions, great for first-time visitors to California"
+    }
+  ],
+  "toronto_budget_3000": [
+    {
+      "id": "seed_4",
+      "destination": "New York City, USA",
+      "country": "USA", 
+      "city": "New York",
+      "fitScore": 92,
+      "description": "The city that never sleeps - world-class museums, Broadway shows, and iconic landmarks",
+      "weather": {
+        "temp": 22,
+        "condition": "Sunny",
+        "icon": "☀️"
+      },
+      "crowdLevel": "High",
+      "seasonality": "Perfect spring weather for walking around",
+      "estimatedTotal": 2800,
+      "flightBand": {
+        "min": 400,
+        "max": 700
+      },
+      "hotelBand": {
+        "min": 200,
+        "max": 400,
+        "style": "Modern",
+        "area": "Midtown Manhattan"
+      },
+      "highlights": [
+        "Central Park and Times Square",
+        "Statue of Liberty and Ellis Island", 
+        "Broadway shows and museums",
+        "Brooklyn Bridge and High Line"
+      ],
+      "whyItFits": "Classic destination with endless activities, perfect for first-time visitors to the US"
+    },
+    {
+      "id": "seed_5",
+      "destination": "London, UK",
+      "country": "UK",
+      "city": "London", 
+      "fitScore": 88,
+      "description": "Historic European capital with royal palaces, world-class museums, and traditional pubs",
+      "weather": {
+        "temp": 15,
+        "condition": "Partly cloudy",
+        "icon": "🌤️"
+      },
+      "crowdLevel": "High",
+      "seasonality": "Lovely spring weather, perfect for walking tours",
+      "estimatedTotal": 2700,
+      "flightBand": {
+        "min": 600,
+        "max": 900
+      },
+      "hotelBand": {
+        "min": 150,
+        "max": 250,
+        "style": "Historic",
+        "area": "Covent Garden"
+      },
+      "highlights": [
+        "Big Ben and Houses of Parliament",
+        "British Museum and Tate Modern",
+        "Tower of London and Crown Jewels",
+        "Hyde Park and Buckingham Palace"
+      ],
+      "whyItFits": "Rich history and culture, English-speaking, great public transport, perfect for first Europe trip"
+    }
+  ]
+}

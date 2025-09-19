@@ -1,9 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchHotels, HotelSearchParams } from '@/lib/amadeus';
 
+// Helper function to convert city name to city code
+function getCityCode(cityName: string): string {
+  const cityCodeMap: { [key: string]: string } = {
+    'paris': 'PAR',
+    'london': 'LON', 
+    'tokyo': 'TYO',
+    'new york': 'NYC',
+    'los angeles': 'LAX',
+    'chicago': 'CHI',
+    'miami': 'MIA',
+    'san francisco': 'SFO',
+    'vancouver': 'YVR',
+    'toronto': 'YYZ',
+    'montreal': 'YUL'
+  };
+  
+  const normalized = cityName.toLowerCase().trim();
+  return cityCodeMap[normalized] || cityName.substring(0, 3).toUpperCase();
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const params: HotelSearchParams = await request.json();
+    const requestBody = await request.json();
+    
+    // Handle different parameter formats
+    const params: HotelSearchParams = {
+      cityCode: requestBody.cityCode || getCityCode(requestBody.destination || ''),
+      checkInDate: requestBody.checkInDate || requestBody.checkin,
+      checkOutDate: requestBody.checkOutDate || requestBody.checkout,
+      adults: requestBody.adults || 2,
+      ...requestBody
+    };
     
     // Validate required parameters
     if (!params.cityCode || !params.checkInDate || !params.checkOutDate) {

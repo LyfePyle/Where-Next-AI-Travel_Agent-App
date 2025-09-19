@@ -3,7 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { bookingType, item, travelers, totalAmount, metadata } = body;
+    
+    // Handle different field formats
+    const bookingType = body.bookingType || body.type;
+    const item = body.item || body.items?.[0];
+    const travelers = body.travelers || [{ email: 'test@example.com' }];
+    const totalAmount = body.totalAmount || body.amount;
+    const metadata = body.metadata || {};
 
     // For development/demo, we'll simulate Stripe integration
     // In production, you'd use the real Stripe API

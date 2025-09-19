@@ -103,6 +103,42 @@ export default function BudgetSuggestionCard({
     setShowBreakdown(true);
   };
 
+  const handleBookCompleteTrip = () => {
+    // Create a comprehensive trip package
+    const tripPackage = {
+      type: 'complete-trip',
+      destination,
+      duration,
+      travelers,
+      totalAmount: totalBudget,
+      budgetStyle,
+      breakdown: budgetBreakdown,
+      startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 week from now
+      endDate: new Date(Date.now() + (7 + duration) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      includes: {
+        flights: true,
+        accommodation: true,
+        meals: budgetBreakdown.food > 0,
+        activities: budgetBreakdown.activities > 0,
+        transport: budgetBreakdown.transport > 0,
+        travel_insurance: true
+      }
+    };
+
+    // Navigate to checkout with the complete trip package
+    const checkoutUrl = `/booking/checkout?${new URLSearchParams({
+      type: 'complete-trip',
+      item: encodeURIComponent(JSON.stringify(tripPackage)),
+      price: totalBudget.toString(),
+      destination: destination,
+      duration: duration.toString(),
+      travelers: travelers.toString(),
+      style: budgetStyle
+    }).toString()}`;
+    
+    window.location.href = checkoutUrl;
+  };
+
   return (
     <div className="trip-card bg-white rounded-xl shadow-lg p-6 border-2 border-purple-100">
       {/* Header */}
@@ -127,6 +163,19 @@ export default function BudgetSuggestionCard({
           <div className="text-lg font-semibold text-blue-700">${dailyBudget.toLocaleString()}</div>
           <div className="text-sm text-blue-600">Per Day</div>
         </div>
+      </div>
+
+      {/* Main Action Button */}
+      <div className="mb-6">
+        <button
+          onClick={handleBookCompleteTrip}
+          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+        >
+          🎯 Book Complete Trip - ${totalBudget.toLocaleString()}
+        </button>
+        <p className="text-center text-sm text-gray-600 mt-2">
+          ✈️ Flights + 🏨 Hotels + 🍽️ Meals + 🎪 Activities + 🚗 Transport
+        </p>
       </div>
 
       {/* Breakdown Toggle */}
@@ -191,16 +240,49 @@ export default function BudgetSuggestionCard({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex space-x-3 pt-4 border-t">
-            <button
-              onClick={handleGenerateBudget}
-              className="flex-1 btn btn-primary"
-            >
-              📋 Create Full Budget Plan
-            </button>
-            <button className="flex-1 btn btn-secondary">
-              💾 Save Budget Template
-            </button>
+          <div className="space-y-3 pt-4 border-t">
+            <div className="flex space-x-3">
+              <button
+                onClick={handleGenerateBudget}
+                className="flex-1 btn btn-primary"
+              >
+                📋 Create Full Budget Plan
+              </button>
+              <button className="flex-1 btn btn-secondary">
+                💾 Save Budget Template
+              </button>
+            </div>
+            
+            {/* Individual Booking Options */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h5 className="font-semibold text-gray-700 mb-3">Or Book Components Separately:</h5>
+              <div className="grid grid-cols-2 gap-2">
+                <button 
+                  onClick={() => window.location.href = `/booking/flights?destination=${encodeURIComponent(destination)}&budget=${budgetBreakdown.flights}`}
+                  className="flex items-center justify-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                >
+                  ✈️ Flights (${budgetBreakdown.flights.toLocaleString()})
+                </button>
+                <button 
+                  onClick={() => window.location.href = `/booking/hotels?destination=${encodeURIComponent(destination)}&budget=${budgetBreakdown.accommodation}`}
+                  className="flex items-center justify-center px-3 py-2 bg-cyan-100 text-cyan-700 rounded-lg hover:bg-cyan-200 transition-colors text-sm font-medium"
+                >
+                  🏨 Hotels (${budgetBreakdown.accommodation.toLocaleString()})
+                </button>
+                <button 
+                  onClick={() => window.location.href = `/tours?destination=${encodeURIComponent(destination)}&budget=${budgetBreakdown.activities}`}
+                  className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
+                >
+                  🎪 Activities (${budgetBreakdown.activities.toLocaleString()})
+                </button>
+                <button 
+                  onClick={() => alert('🍽️ Restaurant booking coming soon!\n\nWe\'re working on integrating local dining reservations and food tours for your trip.')}
+                  className="flex items-center justify-center px-3 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors text-sm font-medium"
+                >
+                  🍽️ Dining (${budgetBreakdown.food.toLocaleString()})
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

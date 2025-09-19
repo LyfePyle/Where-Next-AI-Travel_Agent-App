@@ -1,0 +1,96 @@
+{
+  "timestamp": "2025-09-17T00:09:19.396Z",
+  "summary": {
+    "passed": 10,
+    "failed": 7,
+    "warnings": 0,
+    "successRate": 59
+  },
+  "tests": [
+    {
+      "testName": "Environment Variable: OPENAI_API_KEY",
+      "status": "FAIL",
+      "details": "Missing or placeholder value"
+    },
+    {
+      "testName": "Environment Variable: AMADEUS_CLIENT_ID",
+      "status": "FAIL",
+      "details": "Missing or placeholder value"
+    },
+    {
+      "testName": "Environment Variable: AMADEUS_CLIENT_SECRET",
+      "status": "FAIL",
+      "details": "Missing or placeholder value"
+    },
+    {
+      "testName": "Environment Variable: NEXT_PUBLIC_SUPABASE_URL",
+      "status": "FAIL",
+      "details": "Missing or placeholder value"
+    },
+    {
+      "testName": "Environment Variable: NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "status": "FAIL",
+      "details": "Missing or placeholder value"
+    },
+    {
+      "testName": "Environment Variable: STRIPE_SECRET_KEY",
+      "status": "FAIL",
+      "details": "Missing or placeholder value"
+    },
+    {
+      "testName": "API: AI Trip Suggestions",
+      "status": "PASS",
+      "details": "Status: 200"
+    },
+    {
+      "testName": "API: AI Trip Details",
+      "status": "PASS",
+      "details": "Status: 200"
+    },
+    {
+      "testName": "API: AI Itinerary Builder",
+      "status": "PASS",
+      "details": "Status: 200"
+    },
+    {
+      "testName": "API: Amadeus Flight Search",
+      "status": "PASS",
+      "details": "Status: 200"
+    },
+    {
+      "testName": "API: Amadeus Hotel Search",
+      "status": "PASS",
+      "details": "Status: 200"
+    },
+    {
+      "testName": "API: Airport Autocomplete",
+      "status": "PASS",
+      "details": "Status: 200"
+    },
+    {
+      "testName": "API: Stripe Checkout Session",
+      "status": "PASS",
+      "details": "Status: 200"
+    },
+    {
+      "testName": "API: Flight Price Confirmation",
+      "status": "PASS",
+      "details": "Status: 200"
+    },
+    {
+      "testName": "API: Currency Conversion",
+      "status": "PASS",
+      "details": "Status: 200"
+    },
+    {
+      "testName": "API: Saved Trips Retrieval",
+      "status": "PASS",
+      "details": "Status: 200"
+    },
+    {
+      "testName": "API: Trip Saving",
+      "status": "FAIL",
+      "details": "Status: 409 - This destination is already in your saved trips"
+    }
+  ]
+}

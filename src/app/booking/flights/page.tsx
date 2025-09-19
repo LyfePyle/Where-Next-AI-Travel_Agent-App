@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plane, Clock, Users, Calendar } from 'lucide-react';
@@ -77,7 +77,7 @@ interface FlightOption {
   aircraft: string;
 }
 
-export default function FlightBookingPage() {
+function FlightBookingPageContent() {
   const searchParams = useSearchParams();
   const [flights, setFlights] = useState<FlightOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -414,5 +414,20 @@ export default function FlightBookingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function FlightBookingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading flight search...</p>
+        </div>
+      </div>
+    }>
+      <FlightBookingPageContent />
+    </Suspense>
   );
 }

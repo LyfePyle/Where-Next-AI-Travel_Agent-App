@@ -164,112 +164,40 @@ export default function BudgetPage() {
                 </div>
               </div>
 
-              {/* Enhanced Budget Charts */}
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {/* Donut Chart */}
-                <BudgetChart
-                  data={categories.map(cat => ({
-                    name: cat.name,
-                    value: getCategorySpent(cat.name),
-                    color: cat.color,
-                    icon: cat.name === 'Flights' ? '✈️' : 
-                          cat.name === 'Accommodation' ? '🏨' :
-                          cat.name === 'Food' ? '🍽️' :
-                          cat.name === 'Activities' ? '🎯' :
-                          cat.name === 'Transport' ? '🚗' :
-                          cat.name === 'Shopping' ? '🛍️' : '💳'
-                  }))}
-                  type="donut"
-                  title="Current Spending Distribution"
-                  totalAmount={totalSpent}
-                />
-                
-                {/* Bar Chart */}
-                <BudgetChart
-                  data={categories.map(cat => ({
-                    name: cat.name,
-                    value: cat.allocated,
-                    color: cat.color,
-                    icon: cat.name === 'Flights' ? '✈️' : 
-                          cat.name === 'Accommodation' ? '🏨' :
-                          cat.name === 'Food' ? '🍽️' :
-                          cat.name === 'Activities' ? '🎯' :
-                          cat.name === 'Transport' ? '🚗' :
-                          cat.name === 'Shopping' ? '🛍️' : '💳'
-                  }))}
-                  type="bar"
-                  title="Budget Allocation"
-                  totalAmount={categories.reduce((sum, cat) => sum + cat.allocated, 0)}
-                />
-              </div>
-
-              {/* Budget vs Actual Comparison */}
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-4">Budget vs Actual Spending</h3>
-                <div className="space-y-4">
-                  {categories.map((category) => {
-                    const spent = getCategorySpent(category.name);
-                    const percentage = (spent / category.allocated) * 100;
-                    const remaining = category.allocated - spent;
-                    return (
-                      <div key={category.name} className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: category.color }}></div>
-                            <span className="font-medium text-gray-900">{category.name}</span>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-semibold text-gray-900">
-                              ${spent.toLocaleString()} / ${category.allocated.toLocaleString()}
-                            </div>
-                            <div className={`text-xs ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {remaining >= 0 ? `$${remaining} remaining` : `$${Math.abs(remaining)} over budget`}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3 relative overflow-hidden">
-                          <div 
-                            className="h-3 rounded-full transition-all duration-500"
-                            style={{ 
-                              width: `${Math.min(percentage, 100)}%`,
-                              backgroundColor: percentage > 100 ? '#ef4444' : category.color
-                            }}
-                          />
-                          {percentage > 100 && (
-                            <div className="absolute top-0 right-0 h-3 w-1 bg-red-600 rounded-r-full" />
-                          )}
-                        </div>
-                        <div className="flex justify-between mt-2 text-xs text-gray-600">
-                          <span>0%</span>
-                          <span className={percentage > 100 ? 'text-red-600 font-semibold' : ''}>
-                            {percentage.toFixed(1)}%
-                          </span>
-                          <span>100%</span>
+              {/* Category Overview */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Category Breakdown</h3>
+                {categories.map((category) => {
+                  const spent = getCategorySpent(category.name);
+                  const percentage = category.allocated > 0 ? (spent / category.allocated) * 100 : 0;
+                  const remaining = category.allocated - spent;
+                  
+                  return (
+                    <div key={category.name} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-medium" style={{ color: category.color }}>{category.name}</h4>
+                        <div className="text-sm text-gray-600">
+                          ${spent} / ${category.allocated}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Recent Expenses Section */}
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-4">Recent Expenses</h3>
-                <div className="space-y-3">
-                  {expenses.slice(0, 5).map((expense) => (
-                      <div key={expense.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium">{expense.description}</p>
-                          <p className="text-sm text-gray-600">{expense.category} • {expense.location}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-red-600">-${expense.amount}</p>
-                          <p className="text-xs text-gray-500">{expense.date}</p>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                        <div 
+                          className="h-2 rounded-full transition-all duration-300"
+                          style={{ 
+                            width: `${Math.min(percentage, 100)}%`, 
+                            backgroundColor: category.color 
+                          }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">{Math.round(percentage)}% used</span>
+                        <div className={`text-xs ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {remaining >= 0 ? `$${remaining} remaining` : `$${Math.abs(remaining)} over budget`}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -286,18 +214,41 @@ export default function BudgetPage() {
                 </button>
               </div>
 
+              {/* Expense List */}
+              <div className="space-y-4">
+                {expenses.map((expense) => (
+                  <div key={expense.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div 
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: getCategoryColor(expense.category) }}
+                      ></div>
+                      <div>
+                        <p className="font-medium">{expense.description}</p>
+                        <p className="text-sm text-gray-600">{expense.category} • {expense.location}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-red-600">-${expense.amount}</p>
+                      <p className="text-xs text-gray-500">{expense.date}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               {/* Add Expense Modal */}
               {showAddExpense && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                   <div className="bg-white rounded-lg p-6 w-full max-w-md">
                     <h3 className="text-lg font-semibold mb-4">Add New Expense</h3>
+                    
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                         <select
                           value={newExpense.category}
                           onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
                         >
                           <option value="">Select category</option>
                           {categories.map(cat => (
@@ -305,56 +256,61 @@ export default function BudgetPage() {
                           ))}
                         </select>
                       </div>
+                      
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
                         <input
                           type="number"
                           value={newExpense.amount}
                           onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
                           placeholder="0.00"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                         />
                       </div>
+                      
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                         <input
                           type="text"
                           value={newExpense.description}
                           onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-                          placeholder="What was this expense for?"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                          placeholder="What did you spend on?"
                         />
                       </div>
+                      
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                         <input
                           type="text"
                           value={newExpense.location}
                           onChange={(e) => setNewExpense({...newExpense, location: e.target.value})}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
                           placeholder="Where was this expense?"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                         />
                       </div>
+                      
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                         <input
                           type="date"
                           value={newExpense.date}
                           onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
                         />
                       </div>
                     </div>
+                    
                     <div className="flex space-x-3 mt-6">
                       <button
                         onClick={handleAddExpense}
-                        className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
                       >
                         Add Expense
                       </button>
                       <button
                         onClick={() => setShowAddExpense(false)}
-                        className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+                        className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
                       >
                         Cancel
                       </button>
@@ -362,64 +318,58 @@ export default function BudgetPage() {
                   </div>
                 </div>
               )}
-
-              {/* Expenses List */}
-              <div className="space-y-4">
-                {expenses.map((expense) => (
-                  <div key={expense.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
-                    <div className="flex items-center space-x-4">
-                      <div 
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: getCategoryColor(expense.category) }}
-                      ></div>
-                      <div>
-                        <p className="font-medium">{expense.description}</p>
-                        <p className="text-sm text-gray-600">{expense.category} • {expense.location}</p>
-                        <p className="text-xs text-gray-500">{expense.date}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-red-600">-${expense.amount}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
           {activeTab === 'categories' && (
             <div>
-              <h2 className="text-xl font-semibold mb-6">Budget Categories</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <h2 className="text-xl font-semibold mb-6">Category Management</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {categories.map((category) => {
                   const spent = getCategorySpent(category.name);
-                  const percentage = (spent / category.allocated) * 100;
+                  const percentage = category.allocated > 0 ? (spent / category.allocated) * 100 : 0;
+                  
                   return (
-                    <div key={category.name} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold">{category.name}</h3>
+                    <div key={category.name} className="border rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold" style={{ color: category.color }}>
+                          {category.name}
+                        </h3>
                         <div 
-                          className="w-4 h-4 rounded-full"
+                          className="w-6 h-6 rounded-full"
                           style={{ backgroundColor: category.color }}
                         ></div>
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Allocated: ${category.allocated}</span>
-                          <span>Spent: ${spent}</span>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Allocated:</span>
+                          <span className="font-medium">${category.allocated}</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Spent:</span>
+                          <span className="font-medium">${spent}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Remaining:</span>
+                          <span className={`font-medium ${(category.allocated - spent) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            ${category.allocated - spent}
+                          </span>
+                        </div>
+                        
+                        <div className="w-full bg-gray-200 rounded-full h-3">
                           <div 
-                            className="h-2 rounded-full transition-all duration-300"
+                            className="h-3 rounded-full transition-all duration-300"
                             style={{ 
-                              width: `${Math.min(percentage, 100)}%`,
-                              backgroundColor: category.color
+                              width: `${Math.min(percentage, 100)}%`, 
+                              backgroundColor: category.color 
                             }}
                           ></div>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Remaining: ${category.allocated - spent}</span>
-                          <span>{Math.round(percentage)}%</span>
+                        
+                        <div className="text-center text-sm text-gray-600">
+                          {Math.round(percentage)}% of budget used
                         </div>
                       </div>
                     </div>
@@ -433,68 +383,53 @@ export default function BudgetPage() {
             <div>
               <h2 className="text-xl font-semibold mb-6">Budget Reports</h2>
               
-              {/* Monthly Spending Chart */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-4">Monthly Spending Trend</h3>
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <div className="flex items-end justify-between h-32">
-                    {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, index) => {
-                      const height = Math.random() * 80 + 20; // Simulate data
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Spending Summary */}
+                <div className="border rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Spending Summary</h3>
+                  <div className="space-y-3">
+                    {categories.map((category) => {
+                      const spent = getCategorySpent(category.name);
+                      const budgetPercentage = (spent / totalSpent) * 100;
+                      
                       return (
-                        <div key={month} className="flex flex-col items-center">
-                          <div 
-                            className="w-8 bg-blue-500 rounded-t"
-                            style={{ height: `${height}%` }}
-                          ></div>
-                          <span className="text-xs text-gray-600 mt-2">{month}</span>
+                        <div key={category.name} className="flex justify-between items-center">
+                          <div className="flex items-center space-x-3">
+                            <div 
+                              className="w-4 h-4 rounded-full"
+                              style={{ backgroundColor: category.color }}
+                            ></div>
+                            <span className="font-medium">{category.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold">${spent}</div>
+                            <div className="text-sm text-gray-600">{Math.round(budgetPercentage)}%</div>
+                          </div>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-              </div>
-
-              {/* Spending Analysis */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Top Spending Categories</h3>
+                
+                {/* Budget Performance */}
+                <div className="border rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Budget Performance</h3>
                   <div className="space-y-3">
-                    {categories
-                      .map(cat => ({ ...cat, spent: getCategorySpent(cat.name) }))
-                      .sort((a, b) => b.spent - a.spent)
-                      .slice(0, 5)
-                      .map((category, index) => (
-                        <div key={category.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-lg font-bold text-gray-400">#{index + 1}</span>
-                            <div 
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: category.color }}
-                            ></div>
-                            <span className="font-medium">{category.name}</span>
-                          </div>
-                          <span className="font-semibold">${category.spent}</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Budget vs Actual</h3>
-                  <div className="space-y-4">
                     {categories.map((category) => {
                       const spent = getCategorySpent(category.name);
                       const variance = category.allocated - spent;
+                      const variancePercent = category.allocated > 0 ? (variance / category.allocated) * 100 : 0;
+                      
                       return (
-                        <div key={category.name} className="p-3 border border-gray-200 rounded-lg">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="font-medium">{category.name}</span>
+                        <div key={category.name} className="flex justify-between items-center py-2">
+                          <span className="font-medium">{category.name}</span>
+                          <div className="text-right">
                             <span className={`text-sm font-semibold ${variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {variance >= 0 ? '+' : ''}${variance}
                             </span>
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            Budgeted: ${category.allocated} | Actual: ${spent}
+                            <div className="text-xs text-gray-600">
+                              {Math.round(Math.abs(variancePercent))}% {variance >= 0 ? 'under' : 'over'}
+                            </div>
                           </div>
                         </div>
                       );

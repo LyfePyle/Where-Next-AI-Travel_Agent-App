@@ -3,480 +3,163 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import AirportAutocomplete from '@/components/AirportAutocomplete';
-
-interface TripPreferences {
-  from: string;
-  dateMode: 'exact' | 'flexible';
-  startDate: string;
-  endDate: string;
-  tripDuration: number;
-  budgetStyle: 'thrifty' | 'comfortable' | 'splurge';
-  budgetAmount: number;
-  vibes: string[];
-  additionalDetails: string;
-  partySize: {
-    adults: number;
-    kids: number;
-  };
-  // Advanced options
-  maxFlightTime?: number;
-  visaFreeOnly?: boolean;
-  climate?: string;
-  accessibility?: string[];
-}
+import TripPlannerForm from '@/components/forms/TripPlannerForm';
+import { type TripPlannerFormData } from '@/lib/validations/trip';
 
 export default function PlanTripPage() {
   const router = useRouter();
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  const [preferences, setPreferences] = useState<TripPreferences>({
-    from: 'Vancouver',
-    dateMode: 'flexible', // Changed to flexible to avoid validation issues
-    startDate: '',
-    endDate: '',
-    tripDuration: 7,
-    budgetStyle: 'comfortable',
-    budgetAmount: 2000,
-    vibes: [],
-    additionalDetails: '',
-    partySize: { adults: 2, kids: 0 },
-  });
 
-  const vibeOptions = [
-    { id: 'beach', label: 'Beach', icon: '🏖️' },
-    { id: 'food', label: 'Food', icon: '🍽️' },
-    { id: 'culture', label: 'Culture', icon: '🏛️' },
-    { id: 'nature', label: 'Nature', icon: '🌲' },
-    { id: 'nightlife', label: 'Nightlife', icon: '🌙' },
-    { id: 'family', label: 'Family', icon: '👨‍👩‍👧‍👦' },
-    { id: 'adventure', label: 'Adventure', icon: '🏔️' },
-    { id: 'relaxation', label: 'Relaxation', icon: '🧘' },
-    { id: 'shopping', label: 'Shopping', icon: '🛍️' },
-    { id: 'history', label: 'History', icon: '📜' },
-    { id: 'art', label: 'Art', icon: '🎨' },
-    { id: 'music', label: 'Music', icon: '🎵' },
-  ];
-
-  const budgetOptions = [
-    { id: 'thrifty', label: 'Thrifty', description: 'Budget-friendly options' },
-    { id: 'comfortable', label: 'Comfortable', description: 'Good value & comfort' },
-    { id: 'splurge', label: 'Splurge', description: 'Premium experiences' },
-  ];
-
-  const handleVibeToggle = (vibeId: string) => {
-    setPreferences(prev => ({
-      ...prev,
-      vibes: prev.vibes.includes(vibeId)
-        ? prev.vibes.filter(v => v !== vibeId)
-        : [...prev.vibes, vibeId]
-    }));
-  };
-
-  // Check if form is valid for submission
-  const isFormValid = () => {
-    if (preferences.dateMode === 'exact') {
-      return preferences.startDate && preferences.endDate && preferences.from.trim();
-    } else {
-      return preferences.from.trim() && preferences.tripDuration > 0;
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isFormValid()) return;
-    
+  const handleTripSubmit = async (data: TripPlannerFormData) => {
     setIsLoading(true);
+    
+    try {
+      // Call the suggestions API to generate trip suggestions
+      const response = await fetch('/api/ai/suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: data.originAirport,
+          startDate: data.dateRange.startDate,
+          endDate: data.dateRange.endDate,
+          budget: data.budgetTotal,
+          vibes: data.vibes,
+          adults: data.partySize.adults,
+          kids: data.partySize.kids,
+          maxFlightTime: data.maxFlightTime,
+          additionalDetails: data.additionalDetails,
+        }),
+      });
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      if (response.ok) {
+        // Store the trip data and navigate to suggestions
+        const suggestions = await response.json();
+        
+        // Navigate to suggestions with the generated data
+        const params = new URLSearchParams({
+          from: data.originAirport,
+          startDate: data.dateRange.startDate,
+          endDate: data.dateRange.endDate,
+          budget: data.budgetTotal.toString(),
+          vibes: data.vibes.join(','),
+          adults: data.partySize.adults.toString(),
+          kids: data.partySize.kids.toString(),
+          ...(data.maxFlightTime && { maxFlightTime: data.maxFlightTime.toString() }),
+          ...(data.additionalDetails && { details: data.additionalDetails }),
+        });
 
-    // Navigate to suggestions with preferences
-    const params = new URLSearchParams({
-      from: preferences.from,
-      dateMode: preferences.dateMode,
-      startDate: preferences.startDate,
-      endDate: preferences.endDate,
-      tripDuration: preferences.tripDuration.toString(),
-      budgetStyle: preferences.budgetStyle,
-      budgetAmount: preferences.budgetAmount.toString(),
-      vibes: preferences.vibes.join(','),
-      additionalDetails: preferences.additionalDetails,
-      adults: preferences.partySize.adults.toString(),
-      kids: preferences.partySize.kids.toString(),
-    });
+        router.push(`/suggestions?${params.toString()}`);
+      } else {
+        throw new Error('Failed to generate suggestions');
+      }
+    } catch (error) {
+      console.error('Error generating trip suggestions:', error);
+      // For now, still navigate but with a fallback mode
+      const params = new URLSearchParams({
+        from: data.originAirport,
+        startDate: data.dateRange.startDate,
+        endDate: data.dateRange.endDate,
+        budget: data.budgetTotal.toString(),
+        vibes: data.vibes.join(','),
+        adults: data.partySize.adults.toString(),
+        kids: data.partySize.kids.toString(),
+        fallback: 'true',
+      });
 
-    router.push(`/suggestions?${params.toString()}`);
+      router.push(`/suggestions?${params.toString()}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Link href="/" className="text-gray-600 hover:text-gray-800 flex items-center space-x-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                <span>Home</span>
+      <header className="bg-white shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center space-x-4">
+              <Link href="/" className="text-purple-600 hover:text-purple-700 font-medium">
+                ← Back to Home
               </Link>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-black">Plan Your Trip</h1>
-                  <p className="text-sm text-gray-500">Tell us about your dream adventure</p>
-                </div>
-              </div>
+              <h1 className="text-2xl font-bold text-gray-900">Plan Your Perfect Trip</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link href="/saved" className="text-gray-600 hover:text-purple-600">
+                Saved Trips
+              </Link>
+              <Link href="/budget" className="text-gray-600 hover:text-purple-600">
+                Budget
+              </Link>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Above the fold - Minimal inputs */}
-          <div className="bg-white rounded-xl shadow-sm border p-6 sm:p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Where would you like to go?</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {/* From */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
-                <AirportAutocomplete
-                  value={preferences.from}
-                  onChange={(value) => setPreferences(prev => ({ ...prev, from: value }))}
-                  placeholder="Enter airport or city (e.g., YVR, Vancouver)"
-                  className="w-full"
-                />
-              </div>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Let AI Plan Your Next Adventure ✨
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Tell us what you're looking for, and our AI will suggest personalized destinations 
+            with real flight prices, hotel options, and local experiences.
+          </p>
+        </div>
 
-              {/* Date Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">When</label>
-                <div className="flex items-center space-x-3">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={preferences.dateMode === 'exact'}
-                      onChange={(e) => setPreferences(prev => ({ 
-                        ...prev, 
-                        dateMode: e.target.checked ? 'exact' : 'flexible',
-                        // Reset dates when switching to flexible
-                        startDate: e.target.checked ? prev.startDate : '',
-                        endDate: e.target.checked ? prev.endDate : ''
-                      }))}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Exact dates</span>
-                  </label>
-                </div>
-              </div>
+        {/* Trip Planner Form */}
+        <div className="bg-white rounded-xl shadow-sm border p-8">
+          <TripPlannerForm onSubmit={handleTripSubmit} isLoading={isLoading} />
+        </div>
 
-              {/* Trip Duration */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Trip Duration
-                  {preferences.dateMode === 'exact' && preferences.startDate && preferences.endDate && (
-                    <span className="ml-2 text-sm text-blue-600">
-                      ({Math.ceil((new Date(preferences.endDate).getTime() - new Date(preferences.startDate).getTime()) / (1000 * 60 * 60 * 24))} days)
-                    </span>
-                  )}
-                </label>
-                <select
-                  value={preferences.tripDuration}
-                  onChange={(e) => setPreferences(prev => ({ ...prev, tripDuration: parseInt(e.target.value) || 1 }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                  disabled={preferences.dateMode === 'exact' && preferences.startDate && preferences.endDate}
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30].map(days => (
-                    <option key={days} value={days}>
-                      {days} {days === 1 ? 'day' : 'days'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Travelers */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Travelers</label>
-                <select
-                  value={`${preferences.partySize.adults}-${preferences.partySize.kids}`}
-                  onChange={(e) => {
-                    const [adults, kids] = e.target.value.split('-').map(Number);
-                    setPreferences(prev => ({
-                      ...prev,
-                      partySize: { adults, kids }
-                    }));
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                >
-                  <option value="1-0">1 Adult</option>
-                  <option value="2-0">2 Adults</option>
-                  <option value="3-0">3 Adults</option>
-                  <option value="4-0">4 Adults</option>
-                  <option value="5-0">5 Adults</option>
-                  <option value="6-0">6 Adults</option>
-                  <option value="1-1">1 Adult, 1 Child</option>
-                  <option value="2-1">2 Adults, 1 Child</option>
-                  <option value="2-2">2 Adults, 2 Children</option>
-                  <option value="2-3">2 Adults, 3 Children</option>
-                  <option value="3-1">3 Adults, 1 Child</option>
-                  <option value="3-2">3 Adults, 2 Children</option>
-                  <option value="4-1">4 Adults, 1 Child</option>
-                  <option value="4-2">4 Adults, 2 Children</option>
-                </select>
-              </div>
+        {/* Features Preview */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center p-6">
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">🤖</span>
             </div>
-
-            {/* Date inputs */}
-            {preferences.dateMode === 'exact' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                  <input
-                    type="date"
-                    value={preferences.startDate}
-                    onChange={(e) => {
-                      const startDate = e.target.value;
-                      setPreferences(prev => {
-                        const newPrefs = { ...prev, startDate };
-                        // Auto-calculate trip duration if both dates are set
-                        if (startDate && prev.endDate) {
-                          const start = new Date(startDate);
-                          const end = new Date(prev.endDate);
-                          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-                          newPrefs.tripDuration = days > 0 ? days : 1;
-                        }
-                        return newPrefs;
-                      });
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                  <input
-                    type="date"
-                    value={preferences.endDate}
-                    onChange={(e) => {
-                      const endDate = e.target.value;
-                      setPreferences(prev => {
-                        const newPrefs = { ...prev, endDate };
-                        // Auto-calculate trip duration if both dates are set
-                        if (prev.startDate && endDate) {
-                          const start = new Date(prev.startDate);
-                          const end = new Date(endDate);
-                          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-                          newPrefs.tripDuration = days > 0 ? days : 1;
-                        }
-                        return newPrefs;
-                      });
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Budget Amount */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Budget Amount: ${preferences.budgetAmount.toLocaleString()}
-              </label>
-              <div className="space-y-2">
-                <input
-                  type="range"
-                  min="500"
-                  max="10000"
-                  step="100"
-                  value={preferences.budgetAmount}
-                  onChange={(e) => setPreferences(prev => ({ ...prev, budgetAmount: parseInt(e.target.value) || 500 }))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>$500</span>
-                  <span>$2,500</span>
-                  <span>$5,000</span>
-                  <span>$7,500</span>
-                  <span>$10,000</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Budget Style */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">Budget Style</label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {budgetOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setPreferences(prev => ({ ...prev, budgetStyle: option.id as any }))}
-                    className={`p-4 rounded-lg border-2 text-left transition-colors ${
-                      preferences.budgetStyle === option.id
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-gray-200 hover:border-purple-200 hover:bg-purple-25'
-                    }`}
-                  >
-                    <div className="font-medium text-gray-900">{option.label}</div>
-                    <div className="text-sm text-gray-600">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Vibes */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">What's your vibe? (Select all that apply)</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {vibeOptions.map((vibe) => (
-                  <button
-                    key={vibe.id}
-                    type="button"
-                    onClick={() => handleVibeToggle(vibe.id)}
-                    className={`p-3 rounded-lg border-2 text-center transition-colors ${
-                      preferences.vibes.includes(vibe.id)
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-gray-200 hover:border-purple-200 hover:bg-purple-25'
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">{vibe.icon}</div>
-                    <div className="text-sm font-medium text-gray-900">{vibe.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Additional Details */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Additional Details (Optional)
-              </label>
-              <textarea
-                value={preferences.additionalDetails}
-                onChange={(e) => setPreferences(prev => ({ ...prev, additionalDetails: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-                placeholder="Tell us more about your dream trip! Any specific interests, must-see places, special requirements, or preferences that will help us create the perfect itinerary..."
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                This helps our AI generate more personalized recommendations
-              </p>
-            </div>
-          </div>
-
-          {/* Advanced Options */}
-          <div className="bg-white rounded-xl shadow-sm border">
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full p-6 text-left flex items-center justify-between hover:bg-purple-50 transition-colors"
-            >
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">Advanced Options</h3>
-                <p className="text-sm text-gray-500">Flight time limits, visa requirements, climate preferences</p>
-              </div>
-              <svg
-                className={`w-5 h-5 text-gray-500 transform transition-transform ${
-                  showAdvanced ? 'rotate-180' : ''
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {showAdvanced && (
-              <div className="px-6 pb-6 border-t">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Flight Time (hours)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="24"
-                      value={preferences.maxFlightTime || ''}
-                      onChange={(e) => setPreferences(prev => ({ ...prev, maxFlightTime: parseInt(e.target.value) || undefined }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="No limit"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Climate Preference</label>
-                    <select
-                      value={preferences.climate || ''}
-                      onChange={(e) => setPreferences(prev => ({ ...prev, climate: e.target.value || undefined }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="">Any climate</option>
-                      <option value="tropical">Tropical</option>
-                      <option value="temperate">Temperate</option>
-                      <option value="cold">Cold</option>
-                      <option value="desert">Desert</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={preferences.visaFreeOnly || false}
-                      onChange={(e) => setPreferences(prev => ({ ...prev, visaFreeOnly: e.target.checked }))}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Visa-free destinations only</span>
-                  </label>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Privacy Note */}
-          <div className="text-center">
-            <p className="text-sm text-gray-500 mb-6">
-              We use your inputs only to generate personalized trip ideas. Your data is secure and private.
+            <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Suggestions</h3>
+            <p className="text-sm text-gray-600">
+              Get personalized destination recommendations based on your preferences and budget
             </p>
-            
-            {/* CTA Button */}
-            <button
-              type="submit"
-              disabled={isLoading || !isFormValid()}
-              className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-4 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition-all text-lg shadow-lg disabled:from-purple-400 disabled:to-purple-500 disabled:cursor-not-allowed disabled:shadow-none"
-              style={{
-                background: isLoading || !isFormValid() 
-                  ? 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)' 
-                  : 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'
-              }}
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Finding Perfect Destinations...
-                </div>
-              ) : (
-                'See Trip Ideas'
-              )}
-            </button>
-            
-            {/* Helpful message when button is disabled */}
-            {!isFormValid() && !isLoading && (
-              <p className="text-sm text-purple-600 mt-2 text-center">
-                ✈️ Please fill in your departure location to get started
-              </p>
-            )}
           </div>
-        </form>
-      </div>
+          <div className="text-center p-6">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">✈️</span>
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">Real-Time Pricing</h3>
+            <p className="text-sm text-gray-600">
+              See live flight and hotel prices from trusted providers like Amadeus
+            </p>
+          </div>
+          <div className="text-center p-6">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">💰</span>
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">Budget Management</h3>
+            <p className="text-sm text-gray-600">
+              Track your expenses and get budget-friendly recommendations
+            </p>
+          </div>
+        </div>
+
+        {/* Testimonial or Social Proof */}
+        <div className="mt-12 bg-purple-50 rounded-xl p-6 text-center">
+          <div className="text-purple-600 mb-2">
+            <span className="text-2xl">🌟</span>
+          </div>
+          <p className="text-gray-700 font-medium mb-2">
+            "Found my perfect weekend getaway in under 5 minutes!"
+          </p>
+          <p className="text-sm text-gray-600">
+            - Sarah K., frequent traveler
+          </p>
+        </div>
+      </main>
     </div>
   );
 }

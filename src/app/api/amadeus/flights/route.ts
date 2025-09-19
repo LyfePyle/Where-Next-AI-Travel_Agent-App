@@ -37,11 +37,18 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('Flight Search API Error:', error);
-    const fallbackFlights = generateFallbackFlights(params);
+    // Create default params if parsing failed
+    const fallbackParams: FlightSearchParams = {
+      originLocationCode: 'YVR',
+      destinationLocationCode: 'MAD',
+      departureDate: new Date().toISOString().split('T')[0],
+      adults: 1
+    };
+    const fallbackFlights = generateFallbackFlights(fallbackParams);
     return NextResponse.json({ 
       flights: fallbackFlights,
       count: fallbackFlights.length,
-      searchParams: params,
+      searchParams: fallbackParams,
       source: 'fallback',
       error: 'API temporarily unavailable'
     });
@@ -97,11 +104,18 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('Flight Search API Error:', error);
-    const fallbackFlights = generateFallbackFlights(params);
+    // Create default params if URL parsing failed
+    const fallbackParams: FlightSearchParams = {
+      originLocationCode: 'YVR',
+      destinationLocationCode: 'MAD',
+      departureDate: new Date().toISOString().split('T')[0],
+      adults: 1
+    };
+    const fallbackFlights = generateFallbackFlights(fallbackParams);
     return NextResponse.json({ 
       flights: fallbackFlights,
       count: fallbackFlights.length,
-      searchParams: params,
+      searchParams: fallbackParams,
       source: 'fallback',
       error: 'API temporarily unavailable'
     });

@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, CreditCard, Shield, User, Calendar, Plane, Hotel } from 'lucide-react';
 
 interface BookingDetails {
-  type: 'flight' | 'hotel';
+  type: 'flight' | 'hotel' | 'complete-trip';
   item: any;
   price: number;
   from?: string;
@@ -28,7 +28,7 @@ interface TravelerInfo {
   phone: string;
 }
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
@@ -38,11 +38,14 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     // Get booking details from URL params
-    const type = searchParams.get('type') as 'flight' | 'hotel';
+    const type = searchParams.get('type') as 'flight' | 'hotel' | 'complete-trip';
     const itemData = searchParams.get('item');
     const price = parseFloat(searchParams.get('price') || '0');
     const from = searchParams.get('from');
     const to = searchParams.get('to');
+    const destination = searchParams.get('destination');
+    const duration = searchParams.get('duration');
+    const travelers = searchParams.get('travelers');
     
     if (type && itemData && price) {
       try {
@@ -185,11 +188,13 @@ export default function CheckoutPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <Link 
-          href={bookingDetails.type === 'flight' ? '/booking/flights' : '/booking/hotels'}
+          href={bookingDetails.type === 'flight' ? '/booking/flights' : 
+                bookingDetails.type === 'hotel' ? '/booking/hotels' : '/suggestions'}
           className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to {bookingDetails.type === 'flight' ? 'Flights' : 'Hotels'}
+          Back to {bookingDetails.type === 'flight' ? 'Flights' : 
+                   bookingDetails.type === 'hotel' ? 'Hotels' : 'Trip Suggestions'}
         </Link>
 
         {/* Progress Steps */}
@@ -225,13 +230,16 @@ export default function CheckoutPage() {
                 <div className="border rounded-lg p-4 mb-6">
                   <div className="flex items-start space-x-4">
                     <div className="text-3xl">
-                      {bookingDetails.type === 'flight' ? '✈️' : '🏨'}
+                      {bookingDetails.type === 'flight' ? '✈️' : 
+                       bookingDetails.type === 'hotel' ? '🏨' : '🎯'}
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900">
                         {bookingDetails.type === 'flight' 
                           ? `${bookingDetails.from} → ${bookingDetails.to}`
-                          : bookingDetails.item.name
+                          : bookingDetails.type === 'hotel'
+                          ? bookingDetails.item.name
+                          : `Complete Trip to ${bookingDetails.item.destination}`
                         }
                       </h3>
                       <div className="text-sm text-gray-600 space-y-1">
@@ -242,12 +250,30 @@ export default function CheckoutPage() {
                             <p>Duration: {bookingDetails.item.duration}</p>
                             <p>Aircraft: {bookingDetails.item.aircraft}</p>
                           </>
-                        ) : (
+                        ) : bookingDetails.type === 'hotel' ? (
                           <>
                             <p>Hotel: {bookingDetails.item.name}</p>
                             <p>Check-in: {bookingDetails.dates?.checkin}</p>
                             <p>Check-out: {bookingDetails.dates?.checkout}</p>
                             <p>Rating: {bookingDetails.item.rating} stars</p>
+                          </>
+                        ) : (
+                          <>
+                            <p>Duration: {bookingDetails.item.duration} days</p>
+                            <p>Travelers: {bookingDetails.item.travelers}</p>
+                            <p>Style: {bookingDetails.item.budgetStyle} budget</p>
+                            <p>Dates: {bookingDetails.item.startDate} to {bookingDetails.item.endDate}</p>
+                            <div className="mt-3">
+                              <p className="font-medium text-gray-800 mb-1">Includes:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {bookingDetails.item.includes?.flights && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">✈️ Flights</span>}
+                                {bookingDetails.item.includes?.accommodation && <span className="bg-cyan-100 text-cyan-800 px-2 py-1 rounded text-xs">🏨 Hotels</span>}
+                                {bookingDetails.item.includes?.meals && <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs">🍽️ Meals</span>}
+                                {bookingDetails.item.includes?.activities && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">🎪 Activities</span>}
+                                {bookingDetails.item.includes?.transport && <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">🚗 Transport</span>}
+                                {bookingDetails.item.includes?.travel_insurance && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">🛡️ Insurance</span>}
+                              </div>
+                            </div>
                           </>
                         )}
                       </div>
@@ -470,12 +496,36 @@ export default function CheckoutPage() {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">
-                    {bookingDetails.type === 'flight' ? 'Flight' : 'Hotel'}
+                    {bookingDetails.type === 'flight' ? 'Flight' : 
+                     bookingDetails.type === 'hotel' ? 'Hotel' : 'Complete Trip Package'}
                   </span>
                   <span className="font-semibold">
                     ${bookingDetails.price.toLocaleString()}
                   </span>
                 </div>
+                
+                {bookingDetails.type === 'complete-trip' && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div className="flex justify-between">
+                        <span>✈️ Flights (Est.)</span>
+                        <span>${bookingDetails.item.breakdown?.flights?.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>🏨 Hotels (Est.)</span>
+                        <span>${bookingDetails.item.breakdown?.accommodation?.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>🍽️ Meals (Est.)</span>
+                        <span>${bookingDetails.item.breakdown?.food?.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>🎪 Activities (Est.)</span>
+                        <span>${bookingDetails.item.breakdown?.activities?.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Taxes & Fees</span>
@@ -506,5 +556,20 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading checkout...</p>
+        </div>
+      </div>
+    }>
+      <CheckoutPageContent />
+    </Suspense>
   );
 }

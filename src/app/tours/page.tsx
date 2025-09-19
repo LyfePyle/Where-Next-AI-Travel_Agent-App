@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import ExperienceBookingPanel from '@/components/ExperienceBookingPanel';
 
 interface TourStop {
   id: string;
@@ -320,6 +321,12 @@ export default function ToursPage() {
                 </button>
               </div>
             </div>
+
+            {/* Experience Booking Options */}
+            <ExperienceBookingPanel 
+              city={generatedTour.city}
+              theme={generatedTour.theme}
+            />
           </div>
         )}
       </main>

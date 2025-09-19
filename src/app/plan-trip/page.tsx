@@ -24,7 +24,8 @@ export default function PlanTripPage() {
           from: data.originAirport,
           startDate: data.dateRange.startDate,
           endDate: data.dateRange.endDate,
-          budget: data.budgetTotal,
+          budgetAmount: data.budgetTotal,
+          tripDuration: Math.ceil((new Date(data.dateRange.endDate).getTime() - new Date(data.dateRange.startDate).getTime()) / (1000 * 60 * 60 * 24)),
           vibes: data.vibes,
           adults: data.partySize.adults,
           kids: data.partySize.kids,
@@ -37,17 +38,24 @@ export default function PlanTripPage() {
         // Store the trip data and navigate to suggestions
         const suggestions = await response.json();
         
+        // Calculate trip duration
+        const startDateObj = new Date(data.dateRange.startDate);
+        const endDateObj = new Date(data.dateRange.endDate);
+        const tripDurationDays = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24));
+
         // Navigate to suggestions with the generated data
         const params = new URLSearchParams({
           from: data.originAirport,
           startDate: data.dateRange.startDate,
           endDate: data.dateRange.endDate,
-          budget: data.budgetTotal.toString(),
+          budgetAmount: data.budgetTotal.toString(),
+          tripDuration: tripDurationDays.toString(),
+          budgetStyle: 'comfortable', // Default budget style
           vibes: data.vibes.join(','),
           adults: data.partySize.adults.toString(),
           kids: data.partySize.kids.toString(),
           ...(data.maxFlightTime && { maxFlightTime: data.maxFlightTime.toString() }),
-          ...(data.additionalDetails && { details: data.additionalDetails }),
+          ...(data.additionalDetails && { additionalDetails: data.additionalDetails }),
         });
 
         router.push(`/suggestions?${params.toString()}`);
@@ -56,12 +64,19 @@ export default function PlanTripPage() {
       }
     } catch (error) {
       console.error('Error generating trip suggestions:', error);
+      // Calculate trip duration for fallback
+      const startDateObj = new Date(data.dateRange.startDate);
+      const endDateObj = new Date(data.dateRange.endDate);
+      const tripDurationDays = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24));
+
       // For now, still navigate but with a fallback mode
       const params = new URLSearchParams({
         from: data.originAirport,
         startDate: data.dateRange.startDate,
         endDate: data.dateRange.endDate,
-        budget: data.budgetTotal.toString(),
+        budgetAmount: data.budgetTotal.toString(),
+        tripDuration: tripDurationDays.toString(),
+        budgetStyle: 'comfortable',
         vibes: data.vibes.join(','),
         adults: data.partySize.adults.toString(),
         kids: data.partySize.kids.toString(),

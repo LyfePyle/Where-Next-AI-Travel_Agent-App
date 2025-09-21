@@ -70,13 +70,6 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ sessionId: session.id });
-    */
-
-    // For now, return demo session
-    return NextResponse.json({ 
-      sessionId: `cs_demo_${Date.now()}`,
-      demoMode: true 
-    });
     
   } catch (error) {
     console.error('Checkout session creation failed:', error);

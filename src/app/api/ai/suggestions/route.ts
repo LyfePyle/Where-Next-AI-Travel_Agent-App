@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
     console.log('AI Configuration:', {
       hasOpenAIKey: !!openaiApiKey,
       enableAI: process.env.ENABLE_AI_SUGGESTIONS,
-      useAI: useAI
+      useAI: useAI,
+      openaiKeyLength: openaiApiKey ? `${openaiApiKey.length} chars` : 'none'
     });
     
     let suggestions;

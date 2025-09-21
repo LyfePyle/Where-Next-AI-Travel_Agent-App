@@ -4,7 +4,7 @@ class LRUCache<T> {
   private maxSize: number;
   private ttl: number; // Time to live in milliseconds
 
-  constructor(maxSize = 100, ttlMinutes = 30) {
+  constructor(maxSize = 100, ttlMinutes = 5) { // Reduced to 5 minutes for testing
     this.maxSize = maxSize;
     this.ttl = ttlMinutes * 60 * 1000;
   }

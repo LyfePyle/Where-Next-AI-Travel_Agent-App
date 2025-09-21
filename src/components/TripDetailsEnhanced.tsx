@@ -617,7 +617,12 @@ export default function TripDetailsEnhanced({
               {/* Buy Complete Trip Button */}
               <button
                 onClick={handleBuyCompleteTrip}
-                className="w-full mt-6 py-4 px-4 rounded-lg font-bold text-lg transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="w-full mt-6 py-4 px-4 rounded-lg font-bold text-lg transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 !bg-gradient-to-r !from-purple-600 !to-blue-600"
+                style={{
+                  background: 'linear-gradient(to right, #9333ea, #2563eb)',
+                  color: 'white',
+                  border: 'none'
+                }}
               >
                 🛒 Buy Complete Trip - ${budgetData.totalBudget.toLocaleString()}
               </button>
@@ -627,6 +632,11 @@ export default function TripDetailsEnhanced({
                 <button
                   onClick={handleSaveTrip}
                   className="py-3 px-4 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transform hover:scale-105"
+                  style={{
+                    background: 'linear-gradient(to right, #a855f7, #ec4899)',
+                    color: 'white',
+                    border: 'none'
+                  }}
                 >
                   💾 Save Trip
                 </button>
@@ -634,6 +644,11 @@ export default function TripDetailsEnhanced({
                 <button 
                   onClick={handleUseBudget}
                   className="py-3 px-4 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white shadow-md hover:shadow-lg transform hover:scale-105"
+                  style={{
+                    background: 'linear-gradient(to right, #3b82f6, #14b8a6)',
+                    color: 'white',
+                    border: 'none'
+                  }}
                 >
                   📊 Set Budget
                 </button>

@@ -177,6 +177,39 @@ export default function TripDetailsEnhanced({
     }
   };
 
+  const handleUseBudget = () => {
+    if (!selectedFlightId || !selectedHotelId) {
+      alert('❌ Please select both a flight and hotel before setting your budget.');
+      return;
+    }
+
+    try {
+      // Save budget to localStorage
+      const budgets = JSON.parse(localStorage.getItem('tripBudgets') || '{}');
+      const budgetKey = `${destination}_${startDate}_${endDate}`;
+      
+      budgets[budgetKey] = {
+        ...budgetData,
+        tripName: `${destination} Trip`,
+        destination,
+        startDate,
+        endDate,
+        travelers,
+        savedAt: new Date().toISOString()
+      };
+      
+      localStorage.setItem('tripBudgets', JSON.stringify(budgets));
+      
+      alert('✅ Budget set successfully!\n\nYour trip budget has been saved and will be used for expense tracking.');
+      
+      // Optional: Navigate to budget page
+      // window.location.href = '/budget';
+    } catch (error) {
+      console.error('Error setting budget:', error);
+      alert('❌ Error setting budget. Please try again.');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -355,6 +388,11 @@ export default function TripDetailsEnhanced({
               </h3>
               
               <div className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                  <div className="text-sm text-blue-700 font-medium mb-1">Base Trip Costs</div>
+                  <div className="text-xs text-blue-600">Core flight + accommodation costs</div>
+                </div>
+
                 <div className="flex justify-between items-center py-2">
                   <span className="text-gray-600">Flights ({travelers.adults} × ${tripSelection.selectedFlight?.price || 0})</span>
                   <span className="font-medium">${budgetData.breakdown.flights.toLocaleString()}</span>
@@ -364,23 +402,31 @@ export default function TripDetailsEnhanced({
                   <span className="text-gray-600">Hotels ({tripDuration} nights)</span>
                   <span className="font-medium">${budgetData.breakdown.hotels.toLocaleString()}</span>
                 </div>
+
+                <div className="bg-orange-50 p-3 rounded-lg my-4">
+                  <div className="text-sm text-orange-700 font-medium mb-1">Additional Estimates</div>
+                  <div className="text-xs text-orange-600">Meals, activities, and emergency buffer</div>
+                </div>
                 
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Buffer (15%)</span>
+                  <span className="text-gray-600">Emergency Buffer (15%)</span>
                   <span className="font-medium">${budgetData.breakdown.buffer.toLocaleString()}</span>
                 </div>
                 
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Daily Expenses</span>
+                  <span className="text-gray-600">Daily Expenses ($100/day)</span>
                   <span className="font-medium">${budgetData.breakdown.dailyExpenses.toLocaleString()}</span>
                 </div>
                 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold">Total Budget</span>
+                    <span className="text-lg font-semibold">Complete Trip Budget</span>
                     <span className="text-2xl font-bold text-purple-600">
                       ${budgetData.totalBudget.toLocaleString()}
                     </span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Includes flights, hotels, meals, activities & buffer
                   </div>
                 </div>
               </div>
@@ -399,7 +445,10 @@ export default function TripDetailsEnhanced({
               </button>
               
               <div className="mt-4 text-center">
-                <button className="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                <button 
+                  onClick={handleUseBudget}
+                  className="text-purple-600 hover:text-purple-700 text-sm font-medium underline"
+                >
                   Use as My Trip Budget
                 </button>
               </div>

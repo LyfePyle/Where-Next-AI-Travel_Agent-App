@@ -229,6 +229,11 @@ export default function TripDetailsEnhanced({
   };
 
   const handleSaveTrip = () => {
+    if (!selectedFlightId || !selectedHotelId) {
+      alert('🎯 Please select your preferred flight and hotel options first!\n\nThen click "Save Trip" to save your complete vacation plan.');
+      return;
+    }
+
     // Track trip saving
     analytics.tripSaved(tripId, budgetData.totalBudget, destination);
     
@@ -239,7 +244,7 @@ export default function TripDetailsEnhanced({
 
   const handleUseBudget = () => {
     if (!selectedFlightId || !selectedHotelId) {
-      alert('❌ Please select both a flight and hotel before setting your budget.');
+      alert('🎯 Please select your preferred flight and hotel options first!\n\nThen click "Set Budget" to save your trip budget for expense tracking.');
       return;
     }
 
@@ -272,7 +277,7 @@ export default function TripDetailsEnhanced({
 
   const handleBuyCompleteTrip = () => {
     if (!selectedFlightId || !selectedHotelId) {
-      alert('❌ Please select both a flight and hotel before purchasing.');
+      alert('🎯 Please select your preferred flight and hotel options first!\n\nThen click "Buy Complete Trip" to purchase your full vacation package.');
       return;
     }
 
@@ -469,7 +474,7 @@ export default function TripDetailsEnhanced({
                               e.stopPropagation();
                               handleAddFlightToCart(flight);
                             }}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                           >
                             🛒 Add to Cart
                           </button>
@@ -546,7 +551,7 @@ export default function TripDetailsEnhanced({
                           e.stopPropagation();
                           handleAddHotelToCart(hotel);
                         }}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                       >
                         🛒 Add to Cart
                       </button>
@@ -612,12 +617,7 @@ export default function TripDetailsEnhanced({
               {/* Buy Complete Trip Button */}
               <button
                 onClick={handleBuyCompleteTrip}
-                disabled={!selectedFlightId || !selectedHotelId}
-                className={`w-full mt-6 py-4 px-4 rounded-lg font-bold text-lg transition-colors ${
-                  selectedFlightId && selectedHotelId
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                className="w-full mt-6 py-4 px-4 rounded-lg font-bold text-lg transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 🛒 Buy Complete Trip - ${budgetData.totalBudget.toLocaleString()}
               </button>
@@ -626,24 +626,14 @@ export default function TripDetailsEnhanced({
               <div className="grid grid-cols-2 gap-3 mt-4">
                 <button
                   onClick={handleSaveTrip}
-                  disabled={!selectedFlightId || !selectedHotelId}
-                  className={`py-3 px-4 rounded-lg font-semibold transition-colors ${
-                    selectedFlightId && selectedHotelId
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className="py-3 px-4 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transform hover:scale-105"
                 >
                   💾 Save Trip
                 </button>
                 
                 <button 
                   onClick={handleUseBudget}
-                  disabled={!selectedFlightId || !selectedHotelId}
-                  className={`py-3 px-4 rounded-lg font-semibold transition-colors ${
-                    selectedFlightId && selectedHotelId
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className="py-3 px-4 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white shadow-md hover:shadow-lg transform hover:scale-105"
                 >
                   📊 Set Budget
                 </button>

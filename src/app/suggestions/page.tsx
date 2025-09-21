@@ -113,7 +113,7 @@ function SuggestionsContent() {
           weather: { temp: 22, condition: 'Sunny', icon: '☀️' },
           crowdLevel: 'Medium',
           seasonality: 'Perfect weather, moderate crowds',
-          estimatedTotal: 1350,
+          estimatedTotal: 2700, // For 2 people total
           flightBand: { min: 650, max: 780 },
           hotelBand: { min: 90, max: 130, style: 'Boutique', area: 'Alfama/Baixa' },
           highlights: ['Historic tram rides', 'Pasteis de Belém', 'Fado music', 'Time Out Market'],
@@ -129,7 +129,7 @@ function SuggestionsContent() {
           weather: { temp: 24, condition: 'Warm', icon: '🌤️' },
           crowdLevel: 'High',
           seasonality: 'Peak season, book early',
-          estimatedTotal: 1850,
+          estimatedTotal: 3700, // For 2 people total
           flightBand: { min: 720, max: 890 },
           hotelBand: { min: 120, max: 180, style: 'Modern', area: 'Gothic Quarter' },
           highlights: ['Sagrada Familia', 'Gaudí architecture', 'Beach life', 'Tapas culture'],
@@ -145,7 +145,7 @@ function SuggestionsContent() {
           weather: { temp: 20, condition: 'Mild', icon: '🌦️' },
           crowdLevel: 'Low',
           seasonality: 'Shoulder season, great deals',
-          estimatedTotal: 1100,
+          estimatedTotal: 2200, // For 2 people total
           flightBand: { min: 580, max: 720 },
           hotelBand: { min: 70, max: 110, style: 'Historic', area: 'Ribeira' },
           highlights: ['Port wine tasting', 'Historic center', 'River views', 'Authentic cuisine'],
@@ -161,7 +161,7 @@ function SuggestionsContent() {
           weather: { temp: 26, condition: 'Sunny', icon: '☀️' },
           crowdLevel: 'Medium',
           seasonality: 'Great weather, moderate crowds',
-          estimatedTotal: 1400,
+          estimatedTotal: 2800, // For 2 people total
           flightBand: { min: 680, max: 820 },
           hotelBand: { min: 85, max: 125, style: 'Contemporary', area: 'Ciutat Vella' },
           highlights: ['Paella birthplace', 'City of Arts', 'Beaches', 'Futuristic architecture'],
@@ -177,7 +177,7 @@ function SuggestionsContent() {
           weather: { temp: 28, condition: 'Hot', icon: '🌡️' },
           crowdLevel: 'Medium',
           seasonality: 'Warm weather, cultural events',
-          estimatedTotal: 1500,
+          estimatedTotal: 3000, // For 2 people total
           flightBand: { min: 700, max: 850 },
           hotelBand: { min: 95, max: 140, style: 'Traditional', area: 'Santa Cruz' },
           highlights: ['Alcázar Palace', 'Flamenco shows', 'Orange trees', 'Tapas bars'],
@@ -392,9 +392,12 @@ function SuggestionsContent() {
                       {suggestion.fitScore}/100 Fit
                     </div>
                     <div className="text-2xl font-bold text-black">
-                      ${suggestion.estimatedTotal.toLocaleString()}
+                      ${Math.round(suggestion.estimatedTotal / (adults + kids)).toLocaleString()}
                     </div>
                     <div className="text-sm text-gray-600">per person</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      ${suggestion.estimatedTotal.toLocaleString()} total
+                    </div>
                   </div>
                 </div>
 

@@ -111,11 +111,11 @@ Traveler Details:
 Please provide 3 diverse destination suggestions that match these preferences. For each suggestion, include:
 
 1. A unique destination that fits the budget and interests
-2. Realistic pricing estimates based on the budget style
+2. Realistic pricing estimates based on the budget style - IMPORTANT: estimatedTotal should be the TOTAL trip cost for ALL ${preferences.adults + preferences.kids} travelers, not per person
 3. Specific highlights and attractions
 4. Why this destination fits their preferences
 5. Current weather conditions and crowd levels
-6. Flight and hotel price bands
+6. Flight and hotel price bands (per person)
 
 Format the response as a JSON array with exactly this structure:
 [
@@ -133,7 +133,7 @@ Format the response as a JSON array with exactly this structure:
     },
     "crowdLevel": "Low/Medium/High",
     "seasonality": "Description of season",
-    "estimatedTotal": 1000-3000,
+    "estimatedTotal": 1000-5000,
     "flightBand": {
       "min": 400-800,
       "max": 600-1200

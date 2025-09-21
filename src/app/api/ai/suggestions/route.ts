@@ -37,6 +37,12 @@ export async function POST(request: NextRequest) {
     const openaiApiKey = process.env.OPENAI_API_KEY;
     const useAI = process.env.ENABLE_AI_SUGGESTIONS !== 'false' && openaiApiKey;
     
+    console.log('AI Configuration:', {
+      hasOpenAIKey: !!openaiApiKey,
+      enableAI: process.env.ENABLE_AI_SUGGESTIONS,
+      useAI: useAI
+    });
+    
     let suggestions;
     let source = 'fallback';
 

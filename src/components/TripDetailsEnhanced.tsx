@@ -8,6 +8,63 @@ import PriceTrackingPanel from './PriceTrackingPanel';
 import BookingOptionsPanel from './BookingOptionsPanel';
 import { analytics } from '@/lib/analytics';
 
+// Helper function to get destination-appropriate names
+const getHotelName = (destination: string, tier: string) => {
+  const city = destination.split(',')[0].trim();
+  
+  if (city.toLowerCase().includes('cancun')) {
+    return tier === 'luxury' ? 'The Ritz-Carlton Cancun' : 
+           tier === 'budget' ? 'Cancun Beach Resort' : 'Fiesta Americana Cancun';
+  }
+  
+  if (city.toLowerCase().includes('honolulu')) {
+    return tier === 'luxury' ? 'Four Seasons Resort Oahu' : 
+           tier === 'budget' ? 'Waikiki Beach Hotel' : 'Royal Hawaiian Hotel';
+  }
+  
+  // Default fallback
+  return tier === 'luxury' ? `Grand ${city} Palace` : 
+         tier === 'budget' ? `Budget Hotel ${city}` : `Hotel ${city} Plaza`;
+};
+
+const getAirlineName = (destination: string, index: number) => {
+  const city = destination.split(',')[0].trim();
+  
+  if (city.toLowerCase().includes('cancun')) {
+    return ['Air Canada', 'WestJet', 'Sunwing'][index] || 'Air Canada';
+  }
+  
+  if (city.toLowerCase().includes('honolulu')) {
+    return ['Air Canada', 'WestJet', 'Hawaiian Airlines'][index] || 'Air Canada';
+  }
+  
+  return ['Air Canada', 'Lufthansa', 'KLM'][index] || 'Air Canada';
+};
+
+const getDestinationPricing = (destination: string) => {
+  const city = destination.split(',')[0].trim();
+  
+  if (city.toLowerCase().includes('cancun')) {
+    return {
+      flights: [850, 650, 1200],
+      hotels: [180, 120, 350]
+    };
+  }
+  
+  if (city.toLowerCase().includes('honolulu')) {
+    return {
+      flights: [950, 750, 1400], 
+      hotels: [220, 140, 450]
+    };
+  }
+  
+  // Default pricing
+  return {
+    flights: [850, 720, 980],
+    hotels: [180, 140, 280]
+  };
+};
+
 interface FlightOption {
   id: string;
   airline: string;
@@ -83,12 +140,15 @@ export default function TripDetailsEnhanced({
   const loadTripOptions = async () => {
     setIsLoading(true);
     try {
-      // Load flight options (using fallback for now)
+      // Get destination-specific pricing
+      const pricing = getDestinationPricing(destination);
+      
+      // Load flight options (destination-specific)
       const flights: FlightOption[] = [
         {
           id: 'flight_1',
-          airline: 'Air Canada',
-          price: 850,
+          airline: getAirlineName(destination, 0),
+          price: pricing.flights[0],
           duration: '12h 30m',
           departure: '08:30',
           arrival: '21:00',
@@ -97,8 +157,8 @@ export default function TripDetailsEnhanced({
         },
         {
           id: 'flight_2',
-          airline: 'Lufthansa',
-          price: 720,
+          airline: getAirlineName(destination, 1),
+          price: pricing.flights[1],
           duration: '16h 45m',
           departure: '14:20',
           arrival: '13:05',
@@ -107,8 +167,8 @@ export default function TripDetailsEnhanced({
         },
         {
           id: 'flight_3',
-          airline: 'KLM',
-          price: 980,
+          airline: getAirlineName(destination, 2),
+          price: pricing.flights[2],
           duration: '14h 15m',
           departure: '10:15',
           arrival: '08:30',
@@ -117,40 +177,40 @@ export default function TripDetailsEnhanced({
         }
       ];
 
-      // Load hotel options (using fallback for now)
+      // Load hotel options (destination-specific)
       const hotels: HotelOption[] = [
         {
           id: 'hotel_1',
-          name: 'Hotel Elegante Madrid',
+          name: getHotelName(destination, 'mid'),
           rating: 4.5,
-          pricePerNight: 180,
-          totalPrice: 180 * tripDuration,
-          area: 'City Center',
-          amenities: ['Free WiFi', 'Gym', 'Restaurant', 'Room Service'],
+          pricePerNight: pricing.hotels[0],
+          totalPrice: pricing.hotels[0] * tripDuration,
+          area: 'Premium Area',
+          amenities: ['Free WiFi', 'Pool', 'Restaurant', 'Beach/City Access'],
           image: '/images/hotel-placeholder.jpg',
-          description: 'Modern hotel in the heart of Madrid with excellent amenities'
+          description: `Premium hotel in the heart of ${destination.split(',')[0]} with excellent amenities`
         },
         {
           id: 'hotel_2',
-          name: 'Boutique Casa Madrid',
+          name: getHotelName(destination, 'budget'),
           rating: 4.2,
-          pricePerNight: 140,
-          totalPrice: 140 * tripDuration,
-          area: 'Historic Quarter',
+          pricePerNight: pricing.hotels[1],
+          totalPrice: pricing.hotels[1] * tripDuration,
+          area: 'Central Location',
           amenities: ['Free WiFi', 'Breakfast', 'Concierge'],
           image: '/images/hotel-placeholder.jpg',
-          description: 'Charming boutique hotel with authentic Spanish character'
+          description: `Comfortable hotel with great value in ${destination.split(',')[0]}`
         },
         {
           id: 'hotel_3',
-          name: 'Madrid Grand Palace',
+          name: getHotelName(destination, 'luxury'),
           rating: 4.8,
-          pricePerNight: 280,
-          totalPrice: 280 * tripDuration,
+          pricePerNight: pricing.hotels[2],
+          totalPrice: pricing.hotels[2] * tripDuration,
           area: 'Luxury District',
           amenities: ['Free WiFi', 'Spa', 'Pool', 'Valet Parking', 'Fine Dining'],
           image: '/images/hotel-placeholder.jpg',
-          description: 'Luxury hotel with world-class service and amenities'
+          description: `Luxury resort with world-class service in ${destination.split(',')[0]}`
         }
       ];
 
@@ -207,6 +267,101 @@ export default function TripDetailsEnhanced({
     } catch (error) {
       console.error('Error setting budget:', error);
       alert('❌ Error setting budget. Please try again.');
+    }
+  };
+
+  const handleBuyCompleteTrip = () => {
+    if (!selectedFlightId || !selectedHotelId) {
+      alert('❌ Please select both a flight and hotel before purchasing.');
+      return;
+    }
+
+    const selectedFlight = flightOptions.find(f => f.id === selectedFlightId);
+    const selectedHotel = hotelOptions.find(h => h.id === selectedHotelId);
+
+    // Create complete trip package for checkout
+    const tripPackage = {
+      type: 'complete-trip',
+      destination,
+      startDate,
+      endDate,
+      travelers,
+      duration: tripDuration,
+      selectedFlight,
+      selectedHotel,
+      budgetBreakdown: budgetData.breakdown,
+      totalAmount: budgetData.totalBudget,
+      includes: {
+        flights: true,
+        accommodation: true,
+        meals: true,
+        activities: true,
+        transport: true,
+        emergency_buffer: true
+      }
+    };
+
+    // Navigate to checkout with complete trip
+    const checkoutUrl = `/booking/checkout?${new URLSearchParams({
+      type: 'complete-trip',
+      item: encodeURIComponent(JSON.stringify(tripPackage)),
+      price: budgetData.totalBudget.toString(),
+      destination: destination,
+      travelers: travelers.adults.toString()
+    }).toString()}`;
+    
+    // Track purchase intent
+    analytics.tripPlanned(destination, { departure: startDate, return: endDate }, travelers.adults);
+    
+    window.location.href = checkoutUrl;
+  };
+
+  const handleAddFlightToCart = (flight: FlightOption) => {
+    // Add flight to cart (stored in localStorage)
+    try {
+      const cart = JSON.parse(localStorage.getItem('travelCart') || '[]');
+      const flightItem = {
+        id: `flight_${flight.id}_${Date.now()}`,
+        type: 'flight',
+        destination,
+        flight,
+        travelers,
+        totalPrice: flight.price * travelers.adults,
+        addedAt: new Date().toISOString()
+      };
+      
+      cart.push(flightItem);
+      localStorage.setItem('travelCart', JSON.stringify(cart));
+      
+      alert(`✅ ${flight.airline} flight added to cart!\n\nTotal: $${(flight.price * travelers.adults).toLocaleString()}`);
+    } catch (error) {
+      console.error('Error adding flight to cart:', error);
+      alert('❌ Error adding to cart. Please try again.');
+    }
+  };
+
+  const handleAddHotelToCart = (hotel: HotelOption) => {
+    // Add hotel to cart (stored in localStorage)
+    try {
+      const cart = JSON.parse(localStorage.getItem('travelCart') || '[]');
+      const hotelItem = {
+        id: `hotel_${hotel.id}_${Date.now()}`,
+        type: 'hotel',
+        destination,
+        hotel,
+        duration: tripDuration,
+        travelers,
+        totalPrice: hotel.totalPrice,
+        addedAt: new Date().toISOString()
+      };
+      
+      cart.push(hotelItem);
+      localStorage.setItem('travelCart', JSON.stringify(cart));
+      
+      alert(`✅ ${hotel.name} added to cart!\n\nTotal: $${hotel.totalPrice.toLocaleString()} for ${tripDuration} nights`);
+    } catch (error) {
+      console.error('Error adding hotel to cart:', error);
+      alert('❌ Error adding to cart. Please try again.');
     }
   };
 
@@ -305,8 +460,19 @@ export default function TripDetailsEnhanced({
                           </div>
                         </div>
                         
-                        <div className="mt-2 text-xs text-gray-600">
-                          {flight.aircraft}
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="text-xs text-gray-600">
+                            {flight.aircraft}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddFlightToCart(flight);
+                            }}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                          >
+                            🛒 Add to Cart
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -359,7 +525,7 @@ export default function TripDetailsEnhanced({
                     
                     <p className="text-sm text-gray-600 mb-3">{hotel.description}</p>
                     
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 mb-3">
                       {hotel.amenities.slice(0, 4).map((amenity, index) => (
                         <span key={index} className="inline-flex items-center px-2 py-1 bg-gray-100 text-xs rounded">
                           {amenity === 'Free WiFi' && <Wifi className="w-3 h-3 mr-1" />}
@@ -372,6 +538,18 @@ export default function TripDetailsEnhanced({
                           +{hotel.amenities.length - 4} more
                         </span>
                       )}
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddHotelToCart(hotel);
+                        }}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                      >
+                        🛒 Add to Cart
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -431,26 +609,50 @@ export default function TripDetailsEnhanced({
                 </div>
               </div>
 
-              {/* Save Trip Button */}
+              {/* Buy Complete Trip Button */}
               <button
-                onClick={handleSaveTrip}
+                onClick={handleBuyCompleteTrip}
                 disabled={!selectedFlightId || !selectedHotelId}
-                className={`w-full mt-6 py-3 px-4 rounded-lg font-semibold transition-colors ${
+                className={`w-full mt-6 py-4 px-4 rounded-lg font-bold text-lg transition-colors ${
                   selectedFlightId && selectedHotelId
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                Save This Trip
+                🛒 Buy Complete Trip - ${budgetData.totalBudget.toLocaleString()}
               </button>
               
-              <div className="mt-4 text-center">
+              {/* Individual Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <button
+                  onClick={handleSaveTrip}
+                  disabled={!selectedFlightId || !selectedHotelId}
+                  className={`py-3 px-4 rounded-lg font-semibold transition-colors ${
+                    selectedFlightId && selectedHotelId
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  💾 Save Trip
+                </button>
+                
                 <button 
                   onClick={handleUseBudget}
-                  className="text-purple-600 hover:text-purple-700 text-sm font-medium underline"
+                  disabled={!selectedFlightId || !selectedHotelId}
+                  className={`py-3 px-4 rounded-lg font-semibold transition-colors ${
+                    selectedFlightId && selectedHotelId
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
                 >
-                  Use as My Trip Budget
+                  📊 Set Budget
                 </button>
+              </div>
+              
+              <div className="mt-4 text-center">
+                <p className="text-xs text-gray-500">
+                  Complete trip includes flights, hotels, meals & activities
+                </p>
               </div>
             </div>
           </div>

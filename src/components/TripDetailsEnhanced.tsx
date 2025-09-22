@@ -474,7 +474,14 @@ export default function TripDetailsEnhanced({
                               e.stopPropagation();
                               handleAddFlightToCart(flight);
                             }}
-                            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                            className="text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                            style={{
+                              backgroundColor: '#3b82f6',
+                              color: 'white',
+                              border: 'none'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
                           >
                             🛒 Add to Cart
                           </button>
@@ -551,7 +558,14 @@ export default function TripDetailsEnhanced({
                           e.stopPropagation();
                           handleAddHotelToCart(hotel);
                         }}
-                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                        className="text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                        style={{
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          border: 'none'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#059669'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = '#10b981'}
                       >
                         🛒 Add to Cart
                       </button>
@@ -617,12 +631,14 @@ export default function TripDetailsEnhanced({
               {/* Buy Complete Trip Button */}
               <button
                 onClick={handleBuyCompleteTrip}
-                className="w-full mt-6 py-4 px-4 rounded-lg font-bold text-lg transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 !bg-gradient-to-r !from-purple-600 !to-blue-600"
+                className="w-full mt-6 py-4 px-4 rounded-lg font-bold text-lg transition-all duration-300 text-white shadow-lg hover:shadow-xl transform hover:scale-105"
                 style={{
-                  background: 'linear-gradient(to right, #9333ea, #2563eb)',
+                  backgroundColor: '#7c3aed',
                   color: 'white',
                   border: 'none'
                 }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#6d28d9'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#7c3aed'}
               >
                 🛒 Buy Complete Trip - ${budgetData.totalBudget.toLocaleString()}
               </button>
@@ -631,24 +647,28 @@ export default function TripDetailsEnhanced({
               <div className="grid grid-cols-2 gap-3 mt-4">
                 <button
                   onClick={handleSaveTrip}
-                  className="py-3 px-4 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transform hover:scale-105"
+                  className="py-3 px-4 rounded-lg font-semibold transition-all duration-300 text-white shadow-md hover:shadow-lg transform hover:scale-105"
                   style={{
-                    background: 'linear-gradient(to right, #a855f7, #ec4899)',
+                    backgroundColor: '#8b5cf6',
                     color: 'white',
                     border: 'none'
                   }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#7c3aed'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#8b5cf6'}
                 >
                   💾 Save Trip
                 </button>
                 
                 <button 
                   onClick={handleUseBudget}
-                  className="py-3 px-4 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white shadow-md hover:shadow-lg transform hover:scale-105"
+                  className="py-3 px-4 rounded-lg font-semibold transition-all duration-300 text-white shadow-md hover:shadow-lg transform hover:scale-105"
                   style={{
-                    background: 'linear-gradient(to right, #3b82f6, #14b8a6)',
+                    backgroundColor: '#3b82f6',
                     color: 'white',
                     border: 'none'
                   }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
                 >
                   📊 Set Budget
                 </button>

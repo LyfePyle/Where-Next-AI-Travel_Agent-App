@@ -58,6 +58,9 @@ const suggestionCache = new LRUCache(50, 60); // 1 hour TTL
 const flightCache = new LRUCache(100, 30); // 30 minutes TTL
 const hotelCache = new LRUCache(100, 30); // 30 minutes TTL
 
+// Default cache instance for general use
+export const cache = new LRUCache(100, 30);
+
 export { suggestionCache, flightCache, hotelCache };
 
 // Cache key generators

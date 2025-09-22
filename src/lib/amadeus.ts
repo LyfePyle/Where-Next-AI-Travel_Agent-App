@@ -1,11 +1,23 @@
 import Amadeus from 'amadeus';
 
-// Initialize Amadeus client
-const amadeus = new Amadeus({
-  clientId: process.env.AMADEUS_CLIENT_ID!,
-  clientSecret: process.env.AMADEUS_CLIENT_SECRET!,
-  environment: process.env.AMADEUS_ENVIRONMENT as 'test' | 'production' || 'test'
-});
+// Lazy initialization of Amadeus client
+let amadeus: Amadeus | null = null;
+
+function getAmadeusClient(): Amadeus | null {
+  if (!amadeus && checkAmadeusConfig()) {
+    try {
+      amadeus = new Amadeus({
+        clientId: process.env.AMADEUS_CLIENT_ID!,
+        clientSecret: process.env.AMADEUS_CLIENT_SECRET!,
+        environment: process.env.AMADEUS_ENVIRONMENT as 'test' | 'production' || 'test'
+      });
+    } catch (error) {
+      console.error('Failed to initialize Amadeus client:', error);
+      return null;
+    }
+  }
+  return amadeus;
+}
 
 // Rate limiting configuration
 const RATE_LIMIT = {
@@ -48,9 +60,14 @@ export async function searchFlights(params: {
   try {
     checkRateLimit();
     
+    const client = getAmadeusClient();
+    if (!client) {
+      throw new Error('Amadeus client not configured');
+    }
+    
     console.log('🔍 Searching flights with Amadeus API:', params);
     
-    const response = await amadeus.shopping.flightOffersSearch.get({
+    const response = await client.shopping.flightOffersSearch.get({
       originLocationCode: params.originLocationCode,
       destinationLocationCode: params.destinationLocationCode,
       departureDate: params.departureDate,
@@ -100,9 +117,14 @@ export async function searchHotels(params: {
   try {
     checkRateLimit();
     
+    const client = getAmadeusClient();
+    if (!client) {
+      throw new Error('Amadeus client not configured');
+    }
+    
     console.log('🏨 Searching hotels with Amadeus API:', params);
     
-    const response = await amadeus.shopping.hotelOffers.get({
+    const response = await client.shopping.hotelOffers.get({
       cityCode: params.cityCode,
       checkInDate: params.checkInDate,
       checkOutDate: params.checkOutDate,
@@ -138,9 +160,14 @@ export async function searchLocations(keyword: string) {
   try {
     checkRateLimit();
     
+    const client = getAmadeusClient();
+    if (!client) {
+      throw new Error('Amadeus client not configured');
+    }
+    
     console.log('📍 Searching locations with Amadeus API:', keyword);
     
-    const response = await amadeus.referenceData.locations.get({
+    const response = await client.referenceData.locations.get({
       keyword,
       subType: 'AIRPORT,CITY'
     });
@@ -216,4 +243,5 @@ export function checkAmadeusConfig() {
   return hasClientId && hasClientSecret;
 }
 
-export default amadeus;
+// Export client getter for external use
+export { getAmadeusClient };

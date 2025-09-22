@@ -169,7 +169,14 @@ export default function BudgetSuggestionCard({
       <div className="mb-6">
         <button
           onClick={handleBookCompleteTrip}
-          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="w-full text-white py-4 px-6 rounded-lg font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          style={{
+            backgroundColor: '#7c3aed',
+            color: 'white',
+            border: 'none'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#6d28d9'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#7c3aed'}
         >
           🎯 Book Complete Trip - ${totalBudget.toLocaleString()}
         </button>

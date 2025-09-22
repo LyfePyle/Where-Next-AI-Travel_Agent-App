@@ -164,7 +164,7 @@ export default function SavedTripsPage() {
 
         {/* Free Plan Upgrade Banner */}
         {savedTrips.length >= 2 && (
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-6 mb-8 text-white">
+          <div className="rounded-lg p-6 mb-8 text-white" style={{ backgroundColor: '#7c3aed' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Crown className="w-8 h-8 mr-3" />
@@ -327,7 +327,12 @@ export default function SavedTripsPage() {
                 </div>
               </div>
               
-              <button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300">
+              <button 
+                className="text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300"
+                style={{ backgroundColor: '#7c3aed', border: 'none' }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#6d28d9'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#7c3aed'}
+              >
                 Upgrade to Pro - $9.99/month
               </button>
             </div>

@@ -1001,7 +1001,7 @@ function ItineraryBuilderContent() {
 
         {/* Book Trip Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl p-8 text-white">
+          <div className="rounded-xl p-8 text-white" style={{ backgroundColor: '#7c3aed' }}>
             <div className="text-center">
               <h3 className="text-2xl font-bold mb-4">Ready to Book Your Trip? 🚀</h3>
               <p className="text-lg mb-6 opacity-90">

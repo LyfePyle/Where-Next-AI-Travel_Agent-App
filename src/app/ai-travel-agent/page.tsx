@@ -260,7 +260,7 @@ export default function AITravelAgentPage() {
       }
 
       // Save the trip
-      const response = await fetch('/api/trips/save', {
+      const response = await fetch('/api/trips/saved', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -138,16 +138,25 @@ export default function ToursPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
-              <Link href="/" className="text-blue-600 hover:text-blue-700">
+              <Link href="/" className="text-purple-600 hover:text-purple-700 font-medium">
                 ← Back to Home
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900">AI Walking Tours</h1>
+              <h1 className="text-2xl font-bold text-gray-900">🚶 AI Walking Tours</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Link href="/cart" className="text-gray-600 hover:text-purple-600 flex items-center">
+                🛒 Cart
+              </Link>
+              <Link href="/saved" className="text-gray-600 hover:text-purple-600">
+                Saved Trips
+              </Link>
               {!isPremiumUser && (
                 <button
                   onClick={handleUpgradeToPremium}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700"
+                  className="text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300"
+                  style={{ backgroundColor: '#7c3aed' }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#6d28d9'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#7c3aed'}
                 >
                   ✨ Upgrade to Premium
                 </button>

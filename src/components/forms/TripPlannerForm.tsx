@@ -34,7 +34,7 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
       budgetTotal: 2000,
       vibes: [],
       partySize: {
-        adults: 2,
+        adults: 0,
         kids: 0,
       },
       maxFlightTime: 12,
@@ -348,11 +348,23 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
         <button
           type="submit"
           disabled={!isValid || isLoading}
-          className={`px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 ${
-            !isValid || isLoading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-purple-600 hover:bg-purple-700 hover:shadow-lg'
-          }`}
+          className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          style={{
+            backgroundColor: !isValid || isLoading ? '#9ca3af' : '#7c3aed',
+            color: 'white',
+            border: 'none',
+            cursor: !isValid || isLoading ? 'not-allowed' : 'pointer'
+          }}
+          onMouseEnter={(e) => {
+            if (!(!isValid || isLoading)) {
+              e.target.style.backgroundColor = '#6d28d9';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!(!isValid || isLoading)) {
+              e.target.style.backgroundColor = '#7c3aed';
+            }
+          }}
         >
           {isLoading ? (
             <div className="flex items-center">

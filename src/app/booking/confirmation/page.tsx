@@ -38,6 +38,94 @@ interface BookingConfirmation {
   };
 }
 
+// Generate destination-specific booking data
+function getDestinationBookingData(destination: string, startDate: string, endDate: string) {
+  const city = destination.split(',')[0].trim();
+  const country = destination.split(',')[1]?.trim() || '';
+  
+  // Calculate nights
+  const nights = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Format dates
+  const startFormatted = new Date(startDate).toLocaleDateString('en-US', { 
+    year: 'numeric', month: 'long', day: 'numeric' 
+  });
+  const endFormatted = new Date(endDate).toLocaleDateString('en-US', { 
+    year: 'numeric', month: 'long', day: 'numeric' 
+  });
+  
+  if (city.toLowerCase().includes('toronto')) {
+    return {
+      flights: {
+        outbound: `YVR → YYZ, ${startFormatted}, 7:30 AM`,
+        return: `YYZ → YVR, ${endFormatted}, 6:45 PM`,
+        airline: 'Air Canada',
+        cost: 600
+      },
+      accommodation: {
+        name: 'Fairmont Royal York Toronto',
+        checkIn: startFormatted,
+        checkOut: endFormatted,
+        nights: nights,
+        cost: 600
+      },
+      activities: [
+        { name: 'CN Tower EdgeWalk Experience', date: `${startFormatted} + 1 day`, cost: 85 },
+        { name: 'Casa Loma Castle Tour', date: `${startFormatted} + 2 days`, cost: 45 },
+        { name: 'Distillery District Food Tour', date: `${startFormatted} + 3 days`, cost: 75 },
+        { name: 'Harbourfront Centre Event', date: `${startFormatted} + 4 days`, cost: 35 }
+      ]
+    };
+  }
+  
+  if (city.toLowerCase().includes('cancun') || city.toLowerCase().includes('acapulco')) {
+    return {
+      flights: {
+        outbound: `YVR → ${city.toUpperCase()}, ${startFormatted}, 8:30 AM`,
+        return: `${city.toUpperCase()} → YVR, ${endFormatted}, 3:15 PM`,
+        airline: 'WestJet',
+        cost: 850
+      },
+      accommodation: {
+        name: `All-Inclusive Resort ${city}`,
+        checkIn: startFormatted,
+        checkOut: endFormatted,
+        nights: nights,
+        cost: 180 * nights
+      },
+      activities: [
+        { name: 'Snorkeling Adventure', date: `${startFormatted} + 1 day`, cost: 65 },
+        { name: 'Mayan Ruins Tour', date: `${startFormatted} + 2 days`, cost: 85 },
+        { name: 'Beach Day Pass', date: `${startFormatted} + 3 days`, cost: 0 },
+        { name: 'Sunset Catamaran Cruise', date: `${startFormatted} + 4 days`, cost: 120 }
+      ]
+    };
+  }
+  
+  // Default booking data
+  return {
+    flights: {
+      outbound: `YVR → ${city.toUpperCase()}, ${startFormatted}, 9:30 AM`,
+      return: `${city.toUpperCase()} → YVR, ${endFormatted}, 4:15 PM`,
+      airline: 'Air Canada',
+      cost: 800
+    },
+    accommodation: {
+      name: `Grand Hotel ${city}`,
+      checkIn: startFormatted,
+      checkOut: endFormatted,
+      nights: nights,
+      cost: 150 * nights
+    },
+    activities: [
+      { name: `${city} City Tour`, date: `${startFormatted} + 1 day`, cost: 45 },
+      { name: `Local Cultural Experience`, date: `${startFormatted} + 2 days`, cost: 65 },
+      { name: `Food & Wine Tasting`, date: `${startFormatted} + 3 days`, cost: 85 },
+      { name: `Scenic Viewpoint Visit`, date: `${startFormatted} + 4 days`, cost: 25 }
+    ]
+  };
+}
+
 function BookingConfirmationPageContent() {
   const searchParams = useSearchParams();
   const [booking, setBooking] = useState<BookingConfirmation | null>(null);
@@ -49,40 +137,29 @@ function BookingConfirmationPageContent() {
     const bookingType = searchParams.get('type') || 'flight';
     const amount = searchParams.get('amount') || '1200';
     
-    // Simulate loading booking data
+    // Create booking data from URL parameters
     setTimeout(() => {
+      const destination = searchParams.get('destination') || 'Toronto, Canada';
+      const startDate = searchParams.get('startDate') || '2025-09-29';
+      const endDate = searchParams.get('endDate') || '2025-10-06';
+      const travelers = parseInt(searchParams.get('travelers') || '2');
+      const totalCost = parseInt(amount);
+      
+      // Get destination-specific data
+      const destinationData = getDestinationBookingData(destination, startDate, endDate);
+      
       const mockBooking: BookingConfirmation = {
         bookingId: bookingReference,
-        tripName: searchParams.get('destination') || 'Amazing Adventure',
-        destination: searchParams.get('destination') || 'Paris, France',
+        tripName: `${destination} Adventure`,
+        destination: destination,
         dates: {
-          start: searchParams.get('startDate') || '2025-06-15',
-          end: searchParams.get('endDate') || '2025-06-22'
+          start: startDate,
+          end: endDate
         },
-        travelers: parseInt(searchParams.get('travelers') || '2'),
-        totalCost: parseInt(searchParams.get('totalCost') || '3450'),
+        travelers: travelers,
+        totalCost: totalCost,
         status: 'confirmed',
-        bookings: {
-          flights: {
-            outbound: 'YVR → CDG, June 15, 2025, 10:30 AM',
-            return: 'CDG → YVR, June 22, 2025, 2:15 PM',
-            airline: 'Air Canada',
-            cost: 1200
-          },
-          accommodation: {
-            name: 'Hotel de Charm Paris',
-            checkIn: 'June 15, 2025',
-            checkOut: 'June 22, 2025',
-            nights: 7,
-            cost: 1400
-          },
-          activities: [
-            { name: 'Eiffel Tower Skip-the-Line Tour', date: 'June 16, 2025', cost: 45 },
-            { name: 'Louvre Museum Guided Tour', date: 'June 17, 2025', cost: 65 },
-            { name: 'Seine River Dinner Cruise', date: 'June 19, 2025', cost: 120 },
-            { name: 'Versailles Day Trip', date: 'June 20, 2025', cost: 85 }
-          ]
-        }
+        bookings: destinationData
       };
       setBooking(mockBooking);
       setIsLoading(false);

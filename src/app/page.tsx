@@ -80,6 +80,12 @@ export default function HomePage() {
                 Start AI Travel Planning
               </Link>
               <Link 
+                href="/tours"
+                className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors no-underline"
+              >
+                🚶 Discover Walking Tours
+              </Link>
+              <Link 
                 href="/auth/register"
                 className="bg-white text-purple-700 px-8 py-3 rounded-lg font-semibold border-2 border-purple-700 hover:bg-purple-50 transition-colors no-underline"
               >

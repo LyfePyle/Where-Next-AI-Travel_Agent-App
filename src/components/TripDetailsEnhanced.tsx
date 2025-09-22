@@ -65,6 +65,53 @@ const getDestinationPricing = (destination: string) => {
   };
 };
 
+const getFlightDuration = (destination: string, flightType: 'direct' | 'one-stop' | 'premium') => {
+  const city = destination.split(',')[0].trim().toLowerCase();
+  
+  // Mexico destinations (Cancun, Acapulco, etc.)
+  if (city.includes('cancun') || city.includes('acapulco') || city.includes('puerto vallarta')) {
+    return {
+      direct: '6h 30m',
+      'one-stop': '9h 15m', 
+      premium: '5h 45m'
+    }[flightType];
+  }
+  
+  // Hawaii
+  if (city.includes('honolulu') || city.includes('maui')) {
+    return {
+      direct: '9h 20m',
+      'one-stop': '12h 30m',
+      premium: '8h 45m'
+    }[flightType];
+  }
+  
+  // Europe destinations
+  if (city.includes('london') || city.includes('paris') || city.includes('madrid')) {
+    return {
+      direct: '9h 45m',
+      'one-stop': '13h 20m',
+      premium: '9h 15m'
+    }[flightType];
+  }
+  
+  // Asia destinations
+  if (city.includes('tokyo') || city.includes('bangkok') || city.includes('singapore')) {
+    return {
+      direct: '11h 30m',
+      'one-stop': '16h 45m',
+      premium: '10h 50m'
+    }[flightType];
+  }
+  
+  // Default (medium-distance destinations)
+  return {
+    direct: '8h 30m',
+    'one-stop': '12h 15m',
+    premium: '7h 45m'
+  }[flightType];
+};
+
 interface FlightOption {
   id: string;
   airline: string;
@@ -149,7 +196,7 @@ export default function TripDetailsEnhanced({
           id: 'flight_1',
           airline: getAirlineName(destination, 0),
           price: pricing.flights[0],
-          duration: '12h 30m',
+          duration: getFlightDuration(destination, 'direct'),
           departure: '08:30',
           arrival: '21:00',
           stops: 0,
@@ -159,7 +206,7 @@ export default function TripDetailsEnhanced({
           id: 'flight_2',
           airline: getAirlineName(destination, 1),
           price: pricing.flights[1],
-          duration: '16h 45m',
+          duration: getFlightDuration(destination, 'one-stop'),
           departure: '14:20',
           arrival: '13:05',
           stops: 1,
@@ -169,10 +216,10 @@ export default function TripDetailsEnhanced({
           id: 'flight_3',
           airline: getAirlineName(destination, 2),
           price: pricing.flights[2],
-          duration: '14h 15m',
+          duration: getFlightDuration(destination, 'premium'),
           departure: '10:15',
           arrival: '08:30',
-          stops: 1,
+          stops: 0,
           aircraft: 'Boeing 777-300'
         }
       ];

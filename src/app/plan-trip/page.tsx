@@ -102,6 +102,12 @@ export default function PlanTripPage() {
               <h1 className="text-2xl font-bold text-gray-900">Plan Your Perfect Trip</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Link href="/cart" className="text-gray-600 hover:text-purple-600 flex items-center">
+                🛒 Cart
+              </Link>
+              <Link href="/tours" className="text-gray-600 hover:text-purple-600">
+                🚶 Walking Tours
+              </Link>
               <Link href="/saved" className="text-gray-600 hover:text-purple-600">
                 Saved Trips
               </Link>

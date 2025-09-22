@@ -260,7 +260,7 @@ function CheckoutPageContent() {
                         ) : (
                           <>
                             <p>Duration: {bookingDetails.item.duration} days</p>
-                            <p>Travelers: {bookingDetails.item.travelers}</p>
+                            <p>Travelers: {bookingDetails.item.travelers?.adults || 0} adults{bookingDetails.item.travelers?.kids > 0 ? `, ${bookingDetails.item.travelers.kids} kids` : ''}</p>
                             <p>Style: {bookingDetails.item.budgetStyle} budget</p>
                             <p>Dates: {bookingDetails.item.startDate} to {bookingDetails.item.endDate}</p>
                             <div className="mt-3">

@@ -70,6 +70,9 @@ export default function Navigation() {
             <Link href="/plan-trip" className="text-black font-medium hover:text-purple-600 transition-colors">
               Plan Trip
             </Link>
+            <Link href="/tours" className="text-black font-medium hover:text-purple-600 transition-colors">
+              Walking Tours
+            </Link>
             <Link href="/saved" className="text-black font-medium hover:text-purple-600 transition-colors">
               Saved Trips
             </Link>

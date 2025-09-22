@@ -17,7 +17,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET() {
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     
     // Try to get user from session
     const { data: { user } } = await supabase.auth.getUser();
@@ -64,7 +64,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     const body = await request.json();
     
     // Get user from session

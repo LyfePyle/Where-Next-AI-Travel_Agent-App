@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchFlights, FlightSearchParams } from '@/lib/amadeus';
+import { searchFlights, transformFlightData, checkAmadeusConfig } from '@/lib/amadeus';
+import { cache } from '@/lib/cache';
+
+// Flight search parameters interface
+interface FlightSearchParams {
+  originLocationCode: string;
+  destinationLocationCode: string;
+  departureDate: string;
+  returnDate?: string;
+  adults: number;
+  children?: number;
+  infants?: number;
+  travelClass?: 'ECONOMY' | 'PREMIUM_ECONOMY' | 'BUSINESS' | 'FIRST';
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,18 +26,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Search flights using Amadeus with fallback
+    // Check cache first
+    const cacheKey = `flights_${params.originLocationCode}_${params.destinationLocationCode}_${params.departureDate}_${params.adults}`;
+    const cachedResult = cache.get(cacheKey);
+    
+    if (cachedResult) {
+      console.log('🎯 Cache hit for flight search:', cacheKey);
+      return NextResponse.json({
+        flights: cachedResult.flights,
+        count: cachedResult.count,
+        searchParams: params,
+        source: 'cache',
+        cached: true
+      });
+    }
+
+    // Check if Amadeus is configured
+    const isAmadeusConfigured = checkAmadeusConfig();
+    
     let flights;
-    try {
-      flights = await searchFlights(params);
-      
-      // If API returns empty results, use fallback
-      if (!flights || flights.length === 0) {
-        console.log('Amadeus returned no flights, using fallback data');
+    let source = 'fallback';
+    
+    if (isAmadeusConfigured) {
+      try {
+        console.log('🔍 Searching flights with Amadeus API...');
+        const amadeusFlights = await searchFlights(params);
+        
+        if (amadeusFlights && amadeusFlights.length > 0) {
+          flights = transformFlightData(amadeusFlights);
+          source = 'amadeus';
+          console.log('✅ Amadeus flight search successful:', flights.length, 'results');
+        } else {
+          console.log('⚠️ Amadeus returned no flights, using fallback data');
+          flights = generateFallbackFlights(params);
+        }
+      } catch (amadeusError) {
+        console.log('❌ Amadeus flight search failed, using fallback data:', amadeusError);
         flights = generateFallbackFlights(params);
       }
-    } catch (amadeusError) {
-      console.log('Amadeus flight search failed, using fallback data:', amadeusError);
+    } else {
+      console.log('⚠️ Amadeus not configured, using fallback data');
       flights = generateFallbackFlights(params);
     }
     

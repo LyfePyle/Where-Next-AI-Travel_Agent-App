@@ -194,8 +194,15 @@ Make sure the suggestions are diverse, realistic, and truly personalized to thei
       throw new Error('No content received from OpenAI');
     }
 
-    // Parse the JSON response
-    const suggestions = JSON.parse(content);
+    // Parse the JSON response safely
+    let suggestions;
+    try {
+      suggestions = JSON.parse(content);
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', parseError);
+      console.error('Raw AI content:', content);
+      throw new Error('AI returned invalid JSON format');
+    }
     
     // Validate the response structure
     if (!Array.isArray(suggestions) || suggestions.length === 0) {

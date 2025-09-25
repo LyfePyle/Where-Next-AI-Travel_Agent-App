@@ -16,7 +16,16 @@ interface FlightSearchParams {
 
 export async function POST(request: NextRequest) {
   try {
-    const params: FlightSearchParams = await request.json();
+    let params: FlightSearchParams;
+    try {
+      params = await request.json();
+    } catch (jsonError) {
+      console.error('Invalid JSON in flight search request:', jsonError);
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
     
     // Validate required parameters
     if (!params.originLocationCode || !params.destinationLocationCode || !params.departureDate) {

@@ -107,7 +107,7 @@ function FlightBookingPageContent() {
         };
 
         // Try the direct Amadeus API first, then fallback to regular API
-        let response = await fetch('/api/amadeus-direct/flights', {
+        let response = await fetch('/api/amadeus/flights', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

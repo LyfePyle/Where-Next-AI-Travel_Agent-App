@@ -93,7 +93,7 @@ function HotelBookingPageContent() {
         };
 
         // Try the direct Amadeus API first, then fallback to regular API
-        let response = await fetch('/api/amadeus-direct/hotels', {
+        let response = await fetch('/api/amadeus/hotels', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

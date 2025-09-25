@@ -4,7 +4,18 @@ import seedSuggestions from '@/data/seed/suggestions.json';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      const rawText = await request.text();
+      console.log('Raw request body:', rawText);
+      body = JSON.parse(rawText);
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
     const { from, budget, budgetAmount, vibes, additionalDetails, adults, kids, startDate, endDate } = body;
     
     // Normalize parameters
@@ -154,7 +165,7 @@ Make sure the suggestions are diverse, realistic, and truly personalized to thei
   try {
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -212,7 +223,7 @@ Make sure the suggestions are diverse, realistic, and truly personalized to thei
     return suggestions;
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.error('OpenAI API timeout after 10 seconds');
+      console.error('OpenAI API timeout after 30 seconds');
       throw new Error('AI request timed out. Please try again.');
     }
     console.error('OpenAI API error:', error);

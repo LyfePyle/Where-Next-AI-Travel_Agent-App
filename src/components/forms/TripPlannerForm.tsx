@@ -322,6 +322,33 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
               <span>Flights (round trip):</span>
               <span>${watch('budgetFlights').toLocaleString()}</span>
             </div>
+            
+            {/* Total calculation */}
+            {watch('dateRange.startDate') && watch('dateRange.endDate') && (
+              <div className="border-t pt-2 mt-2">
+                <div className="flex justify-between font-semibold text-base text-purple-700">
+                  <span>Total per person:</span>
+                  <span>
+                    ${(() => {
+                      const tripDuration = Math.ceil((new Date(watch('dateRange.endDate')).getTime() - new Date(watch('dateRange.startDate')).getTime()) / (1000 * 60 * 60 * 24));
+                      return (watch('budgetDaily') * tripDuration + watch('budgetHotels') * tripDuration + watch('budgetFlights')).toLocaleString();
+                    })()}
+                  </span>
+                </div>
+                {watch('partySize.adults') + watch('partySize.kids') > 1 && (
+                  <div className="flex justify-between text-sm text-gray-600 mt-1">
+                    <span>Total for {watch('partySize.adults') + watch('partySize.kids')} travelers:</span>
+                    <span>
+                      ${(() => {
+                        const tripDuration = Math.ceil((new Date(watch('dateRange.endDate')).getTime() - new Date(watch('dateRange.startDate')).getTime()) / (1000 * 60 * 60 * 24));
+                        const totalPerPerson = watch('budgetDaily') * tripDuration + watch('budgetHotels') * tripDuration + watch('budgetFlights');
+                        return (totalPerPerson * (watch('partySize.adults') + watch('partySize.kids'))).toLocaleString();
+                      })()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

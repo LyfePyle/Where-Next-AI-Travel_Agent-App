@@ -47,6 +47,11 @@ function CheckoutPageContent() {
     const duration = searchParams.get('duration');
     const travelers = searchParams.get('travelers');
     
+    // For subscription type, we need different parameters
+    const plan = searchParams.get('plan');
+    const name = searchParams.get('name');
+    const description = searchParams.get('description');
+    
     if (type && itemData && price) {
       try {
         const item = JSON.parse(decodeURIComponent(itemData));

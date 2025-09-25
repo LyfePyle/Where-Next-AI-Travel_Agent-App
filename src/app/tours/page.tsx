@@ -382,12 +382,19 @@ export default function ToursPage() {
               <div className="flex space-x-3">
                 <button
                   onClick={() => {
-                    setIsPremiumUser(true);
-                    setShowPremiumModal(false);
+                    // Navigate to Stripe checkout for premium subscription
+                    const checkoutUrl = `/booking/checkout?${new URLSearchParams({
+                      type: 'subscription',
+                      plan: 'premium-tours',
+                      price: '9.99',
+                      name: 'Walking Tours Premium',
+                      description: 'Unlimited AI walking tours with offline maps and audio guides'
+                    }).toString()}`;
+                    window.location.href = checkoutUrl;
                   }}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700"
                 >
-                  Upgrade Now
+                  💳 Upgrade Now
                 </button>
                 <button
                   onClick={() => setShowPremiumModal(false)}

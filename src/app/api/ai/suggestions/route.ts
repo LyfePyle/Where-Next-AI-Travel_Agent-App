@@ -109,15 +109,29 @@ export async function POST(request: NextRequest) {
 async function generateAISuggestions(preferences: any) {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
-  const prompt = `You are an expert travel AI assistant. Generate 4 personalized trip suggestions based on the following preferences:
+  // Use detailed budget breakdown if available
+  const budgetBreakdown = preferences.budgetDaily && preferences.budgetFlights && preferences.budgetHotels ? {
+    daily: preferences.budgetDaily,
+    flights: preferences.budgetFlights, 
+    hotels: preferences.budgetHotels,
+    total: preferences.budgetAmount
+  } : null;
 
-Traveler Details:
-- Departing from: ${preferences.from}
-- Trip duration: ${preferences.tripDuration} days
-- Budget: $${preferences.budgetAmount} (${preferences.budgetStyle} style)
+  const prompt = `You are an expert travel AI assistant. Generate 3 diverse, realistic trip suggestions based on these preferences:
+
+TRAVELER DETAILS:
+- From: ${preferences.from}
+- Duration: ${preferences.tripDuration} days  
 - Travelers: ${preferences.adults} adults, ${preferences.kids} kids
-- Interests/Vibes: ${preferences.vibes.join(', ')}
-- Additional details: ${preferences.additionalDetails || 'None provided'}
+- Style: ${preferences.budgetStyle}
+- Interests: ${preferences.vibes.length > 0 ? preferences.vibes.join(', ') : 'General travel'}
+${preferences.additionalDetails ? `- Special requests: ${preferences.additionalDetails}` : ''}
+
+BUDGET (per person):
+${budgetBreakdown ? `- Daily spending: $${budgetBreakdown.daily}/day (food, activities, transport)
+- Flight budget: $${budgetBreakdown.flights} round-trip
+- Hotel budget: $${budgetBreakdown.hotels}/night
+- TOTAL PER PERSON: $${budgetBreakdown.total}` : `- Total budget: $${preferences.budgetAmount} (${preferences.budgetStyle} style)`}
 
 Please provide 3 diverse destination suggestions that match these preferences. For each suggestion, include:
 
@@ -160,18 +174,11 @@ Format the response as a JSON array with exactly this structure:
   }
 ]
 
-CRITICAL PRICING REQUIREMENTS:
-- The "estimatedTotal" MUST be close to the user's budget of $${budget} (within 10-20% max)
-- Use realistic market rates for 2024-2025:
-  * Budget hotels: $60-120/night, Mid-range: $120-250/night, Luxury: $250+/night
-  * Domestic flights (US/Canada): $200-600, International: $600-1500+
-  * Daily food costs: Budget $30-50, Mid-range $50-100, Luxury $100+
-  * Activities: $20-100 per activity
-- For expensive cities (NYC, SF, London, Tokyo), accommodation will be 50-100% higher
-- If the user's budget is too low for the destination, suggest nearby budget alternatives
-- NEVER suggest destinations where costs would exceed the budget by more than 20%
-
-Make sure suggestions are diverse, realistic, and financially accurate. Prioritize destinations that actually fit within the specified budget.`;
+RULES:
+- estimatedTotal must be ${preferences.budgetAmount * 0.8} - ${preferences.budgetAmount * 1.2} per person
+- Suggest diverse destinations (different continents/regions)
+- Match their ${preferences.vibes.join(', ')} interests
+- Return ONLY valid JSON, no extra text`;
 
   try {
     // Add timeout to prevent hanging requests
@@ -348,24 +355,34 @@ function getMockSuggestions() {
 // Get seeded suggestions based on origin and budget
 function getSeededSuggestions(params: { from: string; budget: number; vibes: string[]; adults: number; kids: number }) {
   const key = `${params.from.toLowerCase()}_budget_${Math.round(params.budget / 1000) * 1000}`;
+  let suggestions = null;
   
   // Check for exact match in seed data
   if ((seedSuggestions as any)[key]) {
-    return (seedSuggestions as any)[key];
+    suggestions = (seedSuggestions as any)[key];
+  } else {
+    // Fallback based on origin city
+    const fromLower = params.from.toLowerCase();
+    if (fromLower.includes('vancouver') || fromLower.includes('seattle') || fromLower.includes('portland')) {
+      suggestions = (seedSuggestions as any)['vancouver_budget_2000'];
+    } else if (fromLower.includes('toronto') || fromLower.includes('montreal') || fromLower.includes('ottawa')) {
+      suggestions = (seedSuggestions as any)['toronto_budget_3000'];
+    } else {
+      // Default to first available suggestions
+      suggestions = Object.values(seedSuggestions)[0];
+    }
   }
   
-  // Fallback based on origin city
-  const fromLower = params.from.toLowerCase();
-  if (fromLower.includes('vancouver') || fromLower.includes('seattle') || fromLower.includes('portland')) {
-    return (seedSuggestions as any)['vancouver_budget_2000'] || getDefaultSuggestions();
+  // Ensure unique IDs to prevent React key conflicts
+  if (suggestions && Array.isArray(suggestions)) {
+    const timestamp = Date.now();
+    return suggestions.map((suggestion: any, index: number) => ({
+      ...suggestion,
+      id: `seeded_${timestamp}_${index}` // Unique ID with timestamp
+    }));
   }
   
-  if (fromLower.includes('toronto') || fromLower.includes('montreal') || fromLower.includes('ottawa')) {
-    return (seedSuggestions as any)['toronto_budget_3000'] || getDefaultSuggestions();
-  }
-  
-  // Default to first available suggestions
-  return Object.values(seedSuggestions)[0] || getDefaultSuggestions();
+  return getDefaultSuggestions();
 }
 
 // Default fallback suggestions

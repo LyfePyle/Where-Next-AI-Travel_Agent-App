@@ -14,6 +14,10 @@ export default function PlanTripPage() {
     setIsLoading(true);
     
     try {
+      // Calculate trip duration and total budget from breakdown
+      const tripDuration = Math.ceil((new Date(data.dateRange.endDate).getTime() - new Date(data.dateRange.startDate).getTime()) / (1000 * 60 * 60 * 24));
+      const totalBudgetPerPerson = (data.budgetDaily * tripDuration) + (data.budgetHotels * tripDuration) + data.budgetFlights;
+      
       // Call the suggestions API to generate trip suggestions
       const response = await fetch('/api/ai/suggestions', {
         method: 'POST',
@@ -24,8 +28,12 @@ export default function PlanTripPage() {
           from: data.originAirport,
           startDate: data.dateRange.startDate,
           endDate: data.dateRange.endDate,
-          budgetAmount: data.budgetTotal,
-          tripDuration: Math.ceil((new Date(data.dateRange.endDate).getTime() - new Date(data.dateRange.startDate).getTime()) / (1000 * 60 * 60 * 24)),
+          budgetAmount: totalBudgetPerPerson,
+          budgetDaily: data.budgetDaily,
+          budgetFlights: data.budgetFlights,
+          budgetHotels: data.budgetHotels,
+          tripDuration: tripDuration,
+          budgetStyle: data.budgetStyle,
           vibes: data.vibes,
           adults: data.partySize.adults,
           kids: data.partySize.kids,
@@ -48,8 +56,11 @@ export default function PlanTripPage() {
           from: data.originAirport,
           startDate: data.dateRange.startDate,
           endDate: data.dateRange.endDate,
-          budgetAmount: data.budgetTotal.toString(),
-          tripDuration: tripDurationDays.toString(),
+          budgetAmount: totalBudgetPerPerson.toString(),
+          budgetDaily: data.budgetDaily.toString(),
+          budgetFlights: data.budgetFlights.toString(),
+          budgetHotels: data.budgetHotels.toString(),
+          tripDuration: tripDuration.toString(),
           budgetStyle: data.budgetStyle,
           vibes: data.vibes.join(','),
           adults: data.partySize.adults.toString(),
@@ -64,17 +75,19 @@ export default function PlanTripPage() {
       }
     } catch (error) {
       console.error('Error generating trip suggestions:', error);
-      // Calculate trip duration for fallback
-      const startDateObj = new Date(data.dateRange.startDate);
-      const endDateObj = new Date(data.dateRange.endDate);
-      const tripDurationDays = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24));
+      // Calculate trip duration and total budget for fallback
+      const tripDurationDays = Math.ceil((new Date(data.dateRange.endDate).getTime() - new Date(data.dateRange.startDate).getTime()) / (1000 * 60 * 60 * 24));
+      const totalBudgetPerPersonFallback = (data.budgetDaily * tripDurationDays) + (data.budgetHotels * tripDurationDays) + data.budgetFlights;
 
       // For now, still navigate but with a fallback mode
       const params = new URLSearchParams({
         from: data.originAirport,
         startDate: data.dateRange.startDate,
         endDate: data.dateRange.endDate,
-        budgetAmount: data.budgetTotal.toString(),
+        budgetAmount: totalBudgetPerPersonFallback.toString(),
+        budgetDaily: data.budgetDaily.toString(),
+        budgetFlights: data.budgetFlights.toString(),
+        budgetHotels: data.budgetHotels.toString(),
         tripDuration: tripDurationDays.toString(),
         budgetStyle: data.budgetStyle,
         vibes: data.vibes.join(','),

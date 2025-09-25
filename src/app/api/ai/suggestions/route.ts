@@ -64,6 +64,12 @@ export async function POST(request: NextRequest) {
         suggestions = await generateAISuggestions({
           from: normalizedParams.from,
           budget: normalizedParams.budget,
+          budgetAmount: body.budgetAmount,
+          budgetDaily: body.budgetDaily,
+          budgetFlights: body.budgetFlights,
+          budgetHotels: body.budgetHotels,
+          budgetStyle: body.budgetStyle,
+          tripDuration: body.tripDuration,
           vibes: normalizedParams.vibes,
           additionalDetails,
           adults: normalizedParams.adults,
@@ -247,7 +253,7 @@ RULES:
     }
 
     // Validate pricing is realistic (within 30% of budget)
-    const budgetNumber = typeof budget === 'string' ? parseFloat(budget) : budget;
+    const budgetNumber = typeof preferences.budgetAmount === 'string' ? parseFloat(preferences.budgetAmount) : preferences.budgetAmount || preferences.budget;
     const maxAllowableCost = budgetNumber * 1.3;
     const minAllowableCost = budgetNumber * 0.5;
     

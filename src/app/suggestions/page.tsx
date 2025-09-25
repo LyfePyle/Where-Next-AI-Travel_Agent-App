@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import FlightPickerModal from '@/components/FlightPickerModal';
 import HotelPickerModal from '@/components/HotelPickerModal';
-import BudgetSuggestionCard from '@/components/budget/BudgetSuggestionCard';
 
 interface TripSuggestion {
   id: string;
@@ -359,18 +358,6 @@ function SuggestionsContent() {
           )}
         </div>
 
-        {/* Budget Suggestion Card */}
-        {suggestions.length > 0 && (
-          <div className="mb-8">
-            <BudgetSuggestionCard
-              destination={suggestions[0].destination}
-              duration={tripDuration}
-              travelers={adults + kids}
-              totalBudget={budgetAmount}
-              budgetStyle={budgetStyle as 'budget' | 'comfortable' | 'luxury'}
-            />
-          </div>
-        )}
 
         {/* Suggestions Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -450,36 +437,36 @@ function SuggestionsContent() {
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3">
-                                   <button
-                   onClick={async () => {
-                     try {
-                       // Create a new trip
-                       const response = await fetch('/api/trips', {
-                         method: 'POST',
-                         headers: { 'Content-Type': 'application/json' },
-                         body: JSON.stringify({
-                           suggestion: suggestion,
-                           selections: []
-                         })
-                       });
-                       
-                       if (response.ok) {
-                         const trip = await response.json();
-                         // Navigate to the enhanced trip details page with destination info
-                         const destinationParam = `destination=${encodeURIComponent(suggestion.destination)}`;
-                         window.location.href = `/trip-details/${trip.id}?${searchParams.toString()}&${destinationParam}`;
-                       }
-                     } catch (error) {
-                       console.error('Error creating trip:', error);
-                       // Fallback to enhanced trip details page with destination info
-                       const destinationParam = `destination=${encodeURIComponent(suggestion.destination)}`;
-                       window.location.href = `/trip-details/${suggestion.id}?${searchParams.toString()}&${destinationParam}`;
-                     }
-                   }}
-                   className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center"
-                 >
-                   See Details
-                 </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Create a new trip
+                        const response = await fetch('/api/trips', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            suggestion: suggestion,
+                            selections: []
+                          })
+                        });
+                        
+                        if (response.ok) {
+                          const trip = await response.json();
+                          // Navigate to the enhanced trip details page with destination info
+                          const destinationParam = `destination=${encodeURIComponent(suggestion.destination)}`;
+                          window.location.href = `/trip-details/${trip.id}?${searchParams.toString()}&${destinationParam}`;
+                        }
+                      } catch (error) {
+                        console.error('Error creating trip:', error);
+                        // Fallback to enhanced trip details page with destination info
+                        const destinationParam = `destination=${encodeURIComponent(suggestion.destination)}`;
+                        window.location.href = `/trip-details/${suggestion.id}?${searchParams.toString()}&${destinationParam}`;
+                      }
+                    }}
+                    className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center"
+                  >
+                    👁️ See Details
+                  </button>
                   <button 
                     onClick={() => handleSwapFlight(suggestion.id)}
                     className="flex-1 btn btn-purple-light"

@@ -18,7 +18,10 @@ export const tripPlannerSchema = z.object({
       path: ['startDate'],
     }
   ),
-  budgetTotal: z.number().min(100, 'Budget must be at least $100').max(50000, 'Budget cannot exceed $50,000'),
+  budgetDaily: z.number().min(30, 'Daily budget must be at least $30').max(500, 'Daily budget cannot exceed $500'),
+  budgetFlights: z.number().min(100, 'Flight budget must be at least $100').max(5000, 'Flight budget cannot exceed $5,000'),
+  budgetHotels: z.number().min(40, 'Hotel budget must be at least $40/night').max(800, 'Hotel budget cannot exceed $800/night'),
+  budgetStyle: z.enum(['budget', 'comfortable', 'luxury']).default('comfortable'),
   vibes: z.array(z.string()).optional().default([]),
   partySize: z.object({
     adults: z.number().min(1, 'At least 1 adult required').max(10, 'Maximum 10 adults'),

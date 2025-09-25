@@ -50,7 +50,7 @@ export default function PlanTripPage() {
           endDate: data.dateRange.endDate,
           budgetAmount: data.budgetTotal.toString(),
           tripDuration: tripDurationDays.toString(),
-          budgetStyle: 'comfortable', // Default budget style
+          budgetStyle: data.budgetStyle,
           vibes: data.vibes.join(','),
           adults: data.partySize.adults.toString(),
           kids: data.partySize.kids.toString(),
@@ -76,7 +76,7 @@ export default function PlanTripPage() {
         endDate: data.dateRange.endDate,
         budgetAmount: data.budgetTotal.toString(),
         tripDuration: tripDurationDays.toString(),
-        budgetStyle: 'comfortable',
+        budgetStyle: data.budgetStyle,
         vibes: data.vibes.join(','),
         adults: data.partySize.adults.toString(),
         kids: data.partySize.kids.toString(),

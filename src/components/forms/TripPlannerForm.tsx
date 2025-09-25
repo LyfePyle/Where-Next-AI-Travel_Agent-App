@@ -31,7 +31,10 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
         startDate: '',
         endDate: '',
       },
-      budgetTotal: 2000,
+      budgetDaily: 100,
+      budgetFlights: 600,
+      budgetHotels: 150,
+      budgetStyle: 'comfortable' as const,
       vibes: [],
       partySize: {
         adults: 1,
@@ -58,17 +61,27 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
     if (onSubmit) {
       onSubmit(data);
     } else {
-      // Calculate total budget (per person * total travelers)
+      // Calculate trip duration
+      const startDate = new Date(data.dateRange.startDate);
+      const endDate = new Date(data.dateRange.endDate);
+      const tripDuration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Calculate total budget using new breakdown
       const totalTravelers = data.partySize.adults + data.partySize.kids;
-      const totalBudget = data.budgetTotal * totalTravelers;
+      const totalBudgetPerPerson = (data.budgetDaily * tripDuration) + (data.budgetHotels * tripDuration) + data.budgetFlights;
+      const totalBudget = totalBudgetPerPerson * totalTravelers;
       
       // Default behavior: navigate to suggestions
       const params = new URLSearchParams({
         from: data.originAirport,
         startDate: data.dateRange.startDate,
         endDate: data.dateRange.endDate,
-        budget: totalBudget.toString(),
-        budgetPerPerson: data.budgetTotal.toString(),
+        tripDuration: tripDuration.toString(),
+        budgetDaily: data.budgetDaily.toString(),
+        budgetFlights: data.budgetFlights.toString(),
+        budgetHotels: data.budgetHotels.toString(),
+        budgetTotal: totalBudgetPerPerson.toString(),
+        budgetStyle: data.budgetStyle,
         vibes: data.vibes.join(','),
         adults: data.partySize.adults.toString(),
         kids: data.partySize.kids.toString(),
@@ -165,53 +178,211 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
         </div>
       </div>
 
-      {/* Budget */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">
-          <DollarSign className="inline w-4 h-4 mr-1" />
-          Budget per Person (USD)
-        </label>
-        {watch('partySize.adults') > 0 && (
-          <p className="text-xs text-gray-600">
-            Total budget: ${(watch('budgetTotal') * (watch('partySize.adults') + watch('partySize.kids'))).toLocaleString()}{' '}
-            for {watch('partySize.adults') + watch('partySize.kids')} travelers
+      {/* Budget Breakdown */}
+      <div className="space-y-6 bg-gray-50 p-6 rounded-lg">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <DollarSign className="inline w-5 h-5 mr-2" />
+            Budget Breakdown (Per Person)
+          </h3>
+          <p className="text-sm text-gray-600">
+            Set realistic budgets for each part of your trip to get better suggestions
           </p>
-        )}
+        </div>
+
+        {/* Daily Spending Budget */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Daily Spending (Food, Activities, Local Transport)
+          </label>
+          <Controller
+            name="budgetDaily"
+            control={control}
+            render={({ field }) => (
+              <div className="space-y-3">
+                <input
+                  type="range"
+                  min="30"
+                  max="500"
+                  step="10"
+                  value={field.value}
+                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                  className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>$30/day</span>
+                  <span className="font-semibold text-blue-600">
+                    ${field.value}/day
+                  </span>
+                  <span>$500/day</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {field.value <= 50 && "Budget traveler: Street food, free activities, walking"}
+                  {field.value > 50 && field.value <= 150 && "Comfortable: Local restaurants, paid attractions, some taxis"}
+                  {field.value > 150 && "Premium: Fine dining, premium experiences, private transport"}
+                </div>
+              </div>
+            )}
+          />
+          {errors.budgetDaily && (
+            <p className="text-sm text-red-600">{errors.budgetDaily.message}</p>
+          )}
+        </div>
+
+        {/* Flight Budget */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Flight Budget (Round Trip)
+          </label>
+          <Controller
+            name="budgetFlights"
+            control={control}
+            render={({ field }) => (
+              <div className="space-y-3">
+                <input
+                  type="range"
+                  min="100"
+                  max="3000"
+                  step="50"
+                  value={field.value}
+                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                  className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>$100</span>
+                  <span className="font-semibold text-green-600">${field.value.toLocaleString()}</span>
+                  <span>$3,000+</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {field.value <= 300 && "Domestic/nearby destinations, budget airlines"}
+                  {field.value > 300 && field.value <= 800 && "Regional flights, economy class"}
+                  {field.value > 800 && field.value <= 1500 && "International economy, premium economy"}
+                  {field.value > 1500 && "Business class, long-haul premium flights"}
+                </div>
+              </div>
+            )}
+          />
+          {errors.budgetFlights && (
+            <p className="text-sm text-red-600">{errors.budgetFlights.message}</p>
+          )}
+        </div>
+
+        {/* Hotel Budget */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Accommodation Budget (Per Night)
+          </label>
+          <Controller
+            name="budgetHotels"
+            control={control}
+            render={({ field }) => (
+              <div className="space-y-3">
+                <input
+                  type="range"
+                  min="40"
+                  max="500"
+                  step="20"
+                  value={field.value}
+                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                  className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>$40/night</span>
+                  <span className="font-semibold text-purple-600">
+                    ${field.value}/night
+                  </span>
+                  <span>$500+/night</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {field.value <= 80 && "Hostels, budget motels, shared accommodations"}
+                  {field.value > 80 && field.value <= 200 && "Mid-range hotels, good Airbnbs, 3-star properties"}
+                  {field.value > 200 && "Luxury hotels, premium locations, 4-5 star properties"}
+                </div>
+              </div>
+            )}
+          />
+          {errors.budgetHotels && (
+            <p className="text-sm text-red-600">{errors.budgetHotels.message}</p>
+          )}
+        </div>
+
+        {/* Total Budget Summary */}
+        <div className="bg-white p-4 rounded-lg border-2 border-purple-200">
+          <h4 className="font-semibold text-gray-900 mb-2">Trip Cost Summary (Per Person)</h4>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span>Daily spending:</span>
+              <span>${watch('budgetDaily')}/day</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Accommodation:</span>
+              <span>${watch('budgetHotels')}/night</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Flights (round trip):</span>
+              <span>${watch('budgetFlights').toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Budget Style */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-gray-700">
+          Trip Style
+        </label>
+        <p className="text-xs text-gray-600">
+          Choose your preferred spending level for accommodation, dining, and activities
+        </p>
         <Controller
-          name="budgetTotal"
+          name="budgetStyle"
           control={control}
           render={({ field }) => (
-            <div className="space-y-3">
-              <input
-                type="range"
-                min="100"
-                max="10000"
-                step="100"
-                value={field.value}
-                onChange={(e) => field.onChange(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-              />
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>$100</span>
-                <span className="font-semibold text-purple-600">${field.value.toLocaleString()}</span>
-                <span>$10,000+</span>
-              </div>
-              <input
-                type="number"
-                value={field.value}
-                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                min="100"
-                max="50000"
-                className={`w-full px-3 py-3 min-h-[44px] text-base border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.budgetTotal ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="e.g., 2000 per person"
-              />
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { 
+                  value: 'budget', 
+                  label: 'Budget', 
+                  icon: '💰', 
+                  description: 'Hostels, street food, free activities',
+                  multiplier: '0.7x'
+                },
+                { 
+                  value: 'comfortable', 
+                  label: 'Comfortable', 
+                  icon: '🏨', 
+                  description: 'Mid-range hotels, local restaurants',
+                  multiplier: '1x'
+                },
+                { 
+                  value: 'luxury', 
+                  label: 'Luxury', 
+                  icon: '✨', 
+                  description: 'Premium hotels, fine dining',
+                  multiplier: '1.5x'
+                }
+              ].map((style) => (
+                <button
+                  key={style.value}
+                  type="button"
+                  onClick={() => field.onChange(style.value)}
+                  className={`p-4 min-h-[80px] rounded-lg border-2 text-sm font-medium transition-all duration-200 ${
+                    field.value === style.value
+                      ? 'border-purple-500 bg-purple-50 text-purple-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-25'
+                  }`}
+                >
+                  <div className="text-xl mb-1">{style.icon}</div>
+                  <div className="font-semibold">{style.label}</div>
+                  <div className="text-xs text-gray-500 mt-1 leading-tight">{style.description}</div>
+                  <div className="text-xs font-medium text-purple-600 mt-1">{style.multiplier}</div>
+                </button>
+              ))}
             </div>
           )}
         />
-        {errors.budgetTotal && (
-          <p className="text-sm text-red-600">{errors.budgetTotal.message}</p>
+        {errors.budgetStyle && (
+          <p className="text-sm text-red-600">{errors.budgetStyle.message}</p>
         )}
       </div>
 

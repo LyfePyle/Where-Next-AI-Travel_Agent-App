@@ -38,6 +38,7 @@ export const vibeOptions = [
   { id: 'culture', label: 'Culture', icon: '🏛️' },
   { id: 'nature', label: 'Nature', icon: '🌲' },
   { id: 'nightlife', label: 'Nightlife', icon: '🌙' },
+  { id: 'romance', label: 'Romance', icon: '💕' },
   { id: 'family', label: 'Family Friendly', icon: '👨‍👩‍👧‍👦' },
   { id: 'adventure', label: 'Adventure', icon: '🏔️' },
   { id: 'relaxation', label: 'Relaxation', icon: '🧘' },

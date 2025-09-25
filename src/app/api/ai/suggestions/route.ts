@@ -160,7 +160,18 @@ Format the response as a JSON array with exactly this structure:
   }
 ]
 
-Make sure the suggestions are diverse, realistic, and truly personalized to their interests and budget. Consider seasonal factors, current travel trends, and the specific interests mentioned.`;
+CRITICAL PRICING REQUIREMENTS:
+- The "estimatedTotal" MUST be close to the user's budget of $${budget} (within 10-20% max)
+- Use realistic market rates for 2024-2025:
+  * Budget hotels: $60-120/night, Mid-range: $120-250/night, Luxury: $250+/night
+  * Domestic flights (US/Canada): $200-600, International: $600-1500+
+  * Daily food costs: Budget $30-50, Mid-range $50-100, Luxury $100+
+  * Activities: $20-100 per activity
+- For expensive cities (NYC, SF, London, Tokyo), accommodation will be 50-100% higher
+- If the user's budget is too low for the destination, suggest nearby budget alternatives
+- NEVER suggest destinations where costs would exceed the budget by more than 20%
+
+Make sure suggestions are diverse, realistic, and financially accurate. Prioritize destinations that actually fit within the specified budget.`;
 
   try {
     // Add timeout to prevent hanging requests
@@ -208,7 +219,15 @@ Make sure the suggestions are diverse, realistic, and truly personalized to thei
     // Parse the JSON response safely
     let suggestions;
     try {
-      suggestions = JSON.parse(content);
+      // Remove code block markers if present
+      let cleanContent = content.trim();
+      if (cleanContent.startsWith('```json')) {
+        cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanContent.startsWith('```')) {
+        cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      suggestions = JSON.parse(cleanContent);
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
       console.error('Raw AI content:', content);
@@ -220,7 +239,28 @@ Make sure the suggestions are diverse, realistic, and truly personalized to thei
       throw new Error('Invalid response format from AI');
     }
 
-    return suggestions;
+    // Validate pricing is realistic (within 30% of budget)
+    const budgetNumber = typeof budget === 'string' ? parseFloat(budget) : budget;
+    const maxAllowableCost = budgetNumber * 1.3;
+    const minAllowableCost = budgetNumber * 0.5;
+    
+    const validSuggestions = suggestions.filter(suggestion => {
+      const estimatedTotal = suggestion.estimatedTotal || 0;
+      const isRealistic = estimatedTotal >= minAllowableCost && estimatedTotal <= maxAllowableCost;
+      
+      if (!isRealistic) {
+        console.warn(`Filtering out unrealistic suggestion: ${suggestion.destination} costs $${estimatedTotal} for budget $${budgetNumber}`);
+      }
+      
+      return isRealistic;
+    });
+
+    if (validSuggestions.length === 0) {
+      console.error('All AI suggestions had unrealistic pricing, falling back to seeded data');
+      throw new Error('AI suggestions pricing validation failed');
+    }
+
+    return validSuggestions;
   } catch (error) {
     if (error.name === 'AbortError') {
       console.error('OpenAI API timeout after 30 seconds');

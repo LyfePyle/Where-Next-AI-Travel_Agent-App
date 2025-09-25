@@ -49,4 +49,7 @@ export const vibeOptions = [
   { id: 'history', label: 'History', icon: '📜' },
   { id: 'art', label: 'Art & Museums', icon: '🎨' },
   { id: 'music', label: 'Music & Festivals', icon: '🎵' },
+  { id: 'wellness', label: 'Wellness & Spa', icon: '🌿' },
+  { id: 'photography', label: 'Photography', icon: '📸' },
+  { id: 'sports', label: 'Sports & Fitness', icon: '⚽' },
 ] as const;

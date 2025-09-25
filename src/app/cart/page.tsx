@@ -46,7 +46,7 @@ export default function CartPage() {
   };
 
   const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => total + item.totalPrice, 0);
+    return cartItems.reduce((total, item) => total + (item.totalPrice || 0), 0);
   };
 
   if (isLoading) {
@@ -166,7 +166,7 @@ export default function CartPage() {
                     
                     <div className="text-right ml-6">
                       <div className="text-2xl font-bold text-green-600 mb-2">
-                        ${item.totalPrice.toLocaleString()}
+                        ${(item.totalPrice || 0).toLocaleString()}
                       </div>
                       <button
                         onClick={() => removeFromCart(item.id)}
@@ -192,7 +192,7 @@ export default function CartPage() {
                       <span className="text-gray-600">
                         {item.type === 'flight' ? item.flight?.airline : item.hotel?.name}
                       </span>
-                      <span className="font-medium">${item.totalPrice.toLocaleString()}</span>
+                      <span className="font-medium">${(item.totalPrice || 0).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>

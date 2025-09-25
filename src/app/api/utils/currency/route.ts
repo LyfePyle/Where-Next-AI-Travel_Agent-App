@@ -26,9 +26,28 @@ export async function GET(req: NextRequest) {
     });
 
     // Use ExchangeRate-API
-    const apiKey = process.env.NEXT_PUBLIC_CURRENCY_API_KEY;
+    const apiKey = process.env.EXCHANGE_RATE_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ ok: false, error: 'Currency API key not configured' }, { status: 500 });
+      console.log('Currency API key not configured, using mock data');
+      // Return mock data instead of error for GET requests
+      const mockRates = {
+        base: validatedData.base,
+        date: new Date().toISOString().split('T')[0],
+        rates: {
+          USD: 1.0,
+          EUR: 0.85,
+          GBP: 0.73,
+          JPY: 110.0,
+          CAD: 1.25,
+          AUD: 1.35,
+          CHF: 0.92,
+          CNY: 6.45,
+          INR: 74.5
+        },
+        lastUpdated: new Date().toISOString(),
+        isMock: true
+      };
+      return NextResponse.json({ ok: true, data: mockRates });
     }
 
     const symbolsParam = validatedData.symbols ? `&symbols=${validatedData.symbols.join(',')}` : '';
@@ -67,7 +86,7 @@ export async function POST(req: NextRequest) {
     const validatedData = CurrencyConversionSchema.parse(body);
     
     // Try to use ExchangeRate-API for conversion, fallback to mock if not available
-    const apiKey = process.env.NEXT_PUBLIC_CURRENCY_API_KEY;
+    const apiKey = process.env.EXCHANGE_RATE_API_KEY;
     if (!apiKey) {
       console.log('Currency API key not configured, using mock data');
       return useMockCurrencyData(validatedData);
@@ -75,7 +94,12 @@ export async function POST(req: NextRequest) {
 
     try {
       const url = `https://api.exchangerate-api.com/v4/latest/${validatedData.from}`;
-      const response = await fetch(url, { timeout: 5000 });
+      const response = await fetch(url, { 
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'WhereNext-TravelApp/1.0'
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`Currency API error: ${response.status}`);

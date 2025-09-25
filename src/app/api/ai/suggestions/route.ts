@@ -152,6 +152,10 @@ Format the response as a JSON array with exactly this structure:
 Make sure the suggestions are diverse, realistic, and truly personalized to their interests and budget. Consider seasonal factors, current travel trends, and the specific interests mentioned.`;
 
   try {
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -159,7 +163,7 @@ Make sure the suggestions are diverse, realistic, and truly personalized to thei
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -171,9 +175,13 @@ Make sure the suggestions are diverse, realistic, and truly personalized to thei
           }
         ],
         temperature: 0.7,
-        max_tokens: 2000
-      })
+        max_tokens: 1500,
+        stream: false
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`OpenAI API error: ${response.status}`);
@@ -196,6 +204,10 @@ Make sure the suggestions are diverse, realistic, and truly personalized to thei
 
     return suggestions;
   } catch (error) {
+    if (error.name === 'AbortError') {
+      console.error('OpenAI API timeout after 10 seconds');
+      throw new Error('AI request timed out. Please try again.');
+    }
     console.error('OpenAI API error:', error);
     throw error;
   }

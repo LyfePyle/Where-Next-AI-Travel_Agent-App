@@ -1,0 +1,222 @@
+{
+  "timestamp": "2025-09-23T23:44:28.114Z",
+  "summary": {
+    "totalTests": 16,
+    "passed": 3,
+    "warnings": 3,
+    "failed": 9
+  },
+  "baselines": {
+    "API_RESPONSE_TIMES": {
+      "/api/status": 500,
+      "/api/ai/suggestions": 3000,
+      "/api/amadeus/flights": 2000,
+      "/api/amadeus-direct/hotels": 2000,
+      "/api/airports/search": 1000,
+      "/api/trips/saved": 1000,
+      "/api/payments/create-payment-intent": 1500
+    },
+    "CONCURRENT_USERS": {
+      "light": 5,
+      "moderate": 15,
+      "heavy": 30
+    },
+    "MEMORY_LIMITS": {
+      "maxHeapUsed": 104857600,
+      "maxRSS": 209715200
+    }
+  },
+  "results": [
+    {
+      "endpoint": "/api/status",
+      "baseline": 500,
+      "avgResponseTime": 5000,
+      "maxResponseTime": 5000,
+      "minResponseTime": 5000,
+      "results": [
+        5000,
+        5000,
+        5000,
+        5000,
+        5000
+      ],
+      "status": "FAIL"
+    },
+    {
+      "endpoint": "/api/ai/suggestions",
+      "baseline": 3000,
+      "avgResponseTime": 5000,
+      "maxResponseTime": 5000,
+      "minResponseTime": 5000,
+      "results": [
+        5000,
+        5000,
+        5000,
+        5000,
+        5000
+      ],
+      "status": "FAIL"
+    },
+    {
+      "endpoint": "/api/amadeus/flights",
+      "baseline": 2000,
+      "avgResponseTime": 5000,
+      "maxResponseTime": 5000,
+      "minResponseTime": 5000,
+      "results": [
+        5000,
+        5000,
+        5000,
+        5000,
+        5000
+      ],
+      "status": "FAIL"
+    },
+    {
+      "endpoint": "/api/amadeus-direct/hotels",
+      "baseline": 2000,
+      "avgResponseTime": 5000,
+      "maxResponseTime": 5000,
+      "minResponseTime": 5000,
+      "results": [
+        5000,
+        5000,
+        5000,
+        5000,
+        5000
+      ],
+      "status": "FAIL"
+    },
+    {
+      "endpoint": "/api/airports/search",
+      "baseline": 1000,
+      "avgResponseTime": 5000,
+      "maxResponseTime": 5000,
+      "minResponseTime": 5000,
+      "results": [
+        5000,
+        5000,
+        5000,
+        5000,
+        5000
+      ],
+      "status": "FAIL"
+    },
+    {
+      "endpoint": "/api/trips/saved",
+      "baseline": 1000,
+      "avgResponseTime": 5000,
+      "maxResponseTime": 5000,
+      "minResponseTime": 5000,
+      "results": [
+        5000,
+        5000,
+        5000,
+        5000,
+        5000
+      ],
+      "status": "FAIL"
+    },
+    {
+      "endpoint": "/api/payments/create-payment-intent",
+      "baseline": 1500,
+      "avgResponseTime": 5000,
+      "maxResponseTime": 5000,
+      "minResponseTime": 5000,
+      "results": [
+        5000,
+        5000,
+        5000,
+        5000,
+        5000
+      ],
+      "status": "FAIL"
+    },
+    {
+      "endpoint": "/api/ai/suggestions (with payload)",
+      "baseline": 3000,
+      "avgResponseTime": 0,
+      "results": [
+        0,
+        0,
+        0
+      ],
+      "status": "PASS"
+    },
+    {
+      "test": "Concurrent Load - 5 users",
+      "avgResponseTime": 0,
+      "failureRate": 1,
+      "successCount": 0,
+      "totalRequests": 5,
+      "status": "FAIL"
+    },
+    {
+      "test": "Concurrent Load - 15 users",
+      "avgResponseTime": 0,
+      "failureRate": 1,
+      "successCount": 0,
+      "totalRequests": 15,
+      "status": "WARN"
+    },
+    {
+      "test": "Heavy Load - 30 users",
+      "avgResponseTime": 0,
+      "failureRate": 1,
+      "successCount": 0,
+      "totalRequests": 30,
+      "status": "FAIL"
+    },
+    {
+      "endpoint": "/api/trips/saved (DB)",
+      "baseline": 1000,
+      "avgResponseTime": 5000,
+      "results": [
+        5000,
+        5000,
+        5000,
+        5000,
+        5000,
+        5000,
+        5000,
+        5000,
+        5000,
+        5000
+      ],
+      "status": "WARN"
+    },
+    {
+      "endpoint": "/api/trips/saved (writes)",
+      "baseline": 1500,
+      "avgResponseTime": 0,
+      "results": [
+        0,
+        0,
+        0
+      ],
+      "status": "PASS"
+    },
+    {
+      "test": "Memory Usage",
+      "initialHeapUsed": 122448304,
+      "finalHeapUsed": 122477416,
+      "memoryIncrease": 29112,
+      "maxAllowed": 104857600,
+      "status": "PASS"
+    },
+    {
+      "test": "Garbage Collection",
+      "beforeGC": 122637760,
+      "afterGC": 123438032,
+      "efficiency": -0.006525494268649395,
+      "status": "INFO"
+    },
+    {
+      "test": "Cache Performance",
+      "firstRequest": 0,
+      "avgCachedRequests": 0,
+      "improvementRatio": null,
+      "status": "WARN"
+    }
+  ]
+}

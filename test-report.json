@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-09-17T00:09:19.396Z",
+  "timestamp": "2025-09-23T04:01:49.984Z",
   "summary": {
-    "passed": 10,
-    "failed": 7,
+    "passed": 8,
+    "failed": 9,
     "warnings": 0,
-    "successRate": 59
+    "successRate": 47
   },
   "tests": [
     {
@@ -59,8 +59,8 @@
     },
     {
       "testName": "API: Amadeus Hotel Search",
-      "status": "PASS",
-      "details": "Status: 200"
+      "status": "FAIL",
+      "details": "Status: 400 - Missing required parameters: cityCode, checkInDate, checkOutDate"
     },
     {
       "testName": "API: Airport Autocomplete",
@@ -79,8 +79,8 @@
     },
     {
       "testName": "API: Currency Conversion",
-      "status": "PASS",
-      "details": "Status: 200"
+      "status": "FAIL",
+      "details": "Status: 500 - Currency API key not configured"
     },
     {
       "testName": "API: Saved Trips Retrieval",
@@ -90,7 +90,7 @@
     {
       "testName": "API: Trip Saving",
       "status": "FAIL",
-      "details": "Status: 409 - This destination is already in your saved trips"
+      "details": "Status: 401 - Authentication required to save trips"
     }
   ]
 }

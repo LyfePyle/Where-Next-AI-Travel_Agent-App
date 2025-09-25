@@ -1,0 +1,78 @@
+{
+  "timestamp": "2025-09-23T02:33:48.978Z",
+  "duration": 102776,
+  "overall": {
+    "passed": 50,
+    "failed": 28,
+    "warnings": 0,
+    "successRate": 64
+  },
+  "testSuites": [
+    {
+      "name": "Unit Tests (Jest)",
+      "type": "jest",
+      "critical": false,
+      "success": false,
+      "skipped": false,
+      "passed": 19,
+      "failed": 11,
+      "warnings": 0,
+      "duration": 13040
+    },
+    {
+      "name": "API Integration Tests",
+      "type": "api",
+      "critical": true,
+      "success": true,
+      "skipped": false,
+      "passed": 8,
+      "failed": 9,
+      "warnings": 0,
+      "duration": 64721
+    },
+    {
+      "name": "Booking Flow Tests",
+      "type": "api",
+      "critical": true,
+      "success": true,
+      "skipped": false,
+      "passed": 7,
+      "failed": 0,
+      "warnings": 0,
+      "duration": 9241
+    },
+    {
+      "name": "Performance Tests",
+      "type": "performance",
+      "critical": false,
+      "success": true,
+      "skipped": false,
+      "passed": 7,
+      "failed": 1,
+      "warnings": 0,
+      "duration": 12269
+    },
+    {
+      "name": "Database Tests",
+      "type": "database",
+      "critical": false,
+      "success": true,
+      "skipped": false,
+      "passed": 9,
+      "failed": 7,
+      "warnings": 0,
+      "duration": 2290
+    },
+    {
+      "name": "OpenAI API Tests",
+      "type": "api",
+      "critical": false,
+      "success": true,
+      "skipped": false,
+      "passed": 0,
+      "failed": 0,
+      "warnings": 0,
+      "duration": 897
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "timestamp": "2025-09-23T04:40:58.127Z",
+  "summary": {
+    "totalTests": 8,
+    "totalPassed": 0,
+    "overallSuccessRate": 0,
+    "duration": 268035,
+    "highPrioritySuccess": 0,
+    "mediumPrioritySuccess": 0
+  },
+  "results": {
+    "highPriority": {
+      "passed": 0,
+      "failed": 4,
+      "total": 4
+    },
+    "mediumPriority": {
+      "passed": 0,
+      "failed": 4,
+      "total": 4
+    }
+  },
+  "suites": [
+    {
+      "testName": "Development Server",
+      "status": "PASS",
+      "details": "Running on localhost:3000",
+      "duration": 0
+    },
+    {
+      "testName": "Jest",
+      "status": "PASS",
+      "details": "Installed",
+      "duration": 0
+    },
+    {
+      "testName": "Playwright",
+      "status": "PASS",
+      "details": "Installed",
+      "duration": 0
+    },
+    {
+      "testName": "TypeScript",
+      "status": "PASS",
+      "details": "Installed",
+      "duration": 0
+    },
+    {
+      "testName": "Environment Configuration",
+      "status": "PASS",
+      "details": ".env.local found",
+      "duration": 0
+    },
+    {
+      "testName": "Performance Benchmarking",
+      "status": "FAIL",
+      "details": "Some tests failed",
+      "duration": 9946
+    },
+    {
+      "testName": "Mobile & Responsive Design",
+      "status": "FAIL",
+      "details": "TypeError: Cannot read properties of undefined (reading 'defaultBrowserType')\nError: duplicate test title \"Mobile Experience - webkit › Homepage should be mobile responsive\", first declared in e2e\\mobile-responsive.spec.ts:40\nError: duplicate test title \"Mobile Experience - webkit › AI Travel Agent should be mobile responsive\", first declared in e2e\\mobile-responsive.spec.ts:40",
+      "duration": 2919
+    },
+    {
+      "testName": "Error Handling & Network Resilience",
+      "status": "FAIL",
+      "details": "    Error fetching saved trips: Error: Connection timeout\n    \u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 59 |\u001b[39m     console\u001b[33m.\u001b[39merror(\u001b[32m'Error fetching saved trips:'\u001b[39m\u001b[33m,\u001b[39m error)\u001b[33m;\u001b[39m",
+      "duration": 4797
+    },
+    {
+      "testName": "Security Validation",
+      "status": "FAIL",
+      "details": "    Error fetching saved trips: TypeError: supabase.from(...).select(...).eq(...).order is not a function\n    \u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 59 |\u001b[39m     console\u001b[33m.\u001b[39merror(\u001b[32m'Error fetching saved trips:'\u001b[39m\u001b[33m,\u001b[39m error)\u001b[33m;\u001b[39m",
+      "duration": 4548
+    },
+    {
+      "testName": "Cross-Browser Compatibility",
+      "status": "WARN",
+      "details": "SyntaxError: C:\\Users\\Evan\\Documents\\GitHub\\Where-Next-AI-Travel_Agent-App\\__tests__\\e2e\\cross-browser.spec.ts: Identifier 'buttons' has already been declared. (268:12)\nError: No tests found.",
+      "duration": 2513
+    },
+    {
+      "testName": "Accessibility & WCAG Compliance",
+      "status": "WARN",
+      "details": "Error: Cannot find module 'axe-playwright'\nError: No tests found.",
+      "duration": 3033
+    },
+    {
+      "testName": "SEO & Meta Tags",
+      "status": "WARN",
+      "details": "    Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n    Error Context: test-results\\seo-seo-testing-SEO-and-Me-1cc56-d-have-proper-SEO-meta-tags-chromium\\error-context.md\n    Error: locator.getAttribute: Test timeout of 30000ms exceeded.",
+      "duration": 120019
+    },
+    {
+      "testName": "Analytics & Conversion Tracking",
+      "status": "WARN",
+      "details": "    Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n    Error Context: test-results\\analytics-analytics-tracki-7480c-view-tracking-for-plan-trip-chromium\\error-context.md\n    Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m",
+      "duration": 120014
+    }
+  ],
+  "environment": {
+    "node": "v24.3.0",
+    "platform": "win32",
+    "cwd": "C:\\Users\\Evan\\Documents\\GitHub\\Where-Next-AI-Travel_Agent-App",
+    "timestamp": "2025-09-23T04:40:58.127Z"
+  }
+}

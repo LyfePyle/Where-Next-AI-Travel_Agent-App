@@ -34,10 +34,10 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
       budgetTotal: 2000,
       vibes: [],
       partySize: {
-        adults: 0,
+        adults: 1,
         kids: 0,
       },
-      maxFlightTime: 12,
+      maxFlightTime: undefined,
       visaRequired: false,
       additionalDetails: '',
     },
@@ -58,12 +58,17 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
     if (onSubmit) {
       onSubmit(data);
     } else {
+      // Calculate total budget (per person * total travelers)
+      const totalTravelers = data.partySize.adults + data.partySize.kids;
+      const totalBudget = data.budgetTotal * totalTravelers;
+      
       // Default behavior: navigate to suggestions
       const params = new URLSearchParams({
         from: data.originAirport,
         startDate: data.dateRange.startDate,
         endDate: data.dateRange.endDate,
-        budget: data.budgetTotal.toString(),
+        budget: totalBudget.toString(),
+        budgetPerPerson: data.budgetTotal.toString(),
         vibes: data.vibes.join(','),
         adults: data.partySize.adults.toString(),
         kids: data.partySize.kids.toString(),
@@ -108,7 +113,7 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
       </div>
 
       {/* Date Range */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
             <Calendar className="inline w-4 h-4 mr-1" />
@@ -122,7 +127,7 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
                 type="date"
                 {...field}
                 min={new Date().toISOString().split('T')[0]}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                className={`w-full px-3 py-3 min-h-[44px] text-base border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                   errors.dateRange?.startDate ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -145,7 +150,7 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
                 type="date"
                 {...field}
                 min={startDate || new Date().toISOString().split('T')[0]}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                className={`w-full px-3 py-3 min-h-[44px] text-base border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                   errors.dateRange?.endDate ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -164,8 +169,14 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
           <DollarSign className="inline w-4 h-4 mr-1" />
-          Total Budget (USD)
+          Budget per Person (USD)
         </label>
+        {watch('partySize.adults') > 0 && (
+          <p className="text-xs text-gray-600">
+            Total budget: ${(watch('budgetTotal') * (watch('partySize.adults') + watch('partySize.kids'))).toLocaleString()}{' '}
+            for {watch('partySize.adults') + watch('partySize.kids')} travelers
+          </p>
+        )}
         <Controller
           name="budgetTotal"
           control={control}
@@ -191,10 +202,10 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
                 onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                 min="100"
                 max="50000"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                className={`w-full px-3 py-3 min-h-[44px] text-base border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                   errors.budgetTotal ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Enter amount..."
+                placeholder="e.g., 2000 per person"
               />
             </div>
           )}
@@ -207,15 +218,18 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
       {/* Vibes */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-700">
-          What kind of trip vibe are you looking for?
+          What kind of trip vibe are you looking for? <span className="text-gray-500 font-normal">(Optional)</span>
         </label>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <p className="text-xs text-gray-600">
+          Select any interests to help personalize your trip, or skip to get general suggestions
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {vibeOptions.map((vibe) => (
             <button
               key={vibe.id}
               type="button"
               onClick={() => handleVibeToggle(vibe.id)}
-              className={`p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 ${
+              className={`p-4 min-h-[44px] rounded-lg border-2 text-sm font-medium transition-all duration-200 ${
                 selectedVibes.includes(vibe.id)
                   ? 'border-purple-500 bg-purple-50 text-purple-700'
                   : 'border-gray-200 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-25'
@@ -237,7 +251,7 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
           <Users className="inline w-4 h-4 mr-1" />
           Who's traveling?
         </label>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-gray-600 mb-1">Adults</label>
             <Controller
@@ -250,7 +264,7 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
                   min="1"
                   max="10"
                   onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                  className={`w-full px-3 py-3 min-h-[44px] text-base border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                     errors.partySize?.adults ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
@@ -272,7 +286,7 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
                   min="0"
                   max="10"
                   onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                  className={`w-full px-3 py-3 min-h-[44px] text-base border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                     errors.partySize?.kids ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
@@ -311,14 +325,18 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
                   <input
                     type="number"
                     {...field}
+                    value={field.value || ''}
                     min="1"
                     max="24"
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="e.g., 12"
+                    onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                    className="w-full px-3 py-3 min-h-[44px] text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Any (leave empty for no limit)"
                   />
                 )}
               />
+              <p className="text-xs text-gray-500">
+                Leave empty for any flight duration, or specify max hours (e.g., 8, 12, 16)
+              </p>
             </div>
 
             {/* Additional Details */}
@@ -333,7 +351,7 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
                   <textarea
                     {...field}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-3 min-h-[44px] text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="Any specific requests, accessibility needs, or preferences..."
                   />
                 )}
@@ -348,7 +366,7 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
         <button
           type="submit"
           disabled={!isValid || isLoading}
-          className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="w-full sm:w-auto px-8 py-4 min-h-[44px] text-lg rounded-lg font-semibold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
           style={{
             backgroundColor: !isValid || isLoading ? '#9ca3af' : '#7c3aed',
             color: 'white',

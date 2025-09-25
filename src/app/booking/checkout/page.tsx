@@ -64,11 +64,17 @@ function CheckoutPageContent() {
           }
         });
 
-        // Initialize travelers (assume 2 adults for now)
-        setTravelers([
-          { firstName: '', lastName: '', dateOfBirth: '', passportNumber: '', email: '', phone: '' },
-          { firstName: '', lastName: '', dateOfBirth: '', passportNumber: '', email: '', phone: '' }
-        ]);
+        // Initialize travelers based on actual count from URL params
+        const travelerCount = parseInt(travelers || '1');
+        const initialTravelers = Array.from({ length: travelerCount }, () => ({
+          firstName: '', 
+          lastName: '', 
+          dateOfBirth: '', 
+          passportNumber: '', 
+          email: '', 
+          phone: '' 
+        }));
+        setTravelers(initialTravelers);
       } catch (error) {
         console.error('Error parsing booking details:', error);
       }

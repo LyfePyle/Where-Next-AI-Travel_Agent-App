@@ -19,7 +19,7 @@ export const tripPlannerSchema = z.object({
     }
   ),
   budgetTotal: z.number().min(100, 'Budget must be at least $100').max(50000, 'Budget cannot exceed $50,000'),
-  vibes: z.array(z.string()).min(1, 'Please select at least one vibe/interest'),
+  vibes: z.array(z.string()).optional().default([]),
   partySize: z.object({
     adults: z.number().min(1, 'At least 1 adult required').max(10, 'Maximum 10 adults'),
     kids: z.number().min(0).max(10, 'Maximum 10 children'),

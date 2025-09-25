@@ -354,12 +354,13 @@ export default function TripDetailsEnhanced({
     };
 
     // Navigate to checkout with complete trip
+    const totalTravelers = (travelers.adults || 0) + (travelers.kids || 0);
     const checkoutUrl = `/booking/checkout?${new URLSearchParams({
       type: 'complete-trip',
       item: encodeURIComponent(JSON.stringify(tripPackage)),
       price: budgetData.totalBudget.toString(),
       destination: destination,
-      travelers: travelers.adults.toString()
+      travelers: totalTravelers.toString()
     }).toString()}`;
     
     // Track purchase intent

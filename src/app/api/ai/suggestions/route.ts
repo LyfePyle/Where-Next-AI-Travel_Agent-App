@@ -273,7 +273,14 @@ RULES:
       throw new Error('AI suggestions pricing validation failed');
     }
 
-    return validSuggestions;
+    // Ensure unique IDs for AI suggestions to prevent React key conflicts
+    const timestamp = Date.now();
+    const uniqueAISuggestions = validSuggestions.map((suggestion, index) => ({
+      ...suggestion,
+      id: `ai_${timestamp}_${index}` // Unique ID with timestamp and index
+    }));
+
+    return uniqueAISuggestions;
   } catch (error) {
     if (error.name === 'AbortError') {
       console.error('OpenAI API timeout after 30 seconds');

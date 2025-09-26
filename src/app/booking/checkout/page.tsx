@@ -148,17 +148,30 @@ function CheckoutPageContent() {
         
         // Redirect to Stripe Checkout
         const stripe = (window as any).Stripe?.(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-        if (stripe) {
+        if (stripe && !sessionId.includes('demo')) {
           await stripe.redirectToCheckout({ sessionId });
         } else {
+          // Demo mode or Stripe not available - simulate payment process
+          setCurrentStep(3); // Move to payment step
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate payment processing
           // Fallback: simulate successful booking
-          router.push(`/booking/confirmation?type=${bookingDetails.type}&amount=${bookingDetails.price}&reference=WN${Date.now()}`);
+          const destination = searchParams.get('destination') || bookingDetails.item?.destination || 'Unknown';
+          const startDate = searchParams.get('startDate') || bookingDetails.dates?.departure || '2025-01-15';
+          const endDate = searchParams.get('endDate') || bookingDetails.dates?.return || '2025-01-22';
+          const travelers = searchParams.get('travelers') || '2';
+          
+          router.push(`/booking/confirmation?type=${bookingDetails.type}&amount=${bookingDetails.price}&reference=WN${Date.now()}&destination=${encodeURIComponent(destination)}&startDate=${startDate}&endDate=${endDate}&travelers=${travelers}`);
         }
       }
     } catch (error) {
       console.error('Payment processing failed:', error);
-      // For demo purposes, simulate successful booking
-      router.push(`/booking/confirmation?type=${bookingDetails.type}&amount=${bookingDetails.price}&reference=WN${Date.now()}`);
+      // For demo purposes, simulate successful booking with proper destination
+      const destination = searchParams.get('destination') || bookingDetails.item?.destination || 'Unknown';
+      const startDate = searchParams.get('startDate') || bookingDetails.dates?.departure || '2025-01-15';
+      const endDate = searchParams.get('endDate') || bookingDetails.dates?.return || '2025-01-22';
+      const travelers = searchParams.get('travelers') || '2';
+      
+      router.push(`/booking/confirmation?type=${bookingDetails.type}&amount=${bookingDetails.price}&reference=WN${Date.now()}&destination=${encodeURIComponent(destination)}&startDate=${startDate}&endDate=${endDate}&travelers=${travelers}`);
     } finally {
       setIsLoading(false);
     }

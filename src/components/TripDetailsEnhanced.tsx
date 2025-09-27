@@ -315,7 +315,7 @@ export default function TripDetailsEnhanced({
       alert('✅ Budget set successfully!\n\nYour trip budget has been saved and will be used for expense tracking.');
       
       // Optional: Navigate to budget page
-      // window.location.href = '/budget';
+      // window.location.href = '/app/budget';
     } catch (error) {
       console.error('Error setting budget:', error);
       alert('❌ Error setting budget. Please try again.');

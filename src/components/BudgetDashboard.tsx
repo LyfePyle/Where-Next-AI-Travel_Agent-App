@@ -208,7 +208,7 @@ export default function BudgetDashboard({ className = '' }: BudgetDashboardProps
             
             <div className="grid grid-cols-2 gap-3">
               <button 
-                onClick={() => window.location.href = '/budget'}
+                onClick={() => window.location.href = '/app/budget'}
                 className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
                 View Budget Details

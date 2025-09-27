@@ -251,7 +251,7 @@ export default function HomePage() {
           {/* Quick Actions */}
           <div className="mt-8 text-center">
             <Link 
-              href="/budget"
+              href="/app/budget"
               className="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
             >
               <span className="mr-2">📊</span>
@@ -292,7 +292,7 @@ export default function HomePage() {
               <p className="text-gray-600 mb-4">
                 Track expenses across categories, get spending insights, and stay within your travel budget.
               </p>
-              <Link href="/budget" className="text-green-600 font-medium hover:no-underline no-underline">
+              <Link href="/app/budget" className="text-green-600 font-medium hover:no-underline no-underline">
                 Manage Budget →
               </Link>
             </div>

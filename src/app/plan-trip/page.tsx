@@ -124,7 +124,7 @@ export default function PlanTripPage() {
               <Link href="/saved" className="text-gray-600 hover:text-purple-600">
                 Saved Trips
               </Link>
-              <Link href="/budget" className="text-gray-600 hover:text-purple-600">
+              <Link href="/app/budget" className="text-gray-600 hover:text-purple-600">
                 Budget
               </Link>
             </div>

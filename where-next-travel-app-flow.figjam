@@ -1,0 +1,403 @@
+{
+  "document": {
+    "id": "where-next-travel-flow",
+    "name": "Where Next AI Travel App - User Flow",
+    "type": "FIGJAM",
+    "children": [
+      {
+        "id": "homepage",
+        "name": "Homepage",
+        "type": "FRAME",
+        "x": 100,
+        "y": 100,
+        "width": 300,
+        "height": 200,
+        "fills": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.6, "b": 1, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🏠 HOMEPAGE\n\n• Hero section\n• Quick trip planner\n• Featured destinations\n• AI travel agent intro",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "plan-trip",
+        "name": "Plan Trip",
+        "type": "FRAME",
+        "x": 500,
+        "y": 100,
+        "width": 300,
+        "height": 250,
+        "fills": [{"type": "SOLID", "color": {"r": 0.1, "g": 0.7, "b": 0.3, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "✈️ TRIP PLANNER\n\n• Origin airport\n• Date range picker\n• Budget breakdown:\n  - Daily spending\n  - Flight budget\n  - Hotel budget\n• Party size (adults/kids)\n• Vibes selection\n• Max flight time\n• Budget style (budget/comfort/luxury)",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "ai-suggestions",
+        "name": "AI Suggestions",
+        "type": "FRAME",
+        "x": 900,
+        "y": 100,
+        "width": 300,
+        "height": 250,
+        "fills": [{"type": "SOLID", "color": {"r": 0.8, "g": 0.2, "b": 0.8, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🤖 AI SUGGESTIONS\n\n• 3 AI-generated destinations\n• Realistic pricing\n• Weather & crowd info\n• Highlights & attractions\n• Fit score\n• 'See Details' buttons\n• Data source indicator",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "trip-details",
+        "name": "Trip Details",
+        "type": "FRAME",
+        "x": 1300,
+        "y": 100,
+        "width": 300,
+        "height": 300,
+        "fills": [{"type": "SOLID", "color": {"r": 1, "g": 0.5, "b": 0.2, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "📋 TRIP DETAILS\n\n• Destination overview\n• Daily itinerary\n• Flight options\n• Hotel options\n• Budget calculator\n• Trip cost summary\n• 'Buy Complete Trip' button\n• Individual booking options",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "checkout",
+        "name": "Checkout",
+        "type": "FRAME",
+        "x": 700,
+        "y": 500,
+        "width": 300,
+        "height": 300,
+        "fills": [{"type": "SOLID", "color": {"r": 0.9, "g": 0.1, "b": 0.1, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "💳 CHECKOUT\n\nStep 1: Review & Confirm\n• Booking summary\n• Price breakdown\n\nStep 2: Traveler Details\n• Personal information\n• Passport details\n\nStep 3: Payment\n• Stripe integration\n• Payment processing\n• Security indicators",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "confirmation",
+        "name": "Confirmation",
+        "type": "FRAME",
+        "x": 1100,
+        "y": 500,
+        "width": 300,
+        "height": 250,
+        "fills": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.8, "b": 0.2, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "✅ CONFIRMATION\n\n• Booking reference\n• Trip details\n• Flight & hotel info\n• Itinerary download\n• Share options\n• Email confirmation",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "ai-agent",
+        "name": "AI Travel Agent",
+        "type": "FRAME",
+        "x": 100,
+        "y": 400,
+        "width": 300,
+        "height": 200,
+        "fills": [{"type": "SOLID", "color": {"r": 0.5, "g": 0.2, "b": 0.9, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🤖 AI TRAVEL AGENT\n\n• Chat interface\n• Flight inspirations\n• Hotel recommendations\n• AI-powered suggestions\n• Interactive assistance",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "tours",
+        "name": "Walking Tours",
+        "type": "FRAME",
+        "x": 100,
+        "y": 700,
+        "width": 300,
+        "height": 200,
+        "fills": [{"type": "SOLID", "color": {"r": 0.6, "g": 0.4, "b": 0.2, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🚶 WALKING TOURS\n\n• AI-generated tours\n• Interactive maps\n• Premium subscription\n• Offline capabilities\n• Audio guides",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "booking-flights",
+        "name": "Flight Booking",
+        "type": "FRAME",
+        "x": 500,
+        "y": 700,
+        "width": 250,
+        "height": 150,
+        "fills": [{"type": "SOLID", "color": {"r": 0.3, "g": 0.7, "b": 0.9, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "✈️ FLIGHTS\n\n• Amadeus API\n• Search results\n• Price comparison\n• Add to cart",
+            "fontSize": 12,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "booking-hotels",
+        "name": "Hotel Booking",
+        "type": "FRAME",
+        "x": 800,
+        "y": 700,
+        "width": 250,
+        "height": 150,
+        "fills": [{"type": "SOLID", "color": {"r": 0.9, "g": 0.7, "b": 0.3, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🏨 HOTELS\n\n• Amadeus API\n• Search results\n• Amenities\n• Add to cart",
+            "fontSize": 12,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "cart",
+        "name": "Shopping Cart",
+        "type": "FRAME",
+        "x": 1100,
+        "y": 700,
+        "width": 250,
+        "height": 150,
+        "fills": [{"type": "SOLID", "color": {"r": 0.7, "g": 0.3, "b": 0.9, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🛒 CART\n\n• Item management\n• Price totals\n• Checkout button\n• Remove items",
+            "fontSize": 12,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "saved-trips",
+        "name": "Saved Trips",
+        "type": "FRAME",
+        "x": 1400,
+        "y": 700,
+        "width": 250,
+        "height": 150,
+        "fills": [{"type": "SOLID", "color": {"r": 0.4, "g": 0.8, "b": 0.6, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "💾 SAVED TRIPS\n\n• Trip library\n• Favorites\n• Re-book options\n• Share trips",
+            "fontSize": 12,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      }
+    ],
+    "connectors": [
+      {
+        "id": "conn1",
+        "type": "CONNECTOR",
+        "strokeWeight": 3,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.2, "b": 0.2, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "homepage", "position": {"x": 1, "y": 0.5}},
+        "connectorEnd": {"endpointNodeId": "plan-trip", "position": {"x": 0, "y": 0.5}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "Plan a Trip",
+            "fontSize": 12,
+            "fills": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.2, "b": 0.2, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "conn2",
+        "type": "CONNECTOR",
+        "strokeWeight": 3,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.2, "b": 0.2, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "plan-trip", "position": {"x": 1, "y": 0.5}},
+        "connectorEnd": {"endpointNodeId": "ai-suggestions", "position": {"x": 0, "y": 0.5}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "Submit Form → AI API",
+            "fontSize": 12,
+            "fills": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.2, "b": 0.2, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "conn3",
+        "type": "CONNECTOR",
+        "strokeWeight": 3,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.2, "b": 0.2, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "ai-suggestions", "position": {"x": 1, "y": 0.5}},
+        "connectorEnd": {"endpointNodeId": "trip-details", "position": {"x": 0, "y": 0.5}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "See Details",
+            "fontSize": 12,
+            "fills": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.2, "b": 0.2, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "conn4",
+        "type": "CONNECTOR",
+        "strokeWeight": 3,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.8, "g": 0.1, "b": 0.1, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "trip-details", "position": {"x": 0.5, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "checkout", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "Buy Complete Trip",
+            "fontSize": 12,
+            "fills": [{"type": "SOLID", "color": {"r": 0.8, "g": 0.1, "b": 0.1, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "conn5",
+        "type": "CONNECTOR",
+        "strokeWeight": 3,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.1, "g": 0.7, "b": 0.1, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "checkout", "position": {"x": 1, "y": 0.5}},
+        "connectorEnd": {"endpointNodeId": "confirmation", "position": {"x": 0, "y": 0.5}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "Payment Success",
+            "fontSize": 12,
+            "fills": [{"type": "SOLID", "color": {"r": 0.1, "g": 0.7, "b": 0.1, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "conn6",
+        "type": "CONNECTOR",
+        "strokeWeight": 2,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.5, "g": 0.5, "b": 0.5, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "homepage", "position": {"x": 0.5, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "ai-agent", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "AI Assistant",
+            "fontSize": 10,
+            "fills": [{"type": "SOLID", "color": {"r": 0.5, "g": 0.5, "b": 0.5, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "conn7",
+        "type": "CONNECTOR",
+        "strokeWeight": 2,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.5, "g": 0.5, "b": 0.5, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "trip-details", "position": {"x": 0, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "booking-flights", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "Book Flight",
+            "fontSize": 10,
+            "fills": [{"type": "SOLID", "color": {"r": 0.5, "g": 0.5, "b": 0.5, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "conn8",
+        "type": "CONNECTOR",
+        "strokeWeight": 2,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.5, "g": 0.5, "b": 0.5, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "trip-details", "position": {"x": 0.3, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "booking-hotels", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "Book Hotel",
+            "fontSize": 10,
+            "fills": [{"type": "SOLID", "color": {"r": 0.5, "g": 0.5, "b": 0.5, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "conn9",
+        "type": "CONNECTOR",
+        "strokeWeight": 2,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.7, "g": 0.3, "b": 0.9, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "booking-flights", "position": {"x": 1, "y": 0.5}},
+        "connectorEnd": {"endpointNodeId": "cart", "position": {"x": 0, "y": 0.3}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "Add to Cart",
+            "fontSize": 10,
+            "fills": [{"type": "SOLID", "color": {"r": 0.7, "g": 0.3, "b": 0.9, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "conn10",
+        "type": "CONNECTOR",
+        "strokeWeight": 2,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.7, "g": 0.3, "b": 0.9, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "booking-hotels", "position": {"x": 1, "y": 0.5}},
+        "connectorEnd": {"endpointNodeId": "cart", "position": {"x": 0, "y": 0.7}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "Add to Cart",
+            "fontSize": 10,
+            "fills": [{"type": "SOLID", "color": {"r": 0.7, "g": 0.3, "b": 0.9, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "conn11",
+        "type": "CONNECTOR",
+        "strokeWeight": 2,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.4, "g": 0.8, "b": 0.6, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "trip-details", "position": {"x": 1, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "saved-trips", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "Save Trip",
+            "fontSize": 10,
+            "fills": [{"type": "SOLID", "color": {"r": 0.4, "g": 0.8, "b": 0.6, "a": 1}}]
+          }
+        ]
+      }
+    ]
+  }
+}

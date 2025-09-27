@@ -1,0 +1,305 @@
+{
+  "document": {
+    "id": "where-next-tech-architecture",
+    "name": "Where Next - Technical Architecture & Data Flow",
+    "type": "FIGJAM",
+    "children": [
+      {
+        "id": "frontend-layer",
+        "name": "Frontend Layer",
+        "type": "FRAME",
+        "x": 100,
+        "y": 50,
+        "width": 1400,
+        "height": 200,
+        "fills": [{"type": "SOLID", "color": {"r": 0.9, "g": 0.95, "b": 1, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🖥️ FRONTEND LAYER (Next.js 14 + React + TypeScript)\n\nPages: / | /plan-trip | /suggestions | /trip/[id] | /booking/* | /ai-travel-agent | /tours | /cart | /saved\nComponents: TripPlannerForm | TripDetailsEnhanced | FlightPickerModal | HotelPickerModal | BudgetDashboard\nState: React useState/useEffect | URL Parameters | Local Storage | Session Storage",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "api-layer",
+        "name": "API Layer",
+        "type": "FRAME",
+        "x": 100,
+        "y": 300,
+        "width": 1400,
+        "height": 150,
+        "fills": [{"type": "SOLID", "color": {"r": 0.95, "g": 1, "b": 0.9, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "⚡ API LAYER (Next.js API Routes)\n\n/api/ai/suggestions | /api/amadeus/* | /api/payments/* | /api/trips | /api/status | /api/utils/currency\nValidation: Zod Schemas | Error Handling | Rate Limiting | Caching (LRU) | Authentication",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "external-apis",
+        "name": "External APIs",
+        "type": "FRAME",
+        "x": 100,
+        "y": 500,
+        "width": 1400,
+        "height": 200,
+        "fills": [{"type": "SOLID", "color": {"r": 1, "g": 0.95, "b": 0.9, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🌐 EXTERNAL SERVICES\n\nOpenAI GPT-4o-mini: Trip suggestions, AI chat, itinerary generation\nAmadeus API: Flight search, hotel search, location data\nStripe: Payment processing, subscription management\nSupabase: Database, authentication, real-time data\nExchangeRate-API: Currency conversion\nOpenWeatherMap: Weather data, city search",
+            "fontSize": 14,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "data-flow-1",
+        "name": "Trip Planning Flow",
+        "type": "FRAME",
+        "x": 1600,
+        "y": 50,
+        "width": 300,
+        "height": 300,
+        "fills": [{"type": "SOLID", "color": {"r": 0.8, "g": 0.9, "b": 1, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "📋 TRIP PLANNING DATA FLOW\n\n1. User fills TripPlannerForm\n2. Form validates with Zod\n3. Data sent to /api/ai/suggestions\n4. API calls OpenAI with prompt\n5. AI returns 3 destinations\n6. Results cached (LRU)\n7. Suggestions displayed\n8. User clicks 'See Details'\n9. Navigate to /trip/[id]\n10. Load flight/hotel options",
+            "fontSize": 12,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "data-flow-2",
+        "name": "Booking Flow",
+        "type": "FRAME",
+        "x": 1600,
+        "y": 400,
+        "width": 300,
+        "height": 300,
+        "fills": [{"type": "SOLID", "color": {"r": 1, "g": 0.9, "b": 0.8, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "💳 BOOKING DATA FLOW\n\n1. User selects flight + hotel\n2. Click 'Buy Complete Trip'\n3. Navigate to /booking/checkout\n4. Fill traveler details\n5. Submit payment form\n6. Call /api/payments/create-session\n7. Stripe processes payment\n8. Redirect to /booking/confirmation\n9. Display booking details\n10. Send confirmation email",
+            "fontSize": 12,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "openai-box",
+        "name": "OpenAI Integration",
+        "type": "FRAME",
+        "x": 200,
+        "y": 750,
+        "width": 250,
+        "height": 150,
+        "fills": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.8, "b": 0.3, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🤖 OPENAI GPT-4O-MINI\n\n• Model: gpt-4o-mini\n• Max tokens: 1500\n• Timeout: 30 seconds\n• Prompt engineering\n• JSON response parsing\n• Budget validation\n• Fallback to seeded data",
+            "fontSize": 11,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "amadeus-box",
+        "name": "Amadeus Integration",
+        "type": "FRAME",
+        "x": 500,
+        "y": 750,
+        "width": 250,
+        "height": 150,
+        "fills": [{"type": "SOLID", "color": {"r": 0.3, "g": 0.6, "b": 0.9, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "✈️ AMADEUS API\n\n• Flight search\n• Hotel search\n• Location search\n• Test environment\n• SDK integration\n• Rate limiting\n• Error handling",
+            "fontSize": 11,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "stripe-box",
+        "name": "Stripe Integration",
+        "type": "FRAME",
+        "x": 800,
+        "y": 750,
+        "width": 250,
+        "height": 150,
+        "fills": [{"type": "SOLID", "color": {"r": 0.6, "g": 0.2, "b": 0.8, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "💳 STRIPE PAYMENTS\n\n• Checkout sessions\n• Payment intents\n• Webhooks\n• Subscriptions\n• Demo mode\n• Security (SSL)\n• Currency support",
+            "fontSize": 11,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "supabase-box",
+        "name": "Supabase Integration",
+        "type": "FRAME",
+        "x": 1100,
+        "y": 750,
+        "width": 250,
+        "height": 150,
+        "fills": [{"type": "SOLID", "color": {"r": 0.1, "g": 0.7, "b": 0.5, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🗄️ SUPABASE DATABASE\n\n• PostgreSQL\n• Real-time subscriptions\n• Authentication\n• Row Level Security\n• Trip storage\n• User management\n• Analytics data",
+            "fontSize": 11,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "issues-box",
+        "name": "Current Issues & Fixes",
+        "type": "FRAME",
+        "x": 100,
+        "y": 950,
+        "width": 600,
+        "height": 200,
+        "fills": [{"type": "SOLID", "color": {"r": 1, "g": 0.9, "b": 0.9, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🔧 RECENT FIXES & CURRENT STATUS\n\n✅ FIXED: AI timeout issues (simplified prompts, added budget breakdown)\n✅ FIXED: React key conflicts (unique timestamp IDs)\n✅ FIXED: Booking destination bug (proper URL parameter passing)\n✅ FIXED: Missing payment flow (added processing step)\n\n⚠️ CURRENT ISSUES:\n• Stripe in demo mode (needs production config)\n• Some APIs using mock data\n• Performance optimization needed",
+            "fontSize": 12,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      },
+      {
+        "id": "testing-box",
+        "name": "Testing Infrastructure",
+        "type": "FRAME",
+        "x": 750,
+        "y": 950,
+        "width": 600,
+        "height": 200,
+        "fills": [{"type": "SOLID", "color": {"r": 0.9, "g": 1, "b": 0.9, "a": 1}}],
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "🧪 TESTING INFRASTRUCTURE\n\n• Jest: Unit tests, API integration tests\n• Playwright: E2E tests, cross-browser testing\n• Test Categories: AI integration, Payment flow, Amadeus API, Database ops\n• Performance benchmarks, Mobile responsive, Security validation\n• Accessibility testing, SEO testing, Analytics testing\n\n📊 Coverage: 750+ test scenarios across 12 categories",
+            "fontSize": 12,
+            "fontName": {"family": "Inter", "style": "Regular"}
+          }
+        ]
+      }
+    ],
+    "connectors": [
+      {
+        "id": "frontend-to-api",
+        "type": "CONNECTOR",
+        "strokeWeight": 4,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.4, "b": 0.8, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "frontend-layer", "position": {"x": 0.5, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "api-layer", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "HTTP Requests\n(fetch, POST/GET)",
+            "fontSize": 12,
+            "fills": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.4, "b": 0.8, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "api-to-external",
+        "type": "CONNECTOR",
+        "strokeWeight": 4,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.8, "g": 0.4, "b": 0.2, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "api-layer", "position": {"x": 0.5, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "external-apis", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "API Calls\n(OpenAI, Amadeus, Stripe)",
+            "fontSize": 12,
+            "fills": [{"type": "SOLID", "color": {"r": 0.8, "g": 0.4, "b": 0.2, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "api-to-openai",
+        "type": "CONNECTOR",
+        "strokeWeight": 2,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.8, "b": 0.3, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "external-apis", "position": {"x": 0.2, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "openai-box", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "/api/ai/suggestions",
+            "fontSize": 10,
+            "fills": [{"type": "SOLID", "color": {"r": 0.2, "g": 0.8, "b": 0.3, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "api-to-amadeus",
+        "type": "CONNECTOR",
+        "strokeWeight": 2,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.3, "g": 0.6, "b": 0.9, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "external-apis", "position": {"x": 0.4, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "amadeus-box", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "/api/amadeus/*",
+            "fontSize": 10,
+            "fills": [{"type": "SOLID", "color": {"r": 0.3, "g": 0.6, "b": 0.9, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "api-to-stripe",
+        "type": "CONNECTOR",
+        "strokeWeight": 2,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.6, "g": 0.2, "b": 0.8, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "external-apis", "position": {"x": 0.6, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "stripe-box", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "/api/payments/*",
+            "fontSize": 10,
+            "fills": [{"type": "SOLID", "color": {"r": 0.6, "g": 0.2, "b": 0.8, "a": 1}}]
+          }
+        ]
+      },
+      {
+        "id": "api-to-supabase",
+        "type": "CONNECTOR",
+        "strokeWeight": 2,
+        "stroke": [{"type": "SOLID", "color": {"r": 0.1, "g": 0.7, "b": 0.5, "a": 1}}],
+        "connectorStart": {"endpointNodeId": "external-apis", "position": {"x": 0.8, "y": 1}},
+        "connectorEnd": {"endpointNodeId": "supabase-box", "position": {"x": 0.5, "y": 0}},
+        "children": [
+          {
+            "type": "TEXT",
+            "characters": "/api/trips",
+            "fontSize": 10,
+            "fills": [{"type": "SOLID", "color": {"r": 0.1, "g": 0.7, "b": 0.5, "a": 1}}]
+          }
+        ]
+      }
+    ]
+  }
+}

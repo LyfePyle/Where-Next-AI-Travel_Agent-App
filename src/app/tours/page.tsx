@@ -212,25 +212,21 @@ export default function ToursPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 text-white overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-purple-400/20 to-indigo-400/20"></div>
-          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent opacity-30"></div>
-        </div>
+      <div className="relative bg-blue-600 text-white overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <div className="flex items-center justify-center mb-8">
               <div className="relative">
-                <Compass className="h-20 w-20 text-yellow-300 mr-6 animate-spin-slow" />
-                <div className="absolute inset-0 h-20 w-20 border-4 border-yellow-300/30 rounded-full animate-ping"></div>
+                <Compass className="h-20 w-20 text-yellow-400 mr-6 animate-spin-slow" />
+                <div className="absolute inset-0 h-20 w-20 border-4 border-yellow-400/30 rounded-full animate-ping"></div>
               </div>
               <div>
                 <h1 className="text-7xl font-black text-white drop-shadow-2xl">
                   AI WALKING
                 </h1>
-                <h1 className="text-7xl font-black bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-400 bg-clip-text text-transparent drop-shadow-2xl">
+                <h1 className="text-7xl font-black text-yellow-400 drop-shadow-2xl">
                   TOURS
                 </h1>
               </div>
@@ -243,17 +239,17 @@ export default function ToursPage() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
               <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30 shadow-lg">
-                <Sparkles className="h-12 w-12 text-yellow-300 mx-auto mb-4" />
+                <Sparkles className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
                 <h3 className="text-xl font-black text-white mb-2">AI-POWERED</h3>
                 <p className="text-blue-100 font-semibold">Smart Routes</p>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30 shadow-lg">
-                <Award className="h-12 w-12 text-yellow-300 mx-auto mb-4" />
+                <Award className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
                 <h3 className="text-xl font-black text-white mb-2">LOCAL INSIGHTS</h3>
                 <p className="text-blue-100 font-semibold">Expert Tips</p>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30 shadow-lg">
-                <Globe className="h-12 w-12 text-yellow-300 mx-auto mb-4" />
+                <Globe className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
                 <h3 className="text-xl font-black text-white mb-2">500+ CITIES</h3>
                 <p className="text-blue-100 font-semibold">Worldwide</p>
               </div>
@@ -265,90 +261,100 @@ export default function ToursPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {!generatedTour ? (
           <>
+            {/* City Input - Moved to top and made bigger */}
+            <div className="mb-20">
+              <div className="max-w-4xl mx-auto text-center">
+                <h2 className="text-5xl font-black text-gray-800 mb-8">
+                  🎯 WHERE DO YOU WANT TO EXPLORE?
+                </h2>
+                <div className="relative">
+                  <MapPin className="absolute left-8 top-1/2 transform -translate-y-1/2 text-blue-500 h-10 w-10" />
+              <input
+                type="text"
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                    placeholder="Type any city name (e.g., Paris, Tokyo, New York, London)..."
+                    className="w-full pl-20 pr-20 py-8 bg-white border-4 border-gray-300 rounded-3xl focus:ring-4 focus:ring-blue-500 focus:border-blue-500 text-3xl font-bold text-gray-800 placeholder-gray-400 shadow-xl hover:shadow-2xl transition-all duration-300"
+                  />
+                  <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
+                    <Compass className="h-10 w-10 text-blue-500 animate-spin" />
+                  </div>
+                </div>
+                <p className="text-xl text-gray-600 mt-6 font-semibold">
+                  Or choose from popular destinations below 👇
+                </p>
+              </div>
+            </div>
+
             {/* Popular Cities */}
             <div className="mb-16">
               <div className="text-center mb-12">
-                <h2 className="text-6xl font-black text-gray-800 mb-4 drop-shadow-lg">
-                  🌍 POPULAR DESTINATIONS 🌍
-                </h2>
-                <p className="text-2xl font-bold text-blue-600">Choose your adventure destination!</p>
+                <h3 className="text-4xl font-black text-gray-800 mb-4">
+                  🌍 POPULAR DESTINATIONS
+                </h3>
+                <p className="text-xl font-bold text-blue-600">Click any city to select it!</p>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
                 {popularCities.map((city, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedCity(city.name)}
-                    className={`group relative p-6 rounded-3xl border-4 transition-all duration-500 hover:scale-110 hover:rotate-2 transform shadow-lg ${
+                    className={`group relative p-8 rounded-3xl border-4 transition-all duration-300 hover:scale-105 transform shadow-lg cursor-pointer ${
                       selectedCity === city.name 
-                        ? 'border-blue-500 bg-gradient-to-br from-blue-100 to-purple-100 shadow-2xl shadow-blue-400/50 scale-105' 
-                        : 'border-gray-200 bg-white hover:border-blue-400 hover:shadow-xl hover:shadow-blue-300/30'
+                        ? 'border-blue-500 bg-blue-50 shadow-2xl shadow-blue-400/50 scale-105' 
+                        : 'border-gray-300 bg-white hover:border-blue-400 hover:shadow-xl hover:bg-blue-50'
                     }`}
                   >
-                    <div className="text-6xl mb-4 group-hover:animate-bounce">{city.image}</div>
-                    <div className="font-black text-xl text-gray-800">{city.name}</div>
-                    <div className="text-lg font-bold text-gray-600">{city.country}</div>
-                    <div className="text-sm font-bold text-blue-600 mt-2 bg-blue-100 rounded-full px-3 py-1">
+                    <div className="text-7xl mb-4 group-hover:animate-bounce">{city.image}</div>
+                    <div className="font-black text-2xl text-gray-800 mb-2">{city.name}</div>
+                    <div className="text-lg font-bold text-gray-600 mb-3">{city.country}</div>
+                    <div className="text-sm font-bold text-white bg-blue-500 rounded-full px-4 py-2">
                       {city.tours} TOURS
                     </div>
                     {selectedCity === city.name && (
-                      <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-2 animate-pulse">
-                        <Star className="h-4 w-4" />
+                      <div className="absolute -top-3 -right-3 bg-green-500 text-white rounded-full p-3 animate-pulse">
+                        <Star className="h-5 w-5" />
                       </div>
                     )}
+                    <div className="absolute inset-0 rounded-3xl bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </button>
                 ))}
-              </div>
-            </div>
-            
-            {/* City Input */}
-            <div className="mb-16">
-              <div className="max-w-2xl mx-auto text-center">
-                <h3 className="text-4xl font-black text-gray-800 mb-6 drop-shadow-lg">
-                  ✨ OR TYPE ANY CITY ✨
-                </h3>
-                <div className="relative">
-                  <MapPin className="absolute left-6 top-1/2 transform -translate-y-1/2 text-blue-500 h-8 w-8" />
-              <input
-                type="text"
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                    placeholder="Enter any city name (e.g., Paris, Tokyo, New York)..."
-                    className="w-full pl-16 pr-6 py-6 bg-white border-4 border-gray-200 rounded-3xl focus:ring-4 focus:ring-blue-400 focus:border-blue-400 text-2xl font-bold text-gray-800 placeholder-gray-500 shadow-lg"
-              />
-                  <div className="absolute right-6 top-1/2 transform -translate-y-1/2">
-                    <Compass className="h-8 w-8 text-blue-500 animate-spin" />
-                  </div>
-                </div>
               </div>
             </div>
 
             {/* Theme Selection */}
             <div className="mb-16">
               <div className="text-center mb-12">
-                <h3 className="text-6xl font-black text-gray-800 mb-4 drop-shadow-lg">
-                  🎯 CHOOSE YOUR ADVENTURE 🎯
+                <h3 className="text-4xl font-black text-gray-800 mb-4">
+                  🎯 CHOOSE YOUR ADVENTURE TYPE
                 </h3>
-                <p className="text-2xl font-bold text-blue-600">What type of experience excites you?</p>
+                <p className="text-xl font-bold text-blue-600">What type of experience excites you?</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {themes.map((theme) => (
                   <button
                     key={theme.id}
                     onClick={() => setSelectedTheme(theme.id)}
-                    className={`group relative p-8 rounded-3xl border-4 transition-all duration-500 hover:scale-105 hover:-rotate-1 transform shadow-lg ${
+                    className={`group relative p-8 rounded-3xl border-4 transition-all duration-300 hover:scale-105 transform shadow-lg cursor-pointer ${
                       selectedTheme === theme.id
-                        ? 'border-blue-500 shadow-2xl shadow-blue-400/50 bg-gradient-to-br from-blue-100 to-purple-100 scale-105'
-                        : 'border-gray-200 hover:border-blue-400 hover:shadow-xl hover:shadow-blue-300/30 bg-white'
+                        ? 'border-blue-500 shadow-2xl shadow-blue-400/50 bg-blue-50 scale-105'
+                        : 'border-gray-300 hover:border-blue-400 hover:shadow-xl bg-white hover:bg-blue-50'
                     }`}
                   >
-                    <div className={`w-full h-40 bg-gradient-to-br ${theme.color} rounded-2xl mb-6 flex items-center justify-center relative overflow-hidden group-hover:animate-pulse shadow-lg`}>
+                    <div className={`w-full h-40 ${
+                      theme.id === 'cultural' ? 'bg-blue-500' :
+                      theme.id === 'food' ? 'bg-orange-500' :
+                      theme.id === 'nature' ? 'bg-green-500' :
+                      theme.id === 'shopping' ? 'bg-pink-500' :
+                      theme.id === 'photography' ? 'bg-purple-500' :
+                      'bg-indigo-500'
+                    } rounded-2xl mb-6 flex items-center justify-center relative overflow-hidden shadow-lg`}>
                       <span className="text-8xl group-hover:scale-110 transition-transform duration-300">{theme.icon}</span>
-                      <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors duration-300"></div>
                     </div>
                     <h4 className="font-black text-2xl text-gray-800 mb-3">{theme.name}</h4>
                     <p className="text-lg font-bold text-gray-600">{theme.description}</p>
                     {selectedTheme === theme.id && (
-                      <div className="absolute -top-3 -right-3 bg-blue-500 text-white rounded-full p-3 animate-bounce">
+                      <div className="absolute -top-3 -right-3 bg-green-500 text-white rounded-full p-3 animate-bounce">
                         <Zap className="h-6 w-6" />
                       </div>
                     )}
@@ -359,33 +365,28 @@ export default function ToursPage() {
 
             {/* Generate Button */}
             <div className="text-center">
-              <div className="relative inline-block">
               <button
                 onClick={generateTour}
                 disabled={!selectedCity.trim() || isGenerating}
-                  className={`relative inline-flex items-center px-12 py-6 text-2xl font-black rounded-3xl transition-all duration-500 transform ${
-                    !selectedCity.trim() || isGenerating
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 text-white hover:from-blue-400 hover:via-purple-400 hover:to-indigo-400 shadow-2xl hover:shadow-blue-400/50 hover:scale-110 hover:rotate-1'
-                  }`}
+                className={`inline-flex items-center px-16 py-8 text-3xl font-black rounded-3xl transition-all duration-300 transform shadow-2xl ${
+                  !selectedCity.trim() || isGenerating
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-500 text-white hover:bg-green-600 hover:scale-110 hover:shadow-green-500/50'
+                }`}
               >
                 {isGenerating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-white border-t-transparent mr-4"></div>
-                      🚀 GENERATING YOUR EPIC TOUR...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="h-8 w-8 mr-4 animate-pulse" />
-                      🎯 GENERATE AI WALKING TOUR
-                      <ArrowRight className="h-8 w-8 ml-4 group-hover:translate-x-2 transition-transform" />
-                    </>
-                  )}
-                </button>
-                {!isGenerating && selectedCity.trim() && (
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-3xl blur opacity-30 animate-pulse"></div>
+                  <>
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-white border-t-transparent mr-4"></div>
+                    🚀 GENERATING YOUR EPIC TOUR...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-10 w-10 mr-4 animate-pulse" />
+                    🎯 GENERATE AI WALKING TOUR
+                    <ArrowRight className="h-10 w-10 ml-4" />
+                  </>
                 )}
-              </div>
+              </button>
             </div>
           </>
         ) : (
@@ -393,13 +394,11 @@ export default function ToursPage() {
           <div className="space-y-12">
             {/* Tour Header */}
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-blue-200">
-              <div className="relative h-80 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500">
-                <div className="absolute inset-0 bg-black/20"></div>
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent opacity-30"></div>
+              <div className="relative h-80 bg-blue-600">
                 <div className="relative p-12 h-full flex items-end">
                   <div className="text-white">
                     <div className="flex items-center mb-4">
-                      <Compass className="h-12 w-12 text-yellow-300 mr-4 animate-spin" />
+                      <Compass className="h-12 w-12 text-yellow-400 mr-4 animate-spin" />
                       <span className="text-3xl font-black bg-white/20 backdrop-blur-sm rounded-full px-4 py-2">🎉 TOUR READY!</span>
                     </div>
                     <h1 className="text-6xl font-black mb-4 drop-shadow-2xl">{generatedTour.title}</h1>
@@ -408,7 +407,7 @@ export default function ToursPage() {
                 </div>
               </div>
               
-              <div className="p-12 bg-gradient-to-br from-blue-50 to-purple-50">
+              <div className="p-12 bg-gray-50">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
                   <div className="text-center bg-white rounded-2xl p-6 border-2 border-blue-200 shadow-lg">
                     <Clock className="h-12 w-12 text-blue-500 mx-auto mb-3 animate-pulse" />
@@ -434,32 +433,32 @@ export default function ToursPage() {
 
                 <div className="flex flex-wrap gap-4 mb-8 justify-center">
                   {generatedTour.highlights.map((highlight, index) => (
-                    <span key={index} className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full text-lg font-black shadow-lg">
+                    <span key={index} className="px-6 py-3 bg-blue-500 text-white rounded-full text-lg font-black shadow-lg">
                       ⭐ {highlight}
                     </span>
                   ))}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <button className="col-span-1 md:col-span-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 px-8 rounded-2xl font-black text-xl hover:from-green-400 hover:to-emerald-500 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-green-500/50 hover:scale-105">
+                  <button className="col-span-1 md:col-span-2 bg-green-500 text-white py-4 px-8 rounded-2xl font-black text-xl hover:bg-green-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-green-500/50 hover:scale-105">
                     <Play className="h-8 w-8 mr-3 animate-pulse" />
                     🚀 START EPIC TOUR
                   </button>
-                  <button className="bg-gradient-to-r from-pink-500 to-rose-600 text-white py-4 px-6 rounded-2xl font-black hover:from-pink-400 hover:to-rose-500 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-pink-500/50 hover:scale-105">
+                  <button className="bg-pink-500 text-white py-4 px-6 rounded-2xl font-black hover:bg-pink-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-pink-500/50 hover:scale-105">
                     <Heart className="h-6 w-6 mr-2" />
                     SAVE
                   </button>
-                  <button className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white py-4 px-6 rounded-2xl font-black hover:from-blue-400 hover:to-cyan-500 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-blue-500/50 hover:scale-105">
+                  <button className="bg-blue-500 text-white py-4 px-6 rounded-2xl font-black hover:bg-blue-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-blue-500/50 hover:scale-105">
                     <Share2 className="h-6 w-6 mr-2" />
                     SHARE
-                  </button>
+                </button>
                 </div>
               </div>
             </div>
 
             {/* Interactive Tour Map & Stops */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-              {/* Tour Stops */}
+            {/* Tour Stops */}
               <div className="lg:col-span-2 space-y-8">
                 <div className="text-center mb-12">
                   <h2 className="text-5xl font-black text-gray-800 mb-4 drop-shadow-lg">
@@ -479,9 +478,8 @@ export default function ToursPage() {
                   >
                     <div className="md:flex">
                       <div className="md:w-1/3 relative">
-                        <div className="h-64 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-500 flex items-center justify-center relative overflow-hidden">
-                          <Camera className="h-16 w-16 text-white/90 group-hover:scale-110 transition-transform" />
-                          <div className="absolute inset-0 bg-black/10 group-hover:bg-black/5 transition-colors"></div>
+                        <div className="h-64 bg-blue-500 flex items-center justify-center relative overflow-hidden">
+                          <Camera className="h-16 w-16 text-white group-hover:scale-110 transition-transform" />
                           <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-gray-800 font-black text-lg">
                             🎯 STOP {index + 1}
                           </div>
@@ -492,7 +490,7 @@ export default function ToursPage() {
                           {activeStop === index && (
                             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full font-black animate-bounce">
                               ✨ ACTIVE
-                            </div>
+                    </div>
                           )}
                         </div>
                       </div>
@@ -500,7 +498,7 @@ export default function ToursPage() {
                         <div className="flex items-start justify-between mb-6">
                           <div>
                             <h3 className="text-3xl font-black text-gray-800 mb-2">{stop.name}</h3>
-                            <span className="inline-block px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-black rounded-full">
+                            <span className="inline-block px-4 py-2 bg-purple-500 text-white text-sm font-black rounded-full">
                               🏷️ {stop.category}
                             </span>
                           </div>
@@ -519,13 +517,13 @@ export default function ToursPage() {
                         <div className="space-y-4">
                           <h4 className="font-black text-xl text-blue-600">💡 INSIDER TIPS:</h4>
                           <ul className="space-y-3">
-                            {stop.tips.map((tip, tipIndex) => (
+                          {stop.tips.map((tip, tipIndex) => (
                               <li key={tipIndex} className="text-lg text-gray-700 flex items-start font-semibold">
                                 <span className="text-blue-500 mr-3 text-2xl">⚡</span>
                                 {tip}
                               </li>
-                            ))}
-                          </ul>
+                          ))}
+                        </ul>
                         </div>
                       </div>
                     </div>
@@ -537,52 +535,48 @@ export default function ToursPage() {
               <div className="space-y-8">
                 <div className="bg-white rounded-3xl shadow-2xl p-8 border-4 border-blue-200">
                   <h3 className="text-3xl font-black text-gray-800 mb-6 text-center">🗺️ INTERACTIVE MAP</h3>
-                  <div className="h-80 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-black/10"></div>
+                  <div className="h-80 bg-blue-500 rounded-2xl flex items-center justify-center relative overflow-hidden">
                     <div className="relative text-center">
                       <MapPin className="h-20 w-20 text-white mx-auto mb-4 animate-bounce" />
                       <p className="text-2xl font-black text-white drop-shadow-lg">COMING SOON!</p>
-                      <p className="text-lg font-bold text-white/90 mt-2">Interactive navigation & routes</p>
+                      <p className="text-lg font-bold text-white mt-2">Interactive navigation & routes</p>
                     </div>
                     <div className="absolute top-4 left-4 bg-white/90 rounded-full px-3 py-1">
                       <span className="text-gray-800 font-bold text-sm">🎯 LIVE MAP</span>
-                    </div>
-                  </div>
+              </div>
+            </div>
                 </div>
 
                 <div className="bg-white rounded-3xl shadow-2xl p-8 border-4 border-blue-200">
                   <h3 className="text-3xl font-black text-gray-800 mb-6 text-center">⚡ QUICK ACTIONS</h3>
                   <div className="space-y-4">
-                    <button className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 px-6 rounded-2xl font-black text-lg hover:from-green-400 hover:to-emerald-500 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-green-500/50 hover:scale-105">
+                    <button className="w-full bg-green-500 text-white py-4 px-6 rounded-2xl font-black text-lg hover:bg-green-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-green-500/50 hover:scale-105">
                       <Navigation className="h-6 w-6 mr-3" />
                       🧭 GET DIRECTIONS
                     </button>
-                    <button className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-4 px-6 rounded-2xl font-black text-lg hover:from-purple-400 hover:to-indigo-500 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-purple-500/50 hover:scale-105">
+                    <button className="w-full bg-purple-500 text-white py-4 px-6 rounded-2xl font-black text-lg hover:bg-purple-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-purple-500/50 hover:scale-105">
                       <Camera className="h-6 w-6 mr-3" />
                       📸 PHOTO GUIDE
                     </button>
-                    <button className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white py-4 px-6 rounded-2xl font-black text-lg hover:from-orange-400 hover:to-red-500 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-orange-500/50 hover:scale-105">
+                    <button className="w-full bg-orange-500 text-white py-4 px-6 rounded-2xl font-black text-lg hover:bg-orange-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-orange-500/50 hover:scale-105">
                       <Download className="h-6 w-6 mr-3" />
                       💾 DOWNLOAD OFFLINE
                     </button>
-                  </div>
+                </div>
                 </div>
               </div>
               </div>
 
             {/* Generate New Tour Button */}
             <div className="text-center pt-12">
-              <div className="relative inline-block">
-                <button
-                  onClick={() => setGeneratedTour(null)}
-                  className="relative inline-flex items-center px-10 py-5 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 text-white font-black text-xl rounded-3xl hover:from-blue-400 hover:via-purple-400 hover:to-indigo-400 transition-all duration-500 shadow-2xl hover:shadow-blue-500/50 hover:scale-110 hover:-rotate-1 transform"
-                >
-                  <Compass className="h-8 w-8 mr-4 animate-spin" />
-                  🎯 CREATE NEW ADVENTURE
-                  <Sparkles className="h-8 w-8 ml-4 animate-pulse" />
-                </button>
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-3xl blur opacity-30 animate-pulse"></div>
-              </div>
+              <button
+                onClick={() => setGeneratedTour(null)}
+                className="inline-flex items-center px-12 py-6 bg-purple-500 text-white font-black text-2xl rounded-3xl hover:bg-purple-600 transition-all duration-300 shadow-2xl hover:shadow-purple-500/50 hover:scale-110 transform"
+              >
+                <Compass className="h-8 w-8 mr-4 animate-spin" />
+                🎯 CREATE NEW ADVENTURE
+                <Sparkles className="h-8 w-8 ml-4 animate-pulse" />
+              </button>
             </div>
           </div>
         )}

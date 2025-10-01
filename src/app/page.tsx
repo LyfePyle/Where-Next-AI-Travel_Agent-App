@@ -205,7 +205,7 @@ export default function NewHomePage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             <Link
-              href="/app/dashboard"
+              href="/dashboard"
               className="inline-flex items-center px-8 py-4 bg-white text-gray-700 text-lg font-semibold rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-colors"
             >
               Open Dashboard
@@ -262,7 +262,7 @@ export default function NewHomePage() {
               </div>
 
               <div className="pt-4">
-                <Link href="/app/budget" className="inline-flex items-center px-8 py-4 bg-green-600 text-white text-lg font-semibold rounded-xl hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl">
+                <Link href="/budget" className="inline-flex items-center px-8 py-4 bg-green-600 text-white text-lg font-semibold rounded-xl hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl">
                   Start Budget Tracking
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
@@ -355,7 +355,7 @@ export default function NewHomePage() {
                 Track expenses and stay within budget with intelligent suggestions. Never overspend again with our real-time budget monitoring.
               </p>
               <div className="flex justify-center">
-                <Link href="/app/budget" className="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors">
+                <Link href="/budget" className="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors">
                   Manage Budget
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
@@ -604,7 +604,7 @@ export default function NewHomePage() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link 
-              href="/app/dashboard"
+              href="/dashboard"
               className="inline-flex items-center px-6 py-3 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-lg hover:shadow-xl"
             >
               Open App Dashboard

@@ -23,31 +23,31 @@ const navigationTabs = [
   { 
     id: 'dashboard', 
     label: 'Home', 
-    href: '/app/dashboard', 
+    href: '/dashboard', 
     icon: Home 
   },
   { 
     id: 'trips', 
     label: 'Trips', 
-    href: '/app/trips', 
+    href: '/trips', 
     icon: MapPin 
   },
   { 
     id: 'budget', 
     label: 'Budget', 
-    href: '/app/budget', 
+    href: '/budget', 
     icon: DollarSign 
   },
   { 
     id: 'utilities', 
     label: 'Utilities', 
-    href: '/app/utilities', 
+    href: '/utilities', 
     icon: Wrench 
   },
   { 
     id: 'profile', 
     label: 'Profile', 
-    href: '/app/profile', 
+    href: '/profile', 
     icon: UserIcon 
   },
 ];

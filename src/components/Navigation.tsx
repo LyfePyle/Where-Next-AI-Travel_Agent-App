@@ -123,7 +123,7 @@ export default function Navigation() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/app/profile" className="flex items-center">
+                    <Link href="/profile" className="flex items-center">
                       <User className="mr-2 h-4 w-4" />
                       Profile
                     </Link>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   MapPin, 
   Clock, 
@@ -19,7 +20,9 @@ import {
   Zap,
   Award,
   Globe,
-  Sparkles
+  Sparkles,
+  ExternalLink,
+  Check
 } from 'lucide-react';
 
 interface TourStop {
@@ -54,11 +57,15 @@ interface GeneratedTour {
 }
 
 export default function ToursPage() {
+  const router = useRouter();
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedTheme, setSelectedTheme] = useState('cultural');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedTour, setGeneratedTour] = useState<GeneratedTour | null>(null);
   const [activeStop, setActiveStop] = useState(0);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const themes = [
     { 
@@ -125,6 +132,123 @@ export default function ToursPage() {
     { name: 'London', country: 'UK', image: '🏰', tours: 112 },
     { name: 'Rome', country: 'Italy', image: '🏟️', tours: 78 }
   ];
+
+  // Button handler functions
+  const handleStartTour = () => {
+    if (!generatedTour) return;
+    // Navigate to trip details or start tour experience
+    router.push(`/trip-details/${generatedTour.id}`);
+  };
+
+  const handleSaveTour = async () => {
+    if (!generatedTour) return;
+    setIsSaved(true);
+    
+    try {
+      // Simulate API call to save tour
+      await fetch('/api/trips/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tourId: generatedTour.id,
+          title: generatedTour.title,
+          city: generatedTour.city,
+          theme: generatedTour.theme,
+          data: generatedTour
+        })
+      });
+      
+      // Show success message
+      setTimeout(() => {
+        alert('✅ Tour saved successfully! You can find it in your Saved Trips.');
+      }, 500);
+    } catch (error) {
+      console.error('Error saving tour:', error);
+      alert('❌ Failed to save tour. Please try again.');
+      setIsSaved(false);
+    }
+  };
+
+  const handleShareTour = async () => {
+    if (!generatedTour) return;
+    setIsSharing(true);
+    
+    const shareData = {
+      title: generatedTour.title,
+      text: `Check out this amazing ${generatedTour.theme} walking tour in ${generatedTour.city}!`,
+      url: `${window.location.origin}/tours/shared/${generatedTour.id}`
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+        alert('🔗 Tour link copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      alert('❌ Failed to share. Please try again.');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleGetDirections = () => {
+    if (!generatedTour || generatedTour.stops.length === 0) return;
+    
+    const firstStop = generatedTour.stops[0];
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(firstStop.name + ', ' + generatedTour.city)}`;
+    window.open(googleMapsUrl, '_blank');
+  };
+
+  const handlePhotoGuide = () => {
+    if (!generatedTour) return;
+    // For now, show an alert with photo tips
+    alert(`📸 Photo Guide for ${generatedTour.title}:\n\n• Best lighting: Golden hour (sunrise/sunset)\n• Don't forget to capture local details\n• Ask locals for hidden photo spots\n• Respect photography rules at each location\n\nFull photo guide coming soon!`);
+  };
+
+  const handleDownloadOffline = async () => {
+    if (!generatedTour) return;
+    setIsDownloading(true);
+    
+    try {
+      // Create downloadable content
+      const tourData = {
+        title: generatedTour.title,
+        city: generatedTour.city,
+        description: generatedTour.description,
+        duration: generatedTour.totalDuration,
+        distance: generatedTour.totalDistance,
+        stops: generatedTour.stops.map(stop => ({
+          name: stop.name,
+          description: stop.description,
+          duration: stop.duration,
+          tips: stop.tips
+        }))
+      };
+      
+      // Create and download JSON file
+      const dataStr = JSON.stringify(tourData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${generatedTour.city}-${generatedTour.theme}-tour.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      alert('📱 Tour downloaded successfully! You can now access it offline.');
+    } catch (error) {
+      console.error('Error downloading tour:', error);
+      alert('❌ Failed to download tour. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const generateTour = async () => {
     if (!selectedCity.trim()) return;
@@ -440,17 +564,32 @@ export default function ToursPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <button className="col-span-1 md:col-span-2 bg-green-500 text-white py-4 px-8 rounded-2xl font-black text-xl hover:bg-green-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-green-500/50 hover:scale-105">
+                  <button 
+                    onClick={handleStartTour}
+                    className="col-span-1 md:col-span-2 bg-green-500 text-white py-4 px-8 rounded-2xl font-black text-xl hover:bg-green-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-green-500/50 hover:scale-105"
+                  >
                     <Play className="h-8 w-8 mr-3 animate-pulse" />
                     🚀 START EPIC TOUR
                   </button>
-                  <button className="bg-pink-500 text-white py-4 px-6 rounded-2xl font-black hover:bg-pink-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-pink-500/50 hover:scale-105">
-                    <Heart className="h-6 w-6 mr-2" />
-                    SAVE
+                  <button 
+                    onClick={handleSaveTour}
+                    disabled={isSaved}
+                    className={`py-4 px-6 rounded-2xl font-black transition-all duration-300 flex items-center justify-center shadow-xl hover:scale-105 ${
+                      isSaved 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-pink-500 text-white hover:bg-pink-600 hover:shadow-pink-500/50'
+                    }`}
+                  >
+                    {isSaved ? <Check className="h-6 w-6 mr-2" /> : <Heart className="h-6 w-6 mr-2" />}
+                    {isSaved ? 'SAVED' : 'SAVE'}
                   </button>
-                  <button className="bg-blue-500 text-white py-4 px-6 rounded-2xl font-black hover:bg-blue-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-blue-500/50 hover:scale-105">
+                <button
+                    onClick={handleShareTour}
+                    disabled={isSharing}
+                    className="bg-blue-500 text-white py-4 px-6 rounded-2xl font-black hover:bg-blue-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-blue-500/50 hover:scale-105"
+                >
                     <Share2 className="h-6 w-6 mr-2" />
-                    SHARE
+                    {isSharing ? 'SHARING...' : 'SHARE'}
                 </button>
                 </div>
               </div>
@@ -529,7 +668,7 @@ export default function ToursPage() {
                     </div>
                   </div>
                 ))}
-            </div>
+              </div>
 
               {/* Interactive Map Placeholder */}
               <div className="space-y-8">
@@ -545,38 +684,49 @@ export default function ToursPage() {
                       <span className="text-gray-800 font-bold text-sm">🎯 LIVE MAP</span>
               </div>
             </div>
-                </div>
+            </div>
 
                 <div className="bg-white rounded-3xl shadow-2xl p-8 border-4 border-blue-200">
                   <h3 className="text-3xl font-black text-gray-800 mb-6 text-center">⚡ QUICK ACTIONS</h3>
                   <div className="space-y-4">
-                    <button className="w-full bg-green-500 text-white py-4 px-6 rounded-2xl font-black text-lg hover:bg-green-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-green-500/50 hover:scale-105">
+                <button
+                      onClick={handleGetDirections}
+                      className="w-full bg-green-500 text-white py-4 px-6 rounded-2xl font-black text-lg hover:bg-green-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-green-500/50 hover:scale-105"
+                >
                       <Navigation className="h-6 w-6 mr-3" />
                       🧭 GET DIRECTIONS
-                    </button>
-                    <button className="w-full bg-purple-500 text-white py-4 px-6 rounded-2xl font-black text-lg hover:bg-purple-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-purple-500/50 hover:scale-105">
+                      <ExternalLink className="h-4 w-4 ml-2" />
+                </button>
+                <button
+                      onClick={handlePhotoGuide}
+                      className="w-full bg-purple-500 text-white py-4 px-6 rounded-2xl font-black text-lg hover:bg-purple-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-purple-500/50 hover:scale-105"
+                >
                       <Camera className="h-6 w-6 mr-3" />
                       📸 PHOTO GUIDE
-                    </button>
-                    <button className="w-full bg-orange-500 text-white py-4 px-6 rounded-2xl font-black text-lg hover:bg-orange-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-orange-500/50 hover:scale-105">
+                </button>
+                <button
+                      onClick={handleDownloadOffline}
+                      disabled={isDownloading}
+                      className="w-full bg-orange-500 text-white py-4 px-6 rounded-2xl font-black text-lg hover:bg-orange-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-orange-500/50 hover:scale-105 disabled:opacity-50"
+                >
                       <Download className="h-6 w-6 mr-3" />
-                      💾 DOWNLOAD OFFLINE
-                    </button>
-                </div>
+                      {isDownloading ? '⏳ DOWNLOADING...' : '💾 DOWNLOAD OFFLINE'}
+                </button>
+              </div>
                 </div>
               </div>
               </div>
 
             {/* Generate New Tour Button */}
             <div className="text-center pt-12">
-              <button
+                <button
                 onClick={() => setGeneratedTour(null)}
                 className="inline-flex items-center px-12 py-6 bg-purple-500 text-white font-black text-2xl rounded-3xl hover:bg-purple-600 transition-all duration-300 shadow-2xl hover:shadow-purple-500/50 hover:scale-110 transform"
               >
                 <Compass className="h-8 w-8 mr-4 animate-spin" />
                 🎯 CREATE NEW ADVENTURE
                 <Sparkles className="h-8 w-8 ml-4 animate-pulse" />
-              </button>
+                </button>
             </div>
           </div>
         )}

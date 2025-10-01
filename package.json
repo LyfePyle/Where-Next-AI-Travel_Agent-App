@@ -36,7 +36,10 @@
     "test:comprehensive": "node test-comprehensive-suite.js",
     "test:all": "npm run test && npm run test:api && npm run test:performance && npm run test:database",
     "test:all-critical": "npm run test:critical && npm run test:e2e",
-    "test:full-suite": "npm run test:comprehensive && npm run test:critical"
+    "test:full-suite": "npm run test:comprehensive && npm run test:critical",
+    "test:database": "node scripts/test-database.js",
+    "setup:database": "echo 'Please run the SQL from supabase/sql/2025-setup.sql in your Supabase dashboard'",
+    "seed:database": "node scripts/seed-database.js"
   },
   "dependencies": {
     "@axe-core/playwright": "^4.10.2",
@@ -50,8 +53,9 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@stripe/react-stripe-js": "^2.9.0",
     "@stripe/stripe-js": "^3.0.10",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.54.0",
+    "@supabase/supabase-js": "^2.58.0",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/uuid": "^10.0.0",
     "amadeus": "^11.0.0",

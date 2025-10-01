@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { User } from '@supabase/supabase-js';
+// import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+// import { User } from '@supabase/supabase-js';
 import { 
   Home, 
   MapPin, 
@@ -53,47 +53,28 @@ const navigationTabs = [
 ];
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClientComponentClient();
+  // const supabase = createClientComponentClient();
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-
-      // Redirect to login if not authenticated
-      if (!user) {
-        router.push('/auth/login');
-        return;
-      }
-
-      // Check if onboarding is needed
-      if (user && !user.user_metadata?.onboarding_completed) {
-        router.push('/app/onboarding');
-        return;
+    // DEMO MODE: Always set a mock user for testing
+    console.log('🔧 DEMO MODE: Setting mock user for testing');
+    const mockUser = {
+      id: 'demo-user',
+      email: 'demo@wherenext.com',
+      user_metadata: {
+        name: 'Demo User',
+        onboarding_completed: true,
+        budget_style: 'comfortable'
       }
     };
-
-    getUser();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
-          router.push('/auth/login');
-        } else if (session?.user) {
-          setUser(session.user);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, [router, supabase]);
+    setUser(mockUser);
+    setLoading(false);
+  }, [router]);
 
   if (loading) {
     return (

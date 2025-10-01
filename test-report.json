@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-09-23T04:01:49.984Z",
+  "timestamp": "2025-09-30T20:57:04.531Z",
   "summary": {
-    "passed": 8,
-    "failed": 9,
+    "passed": 9,
+    "failed": 8,
     "warnings": 0,
-    "successRate": 47
+    "successRate": 53
   },
   "tests": [
     {
@@ -79,8 +79,8 @@
     },
     {
       "testName": "API: Currency Conversion",
-      "status": "FAIL",
-      "details": "Status: 500 - Currency API key not configured"
+      "status": "PASS",
+      "details": "Status: 200"
     },
     {
       "testName": "API: Saved Trips Retrieval",

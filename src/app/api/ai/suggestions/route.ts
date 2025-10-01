@@ -241,6 +241,15 @@ RULES:
       }
       
       suggestions = JSON.parse(cleanContent);
+      
+      // Sanitize the data to fix any NaN values
+      suggestions = suggestions.map((suggestion: any) => ({
+        ...suggestion,
+        estimatedTotal: isNaN(suggestion.estimatedTotal) ? 
+          (suggestion.flightBand?.min || 500) * 2 + (suggestion.hotelBand?.min || 100) * 5 : 
+          suggestion.estimatedTotal
+      }));
+      
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
       console.error('Raw AI content:', content);

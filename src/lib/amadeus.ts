@@ -168,7 +168,7 @@ export async function searchLocations(keyword: string) {
     console.log('📍 Searching locations with Amadeus API:', keyword);
     
     const response = await client.referenceData.locations.get({
-      keyword,
+      keyword: keyword,
       subType: 'AIRPORT,CITY'
     });
 

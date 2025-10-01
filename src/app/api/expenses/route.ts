@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { createServerSupabaseClient } from '@/lib/supabase';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Expense creation schema
 const CreateExpenseSchema = z.object({
-  tripId: z.string().uuid("Valid trip ID required"),
+  budget_id: z.string().uuid("Valid budget ID required"),
+  category_id: z.string().uuid().optional(),
+  trip_id: z.string().uuid().optional(),
   amount: z.number().positive("Amount must be positive"),
-  category: z.string().min(1, "Category is required"),
   description: z.string().min(1, "Description is required"),
+  merchant: z.string().optional(),
+  location: z.string().optional(),
+  payment_method: z.string().optional(),
   currency: z.string().default("USD"),
-  date: z.string().min(1, "Date is required"),
-  notes: z.string().optional()
+  paid_at: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  receipt_url: z.string().url().optional()
 });
 
 // Expense update schema

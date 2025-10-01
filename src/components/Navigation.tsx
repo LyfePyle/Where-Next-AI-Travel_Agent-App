@@ -64,7 +64,7 @@ export default function Navigation() {
 
           {/* Main Navigation Links */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link href="/app/dashboard" className="text-black font-medium hover:text-purple-600 transition-colors">
+            <Link href="/dashboard" className="text-black font-medium hover:text-purple-600 transition-colors">
               Dashboard
             </Link>
             <Link href="/ai-travel-agent" className="text-black font-medium hover:text-purple-600 transition-colors">
@@ -79,7 +79,7 @@ export default function Navigation() {
             <Link href="/saved" className="text-black font-medium hover:text-purple-600 transition-colors">
               Saved Trips
             </Link>
-            <Link href="/app/profile" className="text-black font-medium hover:text-purple-600 transition-colors">
+            <Link href="/profile" className="text-black font-medium hover:text-purple-600 transition-colors">
               Profile
             </Link>
           </div>

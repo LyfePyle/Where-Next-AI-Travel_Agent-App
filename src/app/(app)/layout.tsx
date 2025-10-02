@@ -13,7 +13,8 @@ import {
   User as UserIcon,
   Menu,
   X,
-  ShoppingCart
+  ShoppingCart,
+  Plus
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -38,6 +39,12 @@ const navigationTabs = [
     label: 'Budget', 
     href: '/budget', 
     icon: DollarSign 
+  },
+  { 
+    id: 'addons', 
+    label: 'Add-Ons', 
+    href: '/addons', 
+    icon: Plus 
   },
   { 
     id: 'cart', 

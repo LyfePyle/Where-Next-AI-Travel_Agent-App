@@ -15,6 +15,7 @@
     "test:booking": "node test-booking-flow.js",
     "test:performance": "node test-performance.js",
     "test:openai": "node test-openai-api.js",
+    "seed:addons": "node scripts/seed-addons.js",
     "test:amadeus": "node test-amadeus-simple.js",
     "test:database": "node test-database.js",
     "test:e2e": "playwright test",

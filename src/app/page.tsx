@@ -183,129 +183,220 @@ export default function NewHomePage() {
               <h1 className="text-4xl font-bold text-gray-900">Where Next</h1>
             </div>
             
-            {/* Main Headline */}
-            <h2 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              Plan Your Perfect Trip
-              <span className="block text-blue-600">with AI</span>
+            {/* Main Headline - Powerful & Clear */}
+            <h2 className="text-5xl lg:text-7xl font-black text-gray-900 mb-6 leading-tight">
+              Your AI Travel Agent
+              <span className="block text-blue-600">Smarter Trips, Less Stress</span>
             </h2>
             
-            {/* Subtitle */}
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              From budget planning to booking flights, we make travel planning effortless. 
-              Get personalized recommendations and never overspend again.
+            {/* Subheadline - Clear Value */}
+            <p className="text-2xl text-gray-600 mb-12 max-w-4xl mx-auto font-semibold">
+              Plan trips, manage budgets, and book everything in one place.
             </p>
             
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+            {/* Primary CTAs - Clear Action */}
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
               <Link 
                 href="/plan-trip"
-                className="inline-flex items-center px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
+                className="inline-flex items-center px-10 py-5 bg-blue-600 text-white text-xl font-bold rounded-2xl hover:bg-blue-700 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
               >
                 Start Planning Free
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-3 h-6 w-6" />
               </Link>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center px-8 py-4 bg-white text-gray-700 text-lg font-semibold rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-colors"
-            >
-              Open Dashboard
-            </Link>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center px-10 py-5 bg-white text-blue-600 text-xl font-bold rounded-2xl border-3 border-blue-600 hover:bg-blue-50 transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                Try Demo Mode
+              </Link>
             </div>
 
+            {/* Trust Signal */}
+            <p className="text-lg text-gray-500 font-medium">
+              Join 5,000+ travelers already planning smarter ✈️
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Budget Management Section */}
-      <section className="py-20 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
+      {/* Feature Highlights - Benefits Not Tech */}
+      <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Smart Budget Management
+          <div className="text-center mb-20">
+            <h2 className="text-4xl lg:text-5xl font-black text-gray-900 mb-6">
+              Everything You Need for Perfect Trips
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Never overspend again with our intelligent budget tracking and expense monitoring
+              No more juggling apps, spreadsheets, or endless browser tabs. One platform, endless possibilities.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Budget Features */}
-            <div className="space-y-8">
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <DollarSign className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Real-time Expense Tracking</h3>
-                  <p className="text-gray-600">Track every expense as you travel with automatic categorization and smart insights.</p>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* AI Travel Planning */}
+            <div className="text-center group hover:scale-105 transition-all duration-300">
+              <div className="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:bg-blue-200 transition-colors">
+                <Compass className="h-10 w-10 text-blue-600" />
               </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">AI Travel Planning</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">
+                Tell us your style, get instant itineraries. No research needed.
+              </p>
+            </div>
 
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <BarChart3 className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Budget Analytics</h3>
-                  <p className="text-gray-600">Get detailed insights into your spending patterns and optimize your travel budget.</p>
-                </div>
+            {/* Budget Made Simple */}
+            <div className="text-center group hover:scale-105 transition-all duration-300">
+              <div className="w-20 h-20 bg-green-100 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:bg-green-200 transition-colors">
+                <DollarSign className="h-10 w-10 text-green-600" />
               </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Budget Made Simple</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">
+                Track spending across currencies in real time. Never overspend again.
+              </p>
+            </div>
 
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Smart Recommendations</h3>
-                  <p className="text-gray-600">Get AI-powered suggestions to save money and make the most of your travel budget.</p>
-                </div>
+            {/* Book with Confidence */}
+            <div className="text-center group hover:scale-105 transition-all duration-300">
+              <div className="w-20 h-20 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:bg-purple-200 transition-colors">
+                <Plane className="h-10 w-10 text-purple-600" />
               </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Book with Confidence</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">
+                Flights & hotels powered by trusted partners. Best prices guaranteed.
+              </p>
+            </div>
 
-              <div className="pt-4">
-                <Link href="/budget" className="inline-flex items-center px-8 py-4 bg-green-600 text-white text-lg font-semibold rounded-xl hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl">
-                  Start Budget Tracking
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
+            {/* Local Utilities */}
+            <div className="text-center group hover:scale-105 transition-all duration-300">
+              <div className="w-20 h-20 bg-orange-100 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:bg-orange-200 transition-colors">
+                <Globe className="h-10 w-10 text-orange-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Local Utilities</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">
+                Weather, currency, and phrases at your fingertips. Travel like a local.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof & Trust Section */}
+      <section className="py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Testimonials */}
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-black text-gray-900 mb-6">
+              Trusted by Travelers Worldwide
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              See why thousands of travelers choose Where Next for their adventures
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+            {/* Testimonial 1 */}
+            <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="flex text-yellow-400 mb-4">
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+              </div>
+              <p className="text-gray-700 text-lg mb-6 leading-relaxed">
+                "Saved me $500 on my Tokyo trip! The AI suggestions were spot-on and the budget tracking kept me on course."
+              </p>
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-bold">SM</span>
+                </div>
+                <div className="ml-4">
+                  <p className="font-semibold text-gray-900">Sarah M.</p>
+                  <p className="text-gray-600 text-sm">Solo Traveler</p>
+                </div>
               </div>
             </div>
 
-            {/* Budget Demo */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl">
-              <div className="bg-white rounded-2xl p-6 shadow-lg">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Sample Trip Budget</h4>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">✈️ Flights</span>
-                    <span className="font-semibold text-gray-900">$800</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">🏨 Hotels</span>
-                    <span className="font-semibold text-gray-900">$600</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">🍽️ Food</span>
-                    <span className="font-semibold text-gray-900">$400</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">🎯 Activities</span>
-                    <span className="font-semibold text-gray-900">$300</span>
-                  </div>
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between items-center text-lg font-bold">
-                      <span className="text-gray-900">Total Budget</span>
-                      <span className="text-green-600">$2,100</span>
-                    </div>
-                  </div>
+            {/* Testimonial 2 */}
+            <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="flex text-yellow-400 mb-4">
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+              </div>
+              <p className="text-gray-700 text-lg mb-6 leading-relaxed">
+                "Finally, one app for everything! No more switching between booking sites, budget apps, and weather checks."
+              </p>
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <span className="text-green-600 font-bold">MJ</span>
                 </div>
-                <div className="mt-6">
-                  <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>Spent: $1,680</span>
-                    <span>Remaining: $420</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className="bg-green-500 h-3 rounded-full" style={{ width: '80%' }}></div>
-                  </div>
+                <div className="ml-4">
+                  <p className="font-semibold text-gray-900">Mike J.</p>
+                  <p className="text-gray-600 text-sm">Business Traveler</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Testimonial 3 */}
+            <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="flex text-yellow-400 mb-4">
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+                <Star className="h-5 w-5 fill-current" />
+              </div>
+              <p className="text-gray-700 text-lg mb-6 leading-relaxed">
+                "The AI travel planning is incredible. It found hidden gems in Barcelona I never would have discovered!"
+              </p>
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                  <span className="text-purple-600 font-bold">ER</span>
+                </div>
+                <div className="ml-4">
+                  <p className="font-semibold text-gray-900">Emily R.</p>
+                  <p className="text-gray-600 text-sm">Family Traveler</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Partner Logos */}
+          <div className="text-center">
+            <p className="text-gray-600 text-lg mb-8 font-medium">Powered by industry leaders</p>
+            <div className="flex flex-wrap justify-center items-center gap-12 opacity-60">
+              {/* Stripe */}
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">S</span>
+                </div>
+                <span className="text-gray-700 font-semibold text-xl">Stripe</span>
+              </div>
+              
+              {/* Amadeus */}
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center">
+                  <Plane className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-gray-700 font-semibold text-xl">Amadeus</span>
+              </div>
+              
+              {/* OpenAI */}
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">AI</span>
+                </div>
+                <span className="text-gray-700 font-semibold text-xl">OpenAI</span>
+              </div>
+              
+              {/* Supabase */}
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-emerald-500 rounded flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">DB</span>
+                </div>
+                <span className="text-gray-700 font-semibold text-xl">Supabase</span>
               </div>
             </div>
           </div>
@@ -479,110 +570,45 @@ export default function NewHomePage() {
       {/* Decorative Break */}
       <div className="h-20 bg-gradient-to-r from-cyan-400/25 via-blue-400/25 to-indigo-400/25"></div>
 
-      {/* Additional Decorative Break Before Live API Demo */}
-      <div className="h-24 bg-gradient-to-r from-emerald-400/30 via-cyan-400/30 to-sky-400/30 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
-      </div>
-
-      {/* Live API Demo Section */}
-      <section className="py-24 bg-gradient-to-br from-gray-50 via-slate-50 to-zinc-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Live API Demo
-            </h2>
-            <p className="text-lg text-gray-600">
-              See our real-time travel data in action
-            </p>
+      {/* Secondary CTAs Section */}
+      <section className="py-24 bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-black text-gray-900 mb-8">
+            Ready to Experience Smarter Travel?
+          </h2>
+          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
+            Join the revolution in travel planning. See why thousands choose Where Next.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
+            <Link 
+              href="/dashboard"
+              className="inline-flex items-center px-8 py-4 bg-blue-600 text-white text-lg font-bold rounded-xl hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+            >
+              View Demo
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center px-8 py-4 bg-white text-blue-600 text-lg font-bold rounded-xl border-2 border-blue-600 hover:bg-blue-50 transition-all duration-300 shadow-lg"
+            >
+              See Pricing
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-20 max-w-4xl mx-auto">
-            {/* Weather Widget */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow max-w-sm mx-auto">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                  <Globe className="h-6 w-6 text-blue-600 mr-3" />
-                  <h3 className="text-xl font-semibold text-gray-900">Live Weather</h3>
-                </div>
-                <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                  Updates every 8s
-                </div>
-              </div>
-              
-              {isLoading ? (
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-8 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-4 bg-gray-200 rounded"></div>
-                </div>
-              ) : weatherData ? (
-                <div className="transition-all duration-500">
-                  <div className="text-4xl font-bold text-gray-900 mb-2">
-                    {weatherData.temperature}°C
-                  </div>
-                  <div className="text-lg text-gray-600 mb-2 capitalize">{weatherData.description}</div>
-                  <div className="text-sm text-gray-500 mb-4">
-                    {weatherData.city}, {weatherData.country} • Feels like {weatherData.feels_like}°C
-                  </div>
-                  <div className="flex justify-center space-x-1">
-                    {weatherCities.map((_, index) => (
-                      <div
-                        key={index}
-                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                          index === currentWeatherCity ? 'bg-blue-600' : 'bg-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-gray-500">Weather data unavailable</div>
-              )}
-            </div>
-
-            {/* Currency Widget */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow max-w-sm mx-auto">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                  <DollarSign className="h-6 w-6 text-green-600 mr-3" />
-                  <h3 className="text-xl font-semibold text-gray-900">Live Exchange</h3>
-                </div>
-                <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                  Updates every 6s
-                </div>
-              </div>
-              
-              {isLoading ? (
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-8 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-4 bg-gray-200 rounded"></div>
-                </div>
-              ) : currencyData ? (
-                <div className="transition-all duration-500">
-                  <div className="text-4xl font-bold text-gray-900 mb-2">
-                    {currencyData.to === 'JPY' ? '¥' : currencyData.to === 'GBP' ? '£' : currencyData.to === 'EUR' ? '€' : '$'}{currencyData.converted_amount}
-                  </div>
-                  <div className="text-lg text-gray-600 mb-2">
-                    {currencyData.amount} {currencyData.from} = {currencyData.converted_amount} {currencyData.to}
-                  </div>
-                  <div className="text-sm text-gray-500 mb-4">
-                    Rate: {currencyData.exchange_rate}
-                  </div>
-                  <div className="flex justify-center space-x-1">
-                    {currencyPairs.map((_, index) => (
-                      <div
-                        key={index}
-                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                          index === currentCurrencyPair ? 'bg-green-600' : 'bg-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-gray-500">Currency data unavailable</div>
-              )}
+          {/* Newsletter Signup */}
+          <div className="bg-white rounded-2xl p-8 shadow-lg max-w-md mx-auto">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Get AI Travel Hacks Weekly</h3>
+            <p className="text-gray-600 mb-6">Insider tips, deals, and travel inspiration delivered to your inbox.</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input 
+                type="email" 
+                placeholder="Enter your email"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <button className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                Subscribe
+              </button>
             </div>
           </div>
         </div>

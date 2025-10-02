@@ -14,7 +14,8 @@ import {
   ChevronRight,
   BarChart3,
   Globe,
-  Compass
+  Compass,
+  CheckCircle
 } from 'lucide-react';
 
 export default function AppDashboardPage() {
@@ -123,6 +124,30 @@ export default function AppDashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Trip Countdown Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 rounded-2xl shadow-xl mb-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Thailand Adventure</h1>
+            <p className="text-2xl font-semibold opacity-90 mb-1">12 days until departure</p>
+            <p className="text-lg opacity-75">March 15-22, 2024 • Bangkok → Phuket → Chiang Mai</p>
+          </div>
+          <div className="text-right">
+            <div className="text-6xl mb-2">🏯</div>
+            <p className="text-sm opacity-75">Next trip</p>
+          </div>
+        </div>
+        <div className="mt-6 bg-white/20 rounded-xl p-4">
+          <div className="flex justify-between items-center text-sm">
+            <span>Trip Progress</span>
+            <span>Planning Complete: 85%</span>
+          </div>
+          <div className="w-full bg-white/20 rounded-full h-2 mt-2">
+            <div className="bg-white h-2 rounded-full" style={{width: '85%'}}></div>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -320,6 +345,74 @@ export default function AppDashboardPage() {
         </div>
       </div>
 
+      {/* Upcoming Bookings Section */}
+      <div className="mt-8 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Upcoming Bookings</h2>
+          <Link 
+            href="/bookings"
+            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+          >
+            View All
+          </Link>
+        </div>
+        <div className="space-y-4">
+          {/* Flight Booking */}
+          <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <Plane className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">Flight to Bangkok</p>
+                <p className="text-sm text-gray-600">March 15, 2024 • 2:30 PM</p>
+                <p className="text-sm text-gray-600">Air Canada AC1234 • YVR → BKK</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">Confirmed</span>
+              <p className="text-sm text-gray-600 mt-1">Seat 12A</p>
+            </div>
+          </div>
+
+          {/* Hotel Booking */}
+          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <MapPin className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">Bangkok Palace Hotel</p>
+                <p className="text-sm text-gray-600">March 15-18, 2024 • 3 nights</p>
+                <p className="text-sm text-gray-600">Deluxe Room • 2 guests</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">Confirmed</span>
+              <p className="text-sm text-gray-600 mt-1">$180/night</p>
+            </div>
+          </div>
+
+          {/* Pending Booking */}
+          <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <Clock className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">Phuket Resort & Spa</p>
+                <p className="text-sm text-gray-600">March 19-22, 2024 • 3 nights</p>
+                <p className="text-sm text-gray-600">Ocean View Suite • 2 guests</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-medium">Pending</span>
+              <p className="text-sm text-gray-600 mt-1">$320/night</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Recent Activity & Travel Tips */}
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Activity */}
@@ -365,39 +458,143 @@ export default function AppDashboardPage() {
           </div>
         </div>
 
-        {/* Travel Tips & Insights */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-gray-100">
+        {/* AI Suggestions Card */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-200">
           <div className="flex items-start">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-              <Clock className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+              <Compass className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">💡 Travel Insights</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">💡 AI Travel Tips</h3>
               <p className="text-gray-700 mb-4">
-                Based on your saved trips, you prefer cultural destinations with moderate budgets. Consider exploring Morocco or Vietnam for your next adventure!
+                Based on your Bangkok trip, consider visiting the floating markets early morning for the best experience and prices. Flight prices to Phuket dropped $50 - book soon!
               </p>
               <div className="space-y-2 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                  Average trip duration: 6 days
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                  Preferred budget range: $2,000-$3,500
+                  Weather: Perfect time to visit - cool and dry season
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
-                  <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                  Most saved vibe: Culture & Adventure
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                  Budget tip: Street food can save you 60% on dining
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                  Alert: Temple dress code required - pack modest clothing
                 </div>
               </div>
               <Link
                 href="/ai-travel-agent"
-                className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
+                className="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium"
               >
-                Get personalized recommendations
+                Get More AI Suggestions
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Link>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Utilities at a Glance */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-6">Travel Utilities</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Weather Card */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-900 flex items-center">
+                <Globe className="h-5 w-5 text-blue-600 mr-2" />
+                Bangkok Weather
+              </h3>
+              <span className="text-xs text-gray-500">Live</span>
+            </div>
+            <div className="text-center">
+              <p className="text-4xl font-bold text-gray-900 mb-2">32°C</p>
+              <p className="text-gray-600 mb-2">Partly cloudy</p>
+              <p className="text-sm text-gray-500">Feels like 35°C • Humidity 68%</p>
+            </div>
+          </div>
+
+          {/* Currency Card */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-900 flex items-center">
+                <DollarSign className="h-5 w-5 text-green-600 mr-2" />
+                Currency
+              </h3>
+              <span className="text-xs text-gray-500">Live</span>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-900 mb-2">35.2 THB</p>
+              <p className="text-gray-600 mb-2">1 USD = 35.2 THB</p>
+              <p className="text-sm text-gray-500">Updated 2 min ago</p>
+            </div>
+          </div>
+
+          {/* Daily Phrase Card */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-900 flex items-center">
+                <Globe className="h-5 w-5 text-orange-600 mr-2" />
+                Daily Phrase
+              </h3>
+              <span className="text-xs text-gray-500">Thai</span>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-900 mb-2">สวัสดี</p>
+              <p className="text-gray-600 mb-2">"Sawasdee"</p>
+              <p className="text-sm text-gray-500">Hello / Goodbye</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Notifications & Alerts */}
+      <div className="mt-8 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-200">
+        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+          <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center mr-3">
+            <span className="text-white text-xs">!</span>
+          </div>
+          Notifications & Alerts
+        </h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Hotel booking confirmed</p>
+                <p className="text-sm text-gray-600">Bangkok Palace Hotel • March 15-18</p>
+              </div>
+            </div>
+            <span className="text-xs text-gray-500">2 hours ago</span>
+          </div>
+          
+          <div className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-orange-600" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Budget 70% used</p>
+                <p className="text-sm text-gray-600">$1,750 of $2,500 spent on Thailand trip</p>
+              </div>
+            </div>
+            <span className="text-xs text-gray-500">1 day ago</span>
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <Plane className="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">AI found 2 new deals</p>
+                <p className="text-sm text-gray-600">Flight prices dropped for Bangkok → Phuket</p>
+              </div>
+            </div>
+            <span className="text-xs text-gray-500">3 hours ago</span>
           </div>
         </div>
       </div>

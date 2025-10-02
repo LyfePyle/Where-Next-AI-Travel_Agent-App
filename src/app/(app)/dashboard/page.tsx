@@ -123,27 +123,28 @@ export default function AppDashboardPage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-50">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       {/* Trip Countdown Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 rounded-2xl shadow-xl mb-8">
+      <div className="bg-blue-600 p-8 rounded-2xl shadow-xl mb-8 border-4 border-blue-800">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Thailand Adventure</h1>
-            <p className="text-2xl font-semibold opacity-90 mb-1">12 days until departure</p>
-            <p className="text-lg opacity-75">March 15-22, 2024 • Bangkok → Phuket → Chiang Mai</p>
+            <h1 className="text-4xl font-black mb-2" style={{color: '#FFFFFF'}}>Thailand Adventure</h1>
+            <p className="text-2xl font-bold mb-1" style={{color: '#FFFFFF'}}>12 days until departure</p>
+            <p className="text-lg font-semibold" style={{color: '#FFFFFF'}}>March 15-22, 2024 • Bangkok → Phuket → Chiang Mai</p>
           </div>
           <div className="text-right">
             <div className="text-6xl mb-2">🏯</div>
-            <p className="text-sm opacity-75">Next trip</p>
+            <p className="text-sm font-bold" style={{color: '#FFFFFF'}}>Next trip</p>
           </div>
         </div>
-        <div className="mt-6 bg-white/20 rounded-xl p-4">
-          <div className="flex justify-between items-center text-sm">
+        <div className="mt-6 bg-white rounded-xl p-4 border-2 border-gray-200">
+          <div className="flex justify-between items-center text-sm font-bold" style={{color: '#1F2937'}}>
             <span>Trip Progress</span>
             <span>Planning Complete: 85%</span>
           </div>
-          <div className="w-full bg-white/20 rounded-full h-2 mt-2">
-            <div className="bg-white h-2 rounded-full" style={{width: '85%'}}></div>
+          <div className="w-full bg-gray-200 rounded-full h-4 mt-2 border border-gray-300">
+            <div className="bg-green-500 h-4 rounded-full" style={{width: '85%'}}></div>
           </div>
         </div>
       </div>
@@ -162,17 +163,20 @@ export default function AppDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {quickStats.map((stat, index) => {
           const Icon = stat.icon;
+          const iconBgColors = ['bg-blue-100', 'bg-green-100', 'bg-purple-100', 'bg-orange-100'];
           return (
-            <div key={index} className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div key={index} className="bg-white rounded-2xl shadow-xl p-6 border-2 border-gray-100 hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">{stat.label}</p>
+                  <p className="text-3xl font-black text-gray-900 mb-1">{stat.value}</p>
                   {stat.trend && (
-                    <p className="text-sm text-green-600 mt-1">{stat.trend}</p>
+                    <p className="text-sm text-green-600 font-bold bg-green-50 px-2 py-1 rounded-full inline-block">{stat.trend}</p>
                   )}
                 </div>
-                <Icon className={`w-8 h-8 ${stat.color}`} />
+                <div className={`p-4 rounded-2xl ${iconBgColors[index]} shadow-lg`}>
+                  <Icon className={`w-8 h-8 ${stat.color}`} />
+                </div>
               </div>
             </div>
           );
@@ -180,9 +184,14 @@ export default function AppDashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-8 mb-8 border-2 border-indigo-200">
+        <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
+          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center mr-3">
+            <Compass className="w-5 h-5 text-white" />
+          </div>
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link
             href="/plan-trip"
             className="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group"
@@ -346,12 +355,17 @@ export default function AppDashboardPage() {
       </div>
 
       {/* Upcoming Bookings Section */}
-      <div className="mt-8 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Upcoming Bookings</h2>
+      <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl shadow-xl p-8 border-2 border-green-200">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl font-black text-gray-900 flex items-center">
+            <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
+              <Plane className="w-5 h-5 text-white" />
+            </div>
+            Upcoming Bookings
+          </h2>
           <Link 
             href="/bookings"
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            className="bg-blue-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg"
           >
             View All
           </Link>
@@ -598,6 +612,7 @@ export default function AppDashboardPage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

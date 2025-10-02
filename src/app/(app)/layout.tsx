@@ -12,7 +12,8 @@ import {
   Wrench, 
   User as UserIcon,
   Menu,
-  X
+  X,
+  ShoppingCart
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -37,6 +38,12 @@ const navigationTabs = [
     label: 'Budget', 
     href: '/budget', 
     icon: DollarSign 
+  },
+  { 
+    id: 'cart', 
+    label: 'Cart', 
+    href: '/cart', 
+    icon: ShoppingCart 
   },
   { 
     id: 'utilities', 
@@ -96,6 +103,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Demo Mode Banner */}
+      {process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (
+        <div className="w-full bg-amber-500 text-black text-sm text-center py-2 font-semibold z-50 relative">
+          🚧 DEMO MODE — Sample data only, purchases are disabled for demonstration purposes
+        </div>
+      )}
       {/* Mobile Header */}
       <div className="lg:hidden bg-white shadow-sm border-b">
         <div className="flex items-center justify-between p-4">

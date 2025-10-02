@@ -1,94 +1,99 @@
-import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
+import { headers } from "next/headers";
+import Stripe from "stripe";
+import { supabaseService } from "@/lib/supabase-server";
+import { confirmBookingsForOrder } from "@/lib/booking-worker";
 
-// Initialize Stripe inside the function to avoid build-time issues
-function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return null
-  }
-  
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+export async function POST(req: Request) {
+  const sig = headers().get("stripe-signature")!;
+  const body = await req.text();
+  let event: Stripe.Event;
+
   try {
-    return new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2024-12-18.acacia',
-    })
-  } catch (error) {
-    console.error('Failed to initialize Stripe:', error)
-    return null
+    event = stripe.webhooks.constructEvent(
+      body, sig, process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (err: any) {
+    console.error('Webhook signature verification failed:', err.message);
+    return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
-}
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-
-export async function POST(request: NextRequest) {
-  try {
-    // Initialize Stripe
-    const stripe = getStripe()
-    
-    // Check if Stripe is configured
-    if (!stripe || !webhookSecret) {
-      console.error('Stripe or webhook secret not configured')
-      return NextResponse.json(
-        { error: 'Webhook not configured' },
-        { status: 503 }
-      )
-    }
-
-    const body = await request.text()
-    const signature = request.headers.get('stripe-signature')
-
-    if (!signature) {
-      return NextResponse.json(
-        { error: 'No signature provided' },
-        { status: 400 }
-      )
-    }
-
-    let event: Stripe.Event
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const supabase = supabaseService();
 
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err)
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 400 }
-      )
-    }
+      const { user_id, cart_id } = session.metadata!;
+      
+      // Fetch cart and items
+      const { data: cart } = await supabase
+        .from("carts")
+        .select("*")
+        .eq("id", cart_id)
+        .single();
 
-    // Handle the event
-    switch (event.type) {
-      case 'checkout.session.completed':
-        const session = event.data.object as Stripe.Checkout.Session
-        console.log('Payment completed for session:', session.id)
-        
-        // Here you would typically:
-        // 1. Update your database with the payment status
-        // 2. Send confirmation emails
-        // 3. Update booking status
-        // 4. Trigger any post-payment workflows
-        
-        break
-        
-      case 'payment_intent.succeeded':
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.log('Payment intent succeeded:', paymentIntent.id)
-        break
-        
-      case 'payment_intent.payment_failed':
-        const failedPayment = event.data.object as Stripe.PaymentIntent
-        console.log('Payment failed:', failedPayment.id)
-        break
-        
-      default:
-        console.log(`Unhandled event type: ${event.type}`)
-    }
+      const { data: items } = await supabase
+        .from("cart_items")
+        .select("*")
+        .eq("cart_id", cart_id);
 
-    return NextResponse.json({ received: true })
-  } catch (error) {
-    console.error('Webhook error:', error)
-    return NextResponse.json(
-      { error: 'Webhook handler failed' },
-      { status: 500 }
-    )
+      if (!cart || !items) {
+        throw new Error("Cart or items not found");
+      }
+
+      // Calculate total
+      const total_cents = items.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
+      const currency = items[0]?.currency || 'USD';
+
+      // Create order
+      const { data: order } = await supabase
+        .from("orders")
+        .insert({
+          user_id,
+          total_cents,
+          currency,
+          status: 'paid'
+        })
+        .select("*")
+        .single();
+
+      // Create order items
+      const orderItems = items.map(item => ({
+        order_id: order!.id,
+        item_type: item.item_type,
+        external_id: item.external_id,
+        name: item.name,
+        price_cents: item.price_cents,
+        currency: item.currency,
+        quantity: item.quantity,
+        meta: item.meta
+      }));
+
+      await supabase.from("order_items").insert(orderItems);
+
+      // Create payment record
+      await supabase.from("payments").insert({
+        order_id: order!.id,
+        stripe_payment_intent: session.payment_intent as string,
+        status: 'succeeded'
+      });
+
+      // Mark cart as converted
+      await supabase
+        .from("carts")
+        .update({ status: 'converted' })
+        .eq("id", cart_id);
+
+      // Trigger booking confirmations
+      await confirmBookingsForOrder(order!.id);
+
+      console.log(`Order ${order!.id} created successfully for user ${user_id}`);
+    } catch (error) {
+      console.error('Error processing checkout session:', error);
+      return new Response('Internal Server Error', { status: 500 });
+    }
   }
+
+  return new Response(null, { status: 200 });
 }

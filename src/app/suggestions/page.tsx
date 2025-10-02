@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { Plus, ShoppingCart, MapPin, Utensils, Car } from 'lucide-react';
 import FlightPickerModal from '@/components/FlightPickerModal';
 import HotelPickerModal from '@/components/HotelPickerModal';
 
@@ -39,6 +40,11 @@ interface TripSuggestion {
     uniqueExperiences: string[];
     localTips: string[];
   };
+  bookableAddOns?: {
+    meals: any[];
+    activities: any[];
+    transport: any[];
+  };
 }
 
 function SuggestionsContent() {
@@ -49,6 +55,8 @@ function SuggestionsContent() {
   const [showHotelPicker, setShowHotelPicker] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'ai' | 'mock'>('mock');
+  const [cartItems, setCartItems] = useState<string[]>([]);
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
 
   // Get preferences from URL params
   const from = searchParams.get('from') || 'Vancouver';
@@ -65,7 +73,90 @@ function SuggestionsContent() {
 
   useEffect(() => {
     generateSuggestions();
+    loadCartItems();
   }, []);
+
+  // Load cart items from localStorage
+  const loadCartItems = () => {
+    const savedCart = localStorage.getItem('addon_cart');
+    if (savedCart) {
+      const cartData = JSON.parse(savedCart);
+      setCartItems(cartData.map((item: any) => item.sku));
+    }
+  };
+
+  // Fetch bookable add-ons for a city
+  const fetchBookableAddOns = async (city: string) => {
+    try {
+      const [mealsRes, activitiesRes, transportRes] = await Promise.all([
+        fetch(`/api/addons?city=${encodeURIComponent(city)}&item_type=meal&limit=3`),
+        fetch(`/api/addons?city=${encodeURIComponent(city)}&item_type=activity&limit=3`),
+        fetch(`/api/addons?city=${encodeURIComponent(city)}&item_type=transport&limit=2`)
+      ]);
+
+      const [meals, activities, transport] = await Promise.all([
+        mealsRes.ok ? mealsRes.json() : { addons: [] },
+        activitiesRes.ok ? activitiesRes.json() : { addons: [] },
+        transportRes.ok ? transportRes.json() : { addons: [] }
+      ]);
+
+      return {
+        meals: meals.addons || [],
+        activities: activities.addons || [],
+        transport: transport.addons || []
+      };
+    } catch (error) {
+      console.error('Error fetching bookable add-ons:', error);
+      return { meals: [], activities: [], transport: [] };
+    }
+  };
+
+  // Add item to cart
+  const addToCart = async (addOn: any) => {
+    setAddingToCart(addOn.sku);
+    try {
+      const response = await fetch('/api/cart/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          item_type: addOn.item_type,
+          external_id: addOn.sku,
+          name: addOn.title,
+          price_cents: addOn.price_cents,
+          currency: addOn.currency,
+          quantity: 1,
+          meta: { 
+            city: addOn.city,
+            country: addOn.country,
+            ...addOn.meta 
+          }
+        })
+      });
+
+      if (response.ok) {
+        const newCartItems = [...cartItems, addOn.sku];
+        setCartItems(newCartItems);
+        
+        // Update localStorage
+        const savedCart = localStorage.getItem('addon_cart');
+        const cartData = savedCart ? JSON.parse(savedCart) : [];
+        cartData.push({ sku: addOn.sku, quantity: 1 });
+        localStorage.setItem('addon_cart', JSON.stringify(cartData));
+      } else {
+        const error = await response.json();
+        if (response.status === 403) {
+          alert('Demo mode: Add-to-cart is disabled for demonstration purposes');
+        } else {
+          alert('Failed to add to cart: ' + (error.error || 'Unknown error'));
+        }
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('Failed to add to cart');
+    } finally {
+      setAddingToCart(null);
+    }
+  };
 
   // Generate local experiences for a city
   const generateLocalExperiences = async (city: string, country: string) => {
@@ -264,7 +355,19 @@ function SuggestionsContent() {
           }
         }
       ];
-      setSuggestions(fallbackSuggestions);
+
+      // Fetch bookable add-ons for each destination
+      const suggestionsWithAddOns = await Promise.all(
+        fallbackSuggestions.map(async (suggestion) => {
+          const bookableAddOns = await fetchBookableAddOns(suggestion.city);
+          return {
+            ...suggestion,
+            bookableAddOns
+          };
+        })
+      );
+
+      setSuggestions(suggestionsWithAddOns);
     } finally {
       setIsLoading(false);
     }
@@ -440,6 +543,26 @@ function SuggestionsContent() {
         </div>
 
 
+        {/* Cart Summary */}
+        {cartItems.length > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <ShoppingCart className="w-5 h-5 text-green-600 mr-2" />
+                <span className="text-green-800 font-semibold">
+                  {cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in your cart
+                </span>
+              </div>
+              <Link 
+                href="/cart"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
+              >
+                View Cart & Checkout
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Suggestions Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {suggestions.map((suggestion) => (
@@ -575,6 +698,149 @@ function SuggestionsContent() {
                             <li key={index} className="text-green-700 text-xs">• {tip}</li>
                           ))}
                         </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bookable Add-Ons */}
+                {suggestion.bookableAddOns && (
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-bold text-black flex items-center">
+                        <span className="mr-2">🛒</span>
+                        Book Now & Save
+                      </h4>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <ShoppingCart className="w-4 h-4 mr-1" />
+                        {cartItems.length} in cart
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {/* Meals */}
+                      {suggestion.bookableAddOns.meals.length > 0 && (
+                        <div>
+                          <h5 className="font-semibold text-gray-800 mb-2 flex items-center text-sm">
+                            <Utensils className="w-4 h-4 mr-2 text-orange-600" />
+                            Meals & Dining
+                          </h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {suggestion.bookableAddOns.meals.slice(0, 3).map((meal: any) => (
+                              <div key={meal.sku} className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                                <h6 className="font-semibold text-orange-900 text-sm mb-1">{meal.title}</h6>
+                                <p className="text-orange-700 text-xs mb-2 line-clamp-2">{meal.description}</p>
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-orange-900">
+                                    ${(meal.price_cents / 100).toFixed(2)}
+                                  </span>
+                                  <button
+                                    onClick={() => addToCart(meal)}
+                                    disabled={cartItems.includes(meal.sku) || addingToCart === meal.sku}
+                                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                                      cartItems.includes(meal.sku)
+                                        ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                                        : addingToCart === meal.sku
+                                        ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                                        : 'bg-orange-600 text-white hover:bg-orange-700'
+                                    }`}
+                                  >
+                                    {cartItems.includes(meal.sku) ? '✓ Added' : 
+                                     addingToCart === meal.sku ? '...' : 
+                                     <><Plus className="w-3 h-3 inline mr-1" />Add</>}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Activities */}
+                      {suggestion.bookableAddOns.activities.length > 0 && (
+                        <div>
+                          <h5 className="font-semibold text-gray-800 mb-2 flex items-center text-sm">
+                            <MapPin className="w-4 h-4 mr-2 text-blue-600" />
+                            Tours & Activities
+                          </h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {suggestion.bookableAddOns.activities.slice(0, 3).map((activity: any) => (
+                              <div key={activity.sku} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <h6 className="font-semibold text-blue-900 text-sm mb-1">{activity.title}</h6>
+                                <p className="text-blue-700 text-xs mb-2 line-clamp-2">{activity.description}</p>
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-blue-900">
+                                    ${(activity.price_cents / 100).toFixed(2)}
+                                  </span>
+                                  <button
+                                    onClick={() => addToCart(activity)}
+                                    disabled={cartItems.includes(activity.sku) || addingToCart === activity.sku}
+                                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                                      cartItems.includes(activity.sku)
+                                        ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                                        : addingToCart === activity.sku
+                                        ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    }`}
+                                  >
+                                    {cartItems.includes(activity.sku) ? '✓ Added' : 
+                                     addingToCart === activity.sku ? '...' : 
+                                     <><Plus className="w-3 h-3 inline mr-1" />Add</>}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Transport */}
+                      {suggestion.bookableAddOns.transport.length > 0 && (
+                        <div>
+                          <h5 className="font-semibold text-gray-800 mb-2 flex items-center text-sm">
+                            <Car className="w-4 h-4 mr-2 text-purple-600" />
+                            Transport & Transfers
+                          </h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {suggestion.bookableAddOns.transport.slice(0, 2).map((transport: any) => (
+                              <div key={transport.sku} className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                                <h6 className="font-semibold text-purple-900 text-sm mb-1">{transport.title}</h6>
+                                <p className="text-purple-700 text-xs mb-2 line-clamp-2">{transport.description}</p>
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-purple-900">
+                                    ${(transport.price_cents / 100).toFixed(2)}
+                                  </span>
+                                  <button
+                                    onClick={() => addToCart(transport)}
+                                    disabled={cartItems.includes(transport.sku) || addingToCart === transport.sku}
+                                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                                      cartItems.includes(transport.sku)
+                                        ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                                        : addingToCart === transport.sku
+                                        ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                                    }`}
+                                  >
+                                    {cartItems.includes(transport.sku) ? '✓ Added' : 
+                                     addingToCart === transport.sku ? '...' : 
+                                     <><Plus className="w-3 h-3 inline mr-1" />Add</>}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* View All Add-Ons Link */}
+                      <div className="text-center pt-2">
+                        <Link 
+                          href={`/addons?city=${encodeURIComponent(suggestion.city)}`}
+                          className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                        >
+                          View all {suggestion.city} add-ons
+                          <Plus className="w-4 h-4 ml-1" />
+                        </Link>
                       </div>
                     </div>
                   </div>

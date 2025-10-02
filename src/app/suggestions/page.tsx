@@ -33,6 +33,12 @@ interface TripSuggestion {
   };
   highlights: string[];
   whyItFits: string;
+  localExperiences?: {
+    restaurants: string[];
+    activities: string[];
+    uniqueExperiences: string[];
+    localTips: string[];
+  };
 }
 
 function SuggestionsContent() {
@@ -60,6 +66,51 @@ function SuggestionsContent() {
   useEffect(() => {
     generateSuggestions();
   }, []);
+
+  // Generate local experiences for a city
+  const generateLocalExperiences = async (city: string, country: string) => {
+    // In a real app, this would call the AI service
+    // For now, we'll use curated examples based on the city
+    const experienceMap: { [key: string]: any } = {
+      'Seattle': {
+        restaurants: ['Pike Place Chowder', 'Canlis', 'The Walrus & Carpenter', 'Paseo Caribbean Food'],
+        activities: ['Pike Place Market tour', 'Underground Seattle tours', 'Ferry to Bainbridge Island'],
+        uniqueExperiences: ['Coffee culture immersion', 'Grunge music history walk', 'Waterfront cycling'],
+        localTips: ['Visit during summer for best weather', 'Book ferry rides early', 'Try the fish throwing at Pike Place']
+      },
+      'Portland': {
+        restaurants: ['Powell\'s Books Café', 'Voodoo Doughnut', 'Le Pigeon', 'Pok Pok (food carts)'],
+        activities: ['Food truck pods exploration', 'Craft brewery tours', 'Japanese Garden visit'],
+        uniqueExperiences: ['Keep Portland Weird culture', 'Rose garden strolls', 'Bookstore café hopping'],
+        localTips: ['Embrace the rain', 'No sales tax shopping', 'Food cart culture is a must']
+      },
+      'Reykjavik': {
+        restaurants: ['Dill Restaurant', 'Fish Market', 'Bæjarins Beztu Pylsur (hot dogs)', 'Café Loki'],
+        activities: ['Northern Lights tours', 'Blue Lagoon thermal pools', 'Golden Circle day trip'],
+        uniqueExperiences: ['Midnight sun in summer', 'Icelandic horse riding', 'Glacier hiking'],
+        localTips: ['Pack layers for weather', 'Book Northern Lights tours', 'Try fermented shark']
+      },
+      'Marrakech': {
+        restaurants: ['Nomad', 'Le Jardin', 'Jemaa el-Fnaa food stalls', 'La Mamounia'],
+        activities: ['Medina maze exploration', 'Tagine cooking classes', 'Desert excursions'],
+        uniqueExperiences: ['Hammam spa treatments', 'Snake charmer shows', 'Berber carpet shopping'],
+        localTips: ['Haggle at souks', 'Dress modestly', 'Stay hydrated in desert']
+      },
+      'Kyoto': {
+        restaurants: ['Kikunoi', 'Ganko Sushi', 'Arashiyama Bamboo tea houses', 'Pontocho Alley izakayas'],
+        activities: ['Temple visits (Kinkaku-ji)', 'Tea ceremony experiences', 'Bamboo forest walks'],
+        uniqueExperiences: ['Geisha district strolls', 'Traditional ryokan stays', 'Cherry blossom viewing'],
+        localTips: ['Remove shoes at temples', 'Bow respectfully', 'Book tea ceremonies ahead']
+      }
+    };
+
+    return experienceMap[city] || {
+      restaurants: ['Local favorites', 'Traditional cuisine', 'Street food spots', 'Fine dining'],
+      activities: ['City highlights tour', 'Cultural experiences', 'Nature activities'],
+      uniqueExperiences: ['Local traditions', 'Hidden gems', 'Authentic experiences'],
+      localTips: ['Learn basic phrases', 'Respect local customs', 'Try regional specialties']
+    };
+  };
 
   const generateSuggestions = async () => {
     setIsLoading(true);
@@ -116,7 +167,13 @@ function SuggestionsContent() {
           flightBand: { min: 650, max: 780 },
           hotelBand: { min: 90, max: 130, style: 'Boutique', area: 'Alfama/Baixa' },
           highlights: ['Historic tram rides', 'Pasteis de Belém', 'Fado music', 'Time Out Market'],
-          whyItFits: 'Perfect for food lovers with amazing local cuisine and cultural experiences'
+          whyItFits: 'Perfect for food lovers with amazing local cuisine and cultural experiences',
+          localExperiences: {
+            restaurants: ['Pastéis de Belém', 'Ramiro (seafood)', 'Taberna do Real Fado', 'Time Out Market'],
+            activities: ['Tram 28 historic ride', 'Fado music in Alfama', 'Jerónimos Monastery visit', 'Sintra day trip'],
+            uniqueExperiences: ['Azulejo tile workshops', 'Port wine cellars in Vila Nova de Gaia', 'Sunset at Miradouro da Senhora do Monte'],
+            localTips: ['Learn "Obrigado/a" (thank you)', 'Tram 28 gets crowded - board early', 'Try bifana (pork sandwich)']
+          }
         },
         {
           id: '2',
@@ -132,7 +189,13 @@ function SuggestionsContent() {
           flightBand: { min: 720, max: 890 },
           hotelBand: { min: 120, max: 180, style: 'Modern', area: 'Gothic Quarter' },
           highlights: ['Sagrada Familia', 'Gaudí architecture', 'Beach life', 'Tapas culture'],
-          whyItFits: 'Ideal for culture and architecture enthusiasts with amazing food scene'
+          whyItFits: 'Ideal for culture and architecture enthusiasts with amazing food scene',
+          localExperiences: {
+            restaurants: ['Cal Pep (tapas)', 'Disfrutar (Michelin)', 'La Boqueria Market', 'Bar Mut (natural wines)'],
+            activities: ['Sagrada Familia guided tour', 'Park Güell sunrise visit', 'Gothic Quarter walking tour', 'Beach day at Barceloneta'],
+            uniqueExperiences: ['Gaudí architecture trail', 'Flamenco at Tablao Cordobés', 'Sunset at Bunkers del Carmel', 'Bike tour along beach'],
+            localTips: ['Book Sagrada Familia in advance', 'Siesta time 2-5pm', 'Dinner starts at 9pm']
+          }
         },
         {
           id: '3',
@@ -148,7 +211,13 @@ function SuggestionsContent() {
           flightBand: { min: 580, max: 720 },
           hotelBand: { min: 70, max: 110, style: 'Historic', area: 'Ribeira' },
           highlights: ['Port wine tasting', 'Historic center', 'River views', 'Authentic cuisine'],
-          whyItFits: 'Great value destination perfect for wine lovers and authentic experiences'
+          whyItFits: 'Great value destination perfect for wine lovers and authentic experiences',
+          localExperiences: {
+            restaurants: ['The Yeatman (Michelin)', 'Taberna do Barqueiro', 'Café Majestic', 'Mercado do Bolhão'],
+            activities: ['Port wine cellars tour', 'Douro River cruise', 'Livraria Lello bookstore', 'Azulejo tile museum'],
+            uniqueExperiences: ['Port wine blending workshop', 'Traditional fado performance', 'Francesinha sandwich hunt', 'Sunset at Dom Luís I Bridge'],
+            localTips: ['Port cellars in Vila Nova de Gaia', 'Francesinha is a must-try', 'Trams are scenic but slow']
+          }
         },
         {
           id: '4',
@@ -164,7 +233,13 @@ function SuggestionsContent() {
           flightBand: { min: 680, max: 820 },
           hotelBand: { min: 85, max: 125, style: 'Contemporary', area: 'Ciutat Vella' },
           highlights: ['Paella birthplace', 'City of Arts', 'Beaches', 'Futuristic architecture'],
-          whyItFits: 'Perfect blend of modern architecture and traditional Spanish culture'
+          whyItFits: 'Perfect blend of modern architecture and traditional Spanish culture',
+          localExperiences: {
+            restaurants: ['La Pepica (original paella)', 'Central Market food stalls', 'Casa Roberto', 'Ricard Camarena Restaurant'],
+            activities: ['City of Arts and Sciences tour', 'Paella cooking class', 'Malvarossa Beach day', 'Historic Silk Exchange visit'],
+            uniqueExperiences: ['Authentic paella at birthplace', 'Las Fallas festival (March)', 'Horchata and fartons tasting', 'Bike ride through Turia Gardens'],
+            localTips: ['Real paella has no chorizo', 'Siesta 2-5pm respected', 'Beach accessible by metro']
+          }
         },
         {
           id: '5',
@@ -180,7 +255,13 @@ function SuggestionsContent() {
           flightBand: { min: 700, max: 850 },
           hotelBand: { min: 95, max: 140, style: 'Traditional', area: 'Santa Cruz' },
           highlights: ['Alcázar Palace', 'Flamenco shows', 'Orange trees', 'Tapas bars'],
-          whyItFits: 'Authentic Spanish experience with rich cultural heritage and vibrant nightlife'
+          whyItFits: 'Authentic Spanish experience with rich cultural heritage and vibrant nightlife',
+          localExperiences: {
+            restaurants: ['Eslava (modern tapas)', 'Bar Las Teresas', 'Abantal (Michelin)', 'Mercado Lonja del Barranco'],
+            activities: ['Alcázar palace tour', 'Flamenco at Casa de la Memoria', 'Cathedral and Giralda climb', 'Triana neighborhood walk'],
+            uniqueExperiences: ['Authentic flamenco birthplace', 'Orange blossom season (spring)', 'Tapas crawl in Santa Cruz', 'Guadalquivir river cruise'],
+            localTips: ['Very hot in summer', 'Flamenco shows after 9pm', 'Tapas are small - order many']
+          }
         }
       ];
       setSuggestions(fallbackSuggestions);
@@ -421,10 +502,10 @@ function SuggestionsContent() {
                 </div>
               </div>
 
-              {/* Highlights */}
+                {/* Highlights */}
               <div className="p-6">
                 <h4 className="font-medium text-black mb-3">Highlights:</h4>
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-6">
                   {suggestion.highlights.map((highlight, index) => (
                     <span
                       key={`${suggestion.id}-highlight-${index}`}
@@ -434,6 +515,70 @@ function SuggestionsContent() {
                     </span>
                   ))}
                 </div>
+
+                {/* Local Experiences */}
+                {suggestion.localExperiences && (
+                  <div className="mb-6">
+                    <h4 className="font-medium text-black mb-4 flex items-center">
+                      <span className="mr-2">🌟</span>
+                      Local Insider Guide
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Restaurants */}
+                      <div className="bg-orange-50 rounded-lg p-4">
+                        <h5 className="font-semibold text-orange-800 mb-2 flex items-center text-sm">
+                          <span className="mr-2">🍽️</span>
+                          Must-Try Restaurants
+                        </h5>
+                        <ul className="space-y-1">
+                          {suggestion.localExperiences.restaurants.slice(0, 3).map((restaurant, index) => (
+                            <li key={index} className="text-orange-700 text-xs">• {restaurant}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Activities */}
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <h5 className="font-semibold text-blue-800 mb-2 flex items-center text-sm">
+                          <span className="mr-2">🎯</span>
+                          Top Activities
+                        </h5>
+                        <ul className="space-y-1">
+                          {suggestion.localExperiences.activities.slice(0, 3).map((activity, index) => (
+                            <li key={index} className="text-blue-700 text-xs">• {activity}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Unique Experiences */}
+                      <div className="bg-purple-50 rounded-lg p-4">
+                        <h5 className="font-semibold text-purple-800 mb-2 flex items-center text-sm">
+                          <span className="mr-2">✨</span>
+                          Unique Experiences
+                        </h5>
+                        <ul className="space-y-1">
+                          {suggestion.localExperiences.uniqueExperiences.slice(0, 3).map((experience, index) => (
+                            <li key={index} className="text-purple-700 text-xs">• {experience}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Local Tips */}
+                      <div className="bg-green-50 rounded-lg p-4">
+                        <h5 className="font-semibold text-green-800 mb-2 flex items-center text-sm">
+                          <span className="mr-2">💡</span>
+                          Insider Tips
+                        </h5>
+                        <ul className="space-y-1">
+                          {suggestion.localExperiences.localTips.slice(0, 3).map((tip, index) => (
+                            <li key={index} className="text-green-700 text-xs">• {tip}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3">

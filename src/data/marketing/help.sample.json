@@ -1,0 +1,72 @@
+[
+  {
+    "id": "getting-started",
+    "title": "Getting Started with Where Next",
+    "category": "Basics",
+    "content": "Learn how to create your first trip, set your budget, and get AI-powered recommendations for your destination.",
+    "popular": true
+  },
+  {
+    "id": "payment-refunds",
+    "title": "Payments and Refunds",
+    "category": "Billing",
+    "content": "Understanding our payment process, refund policies, and how to manage your billing information.",
+    "popular": true
+  },
+  {
+    "id": "managing-trips",
+    "title": "Managing Your Trips",
+    "category": "Trips",
+    "content": "How to edit itineraries, add companions, share trips, and keep everything organized in one place.",
+    "popular": true
+  },
+  {
+    "id": "budget-tracking",
+    "title": "Budget Tracking and Expenses",
+    "category": "Budget",
+    "content": "Track your spending across multiple currencies, set category limits, and get insights on your travel expenses.",
+    "popular": false
+  },
+  {
+    "id": "ai-suggestions",
+    "title": "Understanding AI Suggestions",
+    "category": "AI",
+    "content": "How our AI agent works, what data it uses, and how to get the most relevant recommendations for your trip.",
+    "popular": true
+  },
+  {
+    "id": "flight-booking",
+    "title": "Booking Flights and Hotels",
+    "category": "Bookings",
+    "content": "Step-by-step guide to searching, comparing, and booking flights and accommodations through our platform.",
+    "popular": false
+  },
+  {
+    "id": "account-security",
+    "title": "Account Security and Privacy",
+    "category": "Security",
+    "content": "How we protect your data, manage your privacy settings, and keep your account secure.",
+    "popular": false
+  },
+  {
+    "id": "mobile-app",
+    "title": "Using the Mobile App",
+    "category": "Mobile",
+    "content": "Download and set up the mobile app, sync your trips, and access features on the go.",
+    "popular": false
+  },
+  {
+    "id": "travel-tools",
+    "title": "Free Travel Tools",
+    "category": "Tools",
+    "content": "How to use our currency converter, packing list generator, weather checker, and other free tools.",
+    "popular": false
+  },
+  {
+    "id": "troubleshooting",
+    "title": "Common Issues and Troubleshooting",
+    "category": "Support",
+    "content": "Solutions to common problems with bookings, payments, account access, and technical issues.",
+    "popular": true
+  }
+]

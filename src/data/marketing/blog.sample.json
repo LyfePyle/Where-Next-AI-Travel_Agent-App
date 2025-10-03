@@ -1,0 +1,50 @@
+[
+  {
+    "slug": "ai-travel-planning-revolution",
+    "title": "How AI is Revolutionizing Travel Planning",
+    "excerpt": "Discover how artificial intelligence is making trip planning faster, smarter, and more personalized than ever before.",
+    "tag": "AI",
+    "date": "2024-03-15",
+    "author": "Sarah Chen"
+  },
+  {
+    "slug": "budget-travel-tips-2024",
+    "title": "10 Budget Travel Tips That Actually Work in 2024",
+    "excerpt": "Real strategies for saving money on flights, accommodation, and activities without sacrificing the quality of your trip.",
+    "tag": "Budget",
+    "date": "2024-03-10",
+    "author": "Marcus Rodriguez"
+  },
+  {
+    "slug": "sustainable-travel-guide",
+    "title": "The Complete Guide to Sustainable Travel",
+    "excerpt": "How to reduce your environmental impact while exploring the world responsibly.",
+    "tag": "Sustainability",
+    "date": "2024-03-05",
+    "author": "Emma Thompson"
+  },
+  {
+    "slug": "digital-nomad-destinations-2024",
+    "title": "Best Digital Nomad Destinations for 2024",
+    "excerpt": "Top cities for remote workers with great wifi, affordable living, and vibrant communities.",
+    "tag": "Digital Nomad",
+    "date": "2024-02-28",
+    "author": "Alex Park"
+  },
+  {
+    "slug": "travel-insurance-guide",
+    "title": "Travel Insurance: What You Need to Know",
+    "excerpt": "A comprehensive guide to choosing the right travel insurance for your next adventure.",
+    "tag": "Tips",
+    "date": "2024-02-20",
+    "author": "Sarah Chen"
+  },
+  {
+    "slug": "solo-travel-safety-tips",
+    "title": "Solo Travel Safety: Essential Tips for First-Time Solo Travelers",
+    "excerpt": "Stay safe and confident while exploring the world on your own with these practical tips.",
+    "tag": "Solo Travel",
+    "date": "2024-02-15",
+    "author": "Jordan Kim"
+  }
+]

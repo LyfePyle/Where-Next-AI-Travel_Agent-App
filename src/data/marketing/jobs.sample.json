@@ -1,0 +1,50 @@
+[
+  {
+    "id": "frontend-engineer",
+    "title": "Frontend Engineer (Next.js)",
+    "location": "Remote",
+    "type": "Full-time",
+    "description": "Build the next generation of travel tools with React, Next.js, and modern web technologies. You'll work directly with our product team to create intuitive interfaces that millions of travelers will use.",
+    "applyUrl": "mailto:careers@wherenext.com?subject=Frontend Engineer Application"
+  },
+  {
+    "id": "product-designer",
+    "title": "Product Designer (UX/Visual)",
+    "location": "Remote",
+    "type": "Full-time", 
+    "description": "Design beautiful, user-centered experiences for our travel platform. Lead the visual design and user experience strategy across web and mobile applications.",
+    "applyUrl": "mailto:careers@wherenext.com?subject=Product Designer Application"
+  },
+  {
+    "id": "partnerships-manager",
+    "title": "Partnerships Manager",
+    "location": "Remote",
+    "type": "Full-time",
+    "description": "Build strategic partnerships with airlines, hotels, and travel companies. Expand our network of integrations and create new revenue opportunities.",
+    "applyUrl": "mailto:careers@wherenext.com?subject=Partnerships Manager Application"
+  },
+  {
+    "id": "data-engineer",
+    "title": "Data Engineer",
+    "location": "Remote",
+    "type": "Full-time",
+    "description": "Build robust data pipelines for travel data processing, AI model training, and real-time analytics. Work with large datasets from multiple travel APIs.",
+    "applyUrl": "mailto:careers@wherenext.com?subject=Data Engineer Application"
+  },
+  {
+    "id": "customer-success",
+    "title": "Customer Success Manager",
+    "location": "Remote",
+    "type": "Full-time",
+    "description": "Help travelers get the most out of our platform. Provide exceptional support, gather feedback, and drive product improvements based on user needs.",
+    "applyUrl": "mailto:careers@wherenext.com?subject=Customer Success Manager Application"
+  },
+  {
+    "id": "growth-marketing",
+    "title": "Growth Marketing Specialist",
+    "location": "Remote",
+    "type": "Contract",
+    "description": "Drive user acquisition and engagement through data-driven marketing campaigns. Own our content marketing, SEO, and performance marketing efforts.",
+    "applyUrl": "mailto:careers@wherenext.com?subject=Growth Marketing Specialist Application"
+  }
+]

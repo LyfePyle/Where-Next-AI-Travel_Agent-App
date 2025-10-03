@@ -208,7 +208,7 @@ export default function NewHomePage() {
               </Link>
               <Link
                 href="/dashboard"
-                className="tap-lg w-full md:w-auto inline-flex items-center justify-center px-6 md:px-10 py-4 md:py-5 bg-white text-blue-600 text-lg md:text-xl font-bold rounded-2xl border-2 border-blue-600 hover:bg-blue-50 transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="tap-lg w-full md:w-auto inline-flex items-center justify-center px-6 md:px-10 py-4 md:py-5 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-lg md:text-xl font-bold rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 Try Demo Mode
               </Link>
@@ -523,38 +523,49 @@ export default function NewHomePage() {
             {destinations.slice(currentDestination, currentDestination + 3).concat(
               destinations.slice(0, Math.max(0, 3 - (destinations.length - currentDestination)))
             ).map((destination, index) => (
-              <div key={`${destination.name}-${currentDestination}-${index}`} className={`group cursor-pointer transform transition-all duration-700 hover:scale-105 ${index === 0 ? 'ring-4 ring-blue-400 ring-opacity-60 shadow-2xl animate-pulse' : 'hover:shadow-2xl'}`}>
-                <div className="relative overflow-hidden rounded-3xl mb-6 shadow-xl bg-white">
-                  <div className={`h-72 bg-gradient-to-br ${destination.gradient} flex items-center justify-center transition-all duration-1000 relative`}>
-                    <div className="absolute inset-0 bg-black/10"></div>
+              <div key={`${destination.name}-${currentDestination}-${index}`} className={`group cursor-pointer transform transition-all duration-700 hover:scale-110 ${index === 0 ? 'ring-4 ring-yellow-400 ring-opacity-80 shadow-2xl animate-pulse scale-105' : 'hover:shadow-2xl'}`}>
+                <div className="relative overflow-hidden rounded-3xl mb-6 shadow-2xl bg-gradient-to-br from-white to-gray-50">
+                  <div className={`h-80 bg-gradient-to-br ${destination.gradient} flex items-center justify-center transition-all duration-1000 relative`}>
+                    <div className="absolute inset-0 bg-black/20"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
                     <div className="text-white text-center relative z-10">
-                      <div className="text-7xl mb-4 animate-bounce drop-shadow-lg">{destination.emoji}</div>
-                      <div className="text-xl font-bold drop-shadow-md">{destination.duration}</div>
+                      <div className="text-8xl mb-4 animate-bounce drop-shadow-2xl filter brightness-110">{destination.emoji}</div>
+                      <div className="text-2xl font-black drop-shadow-lg bg-black/30 px-4 py-2 rounded-full backdrop-blur-sm">{destination.duration}</div>
                     </div>
                   </div>
-                  <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-gray-800 shadow-lg">
+                  <div className="absolute top-4 right-4 bg-white/98 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-black text-gray-800 shadow-xl border-2 border-white">
                     {destination.duration}
                   </div>
                   {index === 0 && (
-                    <div className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 px-4 py-2 rounded-full text-sm font-bold text-white shadow-lg animate-pulse">
-                      ⭐ Featured
+                    <div className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 px-5 py-3 rounded-full text-sm font-black text-white shadow-2xl animate-pulse border-2 border-white">
+                      ⭐ FEATURED ⭐
                     </div>
                   )}
                   {index !== 0 && (
-                    <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-2 rounded-full text-sm font-bold text-white shadow-lg">
-                      Popular
+                    <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-500 via-purple-600 to-indigo-700 px-4 py-2 rounded-full text-sm font-bold text-white shadow-xl border-2 border-white">
+                      🔥 Popular
                     </div>
                   )}
+                  {/* New: Floating price badge */}
+                  <div className="absolute bottom-4 right-4 bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-2 rounded-full text-white font-black shadow-xl border-2 border-white">
+                    ${destination.price.toLocaleString()}
+                  </div>
                 </div>
-                <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 -mt-4 relative z-10">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">{destination.name}</h3>
-                  <p className="text-3xl font-black text-blue-600 mb-4">From ${destination.price.toLocaleString()}</p>
-                  <div className="flex gap-2 flex-wrap">
+                <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-500 -mt-6 relative z-10 border-4 border-white">
+                  <h3 className="text-3xl font-black text-gray-900 mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{destination.name}</h3>
+                  <p className="text-4xl font-black text-green-600 mb-6 drop-shadow-sm">From ${destination.price.toLocaleString()}</p>
+                  <div className="flex gap-3 flex-wrap">
                     {destination.tags.map((tag, tagIndex) => (
-                      <span key={tagIndex} className="px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 rounded-full text-sm font-semibold hover:from-blue-200 hover:to-purple-200 transition-all duration-300 cursor-pointer">
+                      <span key={tagIndex} className="px-5 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full text-sm font-bold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl transform hover:scale-105">
                         {tag}
                       </span>
                     ))}
+                  </div>
+                  {/* New: Book Now button */}
+                  <div className="mt-6">
+                    <button className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-black py-4 px-6 rounded-2xl hover:from-orange-600 hover:to-red-700 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105">
+                      Book This Trip →
+                    </button>
                   </div>
                 </div>
               </div>
@@ -603,7 +614,7 @@ export default function NewHomePage() {
             </Link>
             <Link
               href="/pricing"
-              className="inline-flex items-center px-8 py-4 bg-white text-blue-600 text-lg font-bold rounded-xl border-2 border-blue-600 hover:bg-blue-50 transition-all duration-300 shadow-lg"
+              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-lg font-bold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               See Pricing
             </Link>

@@ -16,6 +16,8 @@ import {
   ShoppingCart,
   Plus
 } from 'lucide-react';
+import AppHeader from '@/components/app/AppHeader';
+import BottomTabs from '@/components/app/BottomTabs';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -116,8 +118,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
           🚧 DEMO MODE — Sample data only, purchases are disabled for demonstration purposes
         </div>
       )}
-      {/* Mobile Header */}
-      <div className="lg:hidden bg-white shadow-sm border-b">
+      
+      {/* Mobile App Header */}
+      <div className="md:hidden">
+        <AppHeader />
+      </div>
+      
+      {/* Desktop Header - Keep existing */}
+      <div className="hidden md:block lg:hidden bg-white shadow-sm border-b">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -213,37 +221,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main Content */}
       <div className="lg:pl-64">
-        <main className="flex-1">
+        <main className="flex-1 pb-20 md:pb-0">
           {children}
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-inset-bottom">
-        <div className="grid grid-cols-5 gap-1">
-          {navigationTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = pathname.startsWith(tab.href);
-            return (
-              <Link
-                key={tab.id}
-                href={tab.href}
-                className={`flex flex-col items-center space-y-1 py-2 px-1 transition-colors ${
-                  isActive
-                    ? 'text-blue-600'
-                    : 'text-gray-400 hover:text-gray-600'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs font-medium">{tab.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
+      {/* Mobile Bottom Tabs */}
+      <BottomTabs />
 
       {/* Bottom padding for mobile navigation */}
-      <div className="lg:hidden h-16"></div>
+      <div className="md:hidden h-16 pb-[calc(env(safe-area-inset-bottom)+12px)]"></div>
     </div>
   );
 }

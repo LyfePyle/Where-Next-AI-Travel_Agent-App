@@ -15,6 +15,7 @@ import {
   TrendingUp,
   BarChart3
 } from 'lucide-react';
+import TopNav from '@/components/marketing/TopNav';
 
 export default function NewHomePage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -173,8 +174,10 @@ export default function NewHomePage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <TopNav />
+      
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 py-20 lg:py-32">
+      <section className="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 md:py-20 lg:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/* Logo */}
@@ -184,28 +187,28 @@ export default function NewHomePage() {
             </div>
             
             {/* Main Headline - Powerful & Clear */}
-            <h2 className="text-5xl lg:text-7xl font-black text-gray-900 mb-6 leading-tight">
+            <h2 className="text-3xl md:text-5xl lg:text-7xl font-black text-gray-900 mb-4 md:mb-6 leading-tight">
               Your AI Travel Agent
               <span className="block text-blue-600">Smarter Trips, Less Stress</span>
             </h2>
             
             {/* Subheadline - Clear Value */}
-            <p className="text-2xl text-gray-600 mb-12 max-w-4xl mx-auto font-semibold">
+            <p className="text-lg md:text-xl lg:text-2xl text-gray-600 mb-8 md:mb-12 max-w-4xl mx-auto font-semibold">
               Plan trips, manage budgets, and book everything in one place.
             </p>
             
-            {/* Primary CTAs - Clear Action */}
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+            {/* Primary CTAs - Full width on mobile */}
+            <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:gap-6 justify-center items-stretch md:items-center mb-12 md:mb-16">
               <Link 
                 href="/plan-trip"
-                className="inline-flex items-center px-10 py-5 bg-blue-600 text-white text-xl font-bold rounded-2xl hover:bg-blue-700 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
+                className="tap-lg w-full md:w-auto inline-flex items-center justify-center px-6 md:px-10 py-4 md:py-5 bg-blue-600 text-white text-lg md:text-xl font-bold rounded-2xl hover:bg-blue-700 transition-all duration-300 shadow-xl hover:shadow-2xl"
               >
                 Start Planning Free
-                <ArrowRight className="ml-3 h-6 w-6" />
+                <ArrowRight className="ml-3 h-5 w-5 md:h-6 md:w-6" />
               </Link>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center px-10 py-5 bg-white text-blue-600 text-xl font-bold rounded-2xl border-3 border-blue-600 hover:bg-blue-50 transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="tap-lg w-full md:w-auto inline-flex items-center justify-center px-6 md:px-10 py-4 md:py-5 bg-white text-blue-600 text-lg md:text-xl font-bold rounded-2xl border-2 border-blue-600 hover:bg-blue-50 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 Try Demo Mode
               </Link>
@@ -220,18 +223,18 @@ export default function NewHomePage() {
       </section>
 
       {/* Feature Highlights - Benefits Not Tech */}
-      <section className="py-24 bg-white">
+      <section id="features" className="py-12 md:py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl lg:text-5xl font-black text-gray-900 mb-6">
+          <div className="text-center mb-12 md:mb-16 lg:mb-20">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4 md:mb-6">
               Everything You Need for Perfect Trips
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
               No more juggling apps, spreadsheets, or endless browser tabs. One platform, endless possibilities.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             {/* AI Travel Planning */}
             <div className="text-center group hover:scale-105 transition-all duration-300">
               <div className="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:bg-blue-200 transition-colors">

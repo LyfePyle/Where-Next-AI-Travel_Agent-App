@@ -101,10 +101,10 @@ export default function NewHomePage() {
   useEffect(() => {
     testAPIs();
     
-    // Rotate destinations every 5 seconds
+    // Rotate destinations every 8 seconds (slower)
     const destinationInterval = setInterval(() => {
       setCurrentDestination(prev => (prev + 1) % destinations.length);
-    }, 5000);
+    }, 8000);
 
     // Rotate weather cities every 8 seconds
     const weatherInterval = setInterval(() => {
@@ -189,7 +189,7 @@ export default function NewHomePage() {
             {/* Main Headline - Powerful & Clear */}
             <h2 className="text-3xl md:text-5xl lg:text-7xl font-black text-gray-900 mb-4 md:mb-6 leading-tight">
               Your AI Travel Agent
-              <span className="block text-blue-600">Smarter Trips, Less Stress</span>
+              <span className="block text-blue-600">Smarter Trips, Less Stress, More Destinations</span>
             </h2>
             
             {/* Subheadline - Clear Value */}
@@ -483,17 +483,17 @@ export default function NewHomePage() {
                 Discover hidden gems and local recommendations. Get insider tips from our AI travel agent for authentic experiences.
               </p>
               <div className="flex flex-col gap-3 items-center">
-                <Link href="/explore" className="inline-flex items-center px-8 py-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+                <Link href="/explore" className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-red-500 to-pink-600 text-white font-bold rounded-xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
                   <Compass className="mr-3 h-6 w-6" />
                   Explore Places
                   <ArrowRight className="ml-3 h-6 w-6" />
                 </Link>
                 <div className="flex gap-2">
-                  <Link href="/ai-travel-agent" className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 font-semibold rounded-lg hover:bg-red-200 transition-colors">
+                  <Link href="/ai-travel-agent" className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-orange-400 to-red-500 text-white font-semibold rounded-lg hover:from-orange-500 hover:to-red-600 transition-all duration-300 shadow-md">
                     <Compass className="mr-2 h-4 w-4" />
                     AI Agent
                   </Link>
-                  <Link href="/tours" className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 font-semibold rounded-lg hover:bg-red-200 transition-colors">
+                  <Link href="/tours" className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 shadow-md">
                     <MapPin className="mr-2 h-4 w-4" />
                     Walking Tours
                   </Link>
@@ -523,29 +523,39 @@ export default function NewHomePage() {
             {destinations.slice(currentDestination, currentDestination + 3).concat(
               destinations.slice(0, Math.max(0, 3 - (destinations.length - currentDestination)))
             ).map((destination, index) => (
-              <div key={`${destination.name}-${currentDestination}-${index}`} className="group cursor-pointer transform transition-all duration-500 hover:scale-105">
-                <div className="relative overflow-hidden rounded-2xl mb-6">
-                  <div className={`h-64 bg-gradient-to-br ${destination.gradient} flex items-center justify-center transition-all duration-1000`}>
-                    <div className="text-white text-center">
-                      <div className="text-6xl mb-4 animate-bounce">{destination.emoji}</div>
-                      <div className="text-lg font-semibold">{destination.duration}</div>
+              <div key={`${destination.name}-${currentDestination}-${index}`} className={`group cursor-pointer transform transition-all duration-700 hover:scale-105 ${index === 0 ? 'ring-4 ring-blue-400 ring-opacity-60 shadow-2xl animate-pulse' : 'hover:shadow-2xl'}`}>
+                <div className="relative overflow-hidden rounded-3xl mb-6 shadow-xl bg-white">
+                  <div className={`h-72 bg-gradient-to-br ${destination.gradient} flex items-center justify-center transition-all duration-1000 relative`}>
+                    <div className="absolute inset-0 bg-black/10"></div>
+                    <div className="text-white text-center relative z-10">
+                      <div className="text-7xl mb-4 animate-bounce drop-shadow-lg">{destination.emoji}</div>
+                      <div className="text-xl font-bold drop-shadow-md">{destination.duration}</div>
                     </div>
                   </div>
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-gray-800 shadow-lg">
                     {destination.duration}
                   </div>
-                  <div className="absolute top-4 left-4 bg-blue-600/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-white">
-                    Featured
-                  </div>
+                  {index === 0 && (
+                    <div className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 px-4 py-2 rounded-full text-sm font-bold text-white shadow-lg animate-pulse">
+                      ⭐ Featured
+                    </div>
+                  )}
+                  {index !== 0 && (
+                    <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-2 rounded-full text-sm font-bold text-white shadow-lg">
+                      Popular
+                    </div>
+                  )}
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{destination.name}</h3>
-                <p className="text-2xl font-bold text-blue-600 mb-4">From ${destination.price.toLocaleString()}</p>
-                <div className="flex gap-2 flex-wrap">
-                  {destination.tags.map((tag, tagIndex) => (
-                    <span key={tagIndex} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700 transition-colors">
-                      {tag}
-                    </span>
-                  ))}
+                <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 -mt-4 relative z-10">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">{destination.name}</h3>
+                  <p className="text-3xl font-black text-blue-600 mb-4">From ${destination.price.toLocaleString()}</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {destination.tags.map((tag, tagIndex) => (
+                      <span key={tagIndex} className="px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 rounded-full text-sm font-semibold hover:from-blue-200 hover:to-purple-200 transition-all duration-300 cursor-pointer">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
@@ -627,20 +637,20 @@ export default function NewHomePage() {
           <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-lg">
             Ready to Start Your Journey?
           </h2>
-          <p className="text-2xl text-white mb-12 font-medium drop-shadow-md">
+          <p className="text-2xl text-black mb-12 font-medium drop-shadow-md bg-white/90 backdrop-blur-sm rounded-2xl px-8 py-4 inline-block">
             Join thousands of travelers who trust Where Next for their trip planning
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link 
               href="/dashboard"
-              className="inline-flex items-center px-6 py-3 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-lg hover:shadow-xl"
+              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-lg font-bold rounded-xl hover:from-yellow-500 hover:to-orange-600 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
             >
               Open App Dashboard
             </Link>
             <Link 
               href="/plan-trip"
-              className="inline-flex items-center px-6 py-3 bg-transparent text-white text-lg font-semibold rounded-lg border-2 border-white hover:bg-white hover:text-blue-600 transition-colors shadow-lg hover:shadow-xl"
+              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-green-400 to-blue-500 text-white text-lg font-bold rounded-xl hover:from-green-500 hover:to-blue-600 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
             >
               Start Planning
               <ArrowRight className="ml-2 h-5 w-5" />

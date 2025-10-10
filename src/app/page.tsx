@@ -33,7 +33,7 @@ export default function NewHomePage() {
       duration: '7 days',
       price: 899,
       tags: ['Beaches', 'Temples', 'Culture'],
-      gradient: 'from-green-400 to-blue-500'
+      gradient: 'bg-green-500'
     },
     {
       name: 'Tokyo, Japan',
@@ -41,7 +41,7 @@ export default function NewHomePage() {
       duration: '6 days',
       price: 1199,
       tags: ['Culture', 'Food', 'Technology'],
-      gradient: 'from-blue-500 to-purple-600'
+      gradient: 'bg-blue-600'
     },
     {
       name: 'Swiss Alps',
@@ -49,7 +49,7 @@ export default function NewHomePage() {
       duration: '5 days',
       price: 1299,
       tags: ['Mountains', 'Hiking', 'Views'],
-      gradient: 'from-gray-600 to-gray-800'
+      gradient: 'bg-gray-700'
     },
     {
       name: 'Santorini, Greece',
@@ -57,7 +57,7 @@ export default function NewHomePage() {
       duration: '6 days',
       price: 1099,
       tags: ['Islands', 'Sunset', 'Romance'],
-      gradient: 'from-blue-400 to-white'
+      gradient: 'bg-blue-400'
     },
     {
       name: 'Iceland',
@@ -65,7 +65,7 @@ export default function NewHomePage() {
       duration: '8 days',
       price: 1399,
       tags: ['Nature', 'Aurora', 'Adventure'],
-      gradient: 'from-cyan-400 to-blue-600'
+      gradient: 'bg-cyan-500'
     },
     {
       name: 'Morocco',
@@ -73,7 +73,7 @@ export default function NewHomePage() {
       duration: '7 days',
       price: 999,
       tags: ['Culture', 'Markets', 'Desert'],
-      gradient: 'from-orange-400 to-red-600'
+      gradient: 'bg-orange-500'
     }
   ];
 
@@ -177,7 +177,7 @@ export default function NewHomePage() {
       <TopNav />
       
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 md:py-20 lg:py-32">
+      <section className="relative bg-blue-50 py-12 md:py-20 lg:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/* Logo */}
@@ -208,7 +208,7 @@ export default function NewHomePage() {
               </Link>
               <Link
                 href="/dashboard"
-                className="tap-lg w-full md:w-auto inline-flex items-center justify-center px-6 md:px-10 py-4 md:py-5 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-lg md:text-xl font-bold rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="tap-lg w-full md:w-auto inline-flex items-center justify-center px-6 md:px-10 py-4 md:py-5 bg-purple-600 text-white text-lg md:text-xl font-bold rounded-2xl hover:bg-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 Try Demo Mode
               </Link>
@@ -407,10 +407,10 @@ export default function NewHomePage() {
       </section>
 
       {/* Decorative Break */}
-      <div className="h-24 bg-gradient-to-r from-blue-400/20 via-purple-400/20 to-pink-400/20"></div>
+      <div className="h-24 bg-blue-100"></div>
 
       {/* Why Choose Where Next Section */}
-      <section className="py-24 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <section className="py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-5xl font-bold text-gray-900 mb-6">
@@ -483,17 +483,17 @@ export default function NewHomePage() {
                 Discover hidden gems and local recommendations. Get insider tips from our AI travel agent for authentic experiences.
               </p>
               <div className="flex flex-col gap-3 items-center">
-                <Link href="/explore" className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-red-500 to-pink-600 text-white font-bold rounded-xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+                <Link href="/explore" className="inline-flex items-center px-8 py-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
                   <Compass className="mr-3 h-6 w-6" />
                   Explore Places
                   <ArrowRight className="ml-3 h-6 w-6" />
                 </Link>
                 <div className="flex gap-2">
-                  <Link href="/ai-travel-agent" className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-orange-400 to-red-500 text-white font-semibold rounded-lg hover:from-orange-500 hover:to-red-600 transition-all duration-300 shadow-md">
+                  <Link href="/ai-travel-agent" className="inline-flex items-center px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-all duration-300 shadow-md">
                     <Compass className="mr-2 h-4 w-4" />
                     AI Agent
                   </Link>
-                  <Link href="/tours" className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 shadow-md">
+                  <Link href="/tours" className="inline-flex items-center px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-all duration-300 shadow-md">
                     <MapPin className="mr-2 h-4 w-4" />
                     Walking Tours
                   </Link>
@@ -505,10 +505,10 @@ export default function NewHomePage() {
       </section>
 
       {/* Decorative Break */}
-      <div className="h-16 bg-gradient-to-r from-purple-400/30 via-pink-400/30 to-red-400/30"></div>
+      <div className="h-16 bg-purple-100"></div>
 
       {/* Popular Destinations */}
-      <section className="py-20 bg-gradient-to-br from-white via-gray-50 to-slate-100">
+      <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -524,10 +524,10 @@ export default function NewHomePage() {
               destinations.slice(0, Math.max(0, 3 - (destinations.length - currentDestination)))
             ).map((destination, index) => (
               <div key={`${destination.name}-${currentDestination}-${index}`} className={`group cursor-pointer transform transition-all duration-700 hover:scale-110 ${index === 0 ? 'ring-4 ring-yellow-400 ring-opacity-80 shadow-2xl animate-pulse scale-105' : 'hover:shadow-2xl'}`}>
-                <div className="relative overflow-hidden rounded-3xl mb-6 shadow-2xl bg-gradient-to-br from-white to-gray-50">
-                  <div className={`h-80 bg-gradient-to-br ${destination.gradient} flex items-center justify-center transition-all duration-1000 relative`}>
+                <div className="relative overflow-hidden rounded-3xl mb-6 shadow-2xl bg-white">
+                  <div className={`h-80 ${destination.gradient} flex items-center justify-center transition-all duration-1000 relative`}>
                     <div className="absolute inset-0 bg-black/20"></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                    <div className="absolute inset-0 bg-black/20"></div>
                     <div className="text-white text-center relative z-10">
                       <div className="text-8xl mb-4 animate-bounce drop-shadow-2xl filter brightness-110">{destination.emoji}</div>
                       <div className="text-2xl font-black drop-shadow-lg bg-black/30 px-4 py-2 rounded-full backdrop-blur-sm">{destination.duration}</div>
@@ -537,33 +537,33 @@ export default function NewHomePage() {
                     {destination.duration}
                   </div>
                   {index === 0 && (
-                    <div className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 px-5 py-3 rounded-full text-sm font-black text-white shadow-2xl animate-pulse border-2 border-white">
+                    <div className="absolute top-4 left-4 bg-yellow-500 px-5 py-3 rounded-full text-sm font-black text-white shadow-2xl animate-pulse border-2 border-white">
                       ⭐ FEATURED ⭐
                     </div>
                   )}
                   {index !== 0 && (
-                    <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-500 via-purple-600 to-indigo-700 px-4 py-2 rounded-full text-sm font-bold text-white shadow-xl border-2 border-white">
+                    <div className="absolute top-4 left-4 bg-blue-600 px-4 py-2 rounded-full text-sm font-bold text-white shadow-xl border-2 border-white">
                       🔥 Popular
                     </div>
                   )}
                   {/* New: Floating price badge */}
-                  <div className="absolute bottom-4 right-4 bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-2 rounded-full text-white font-black shadow-xl border-2 border-white">
+                  <div className="absolute bottom-4 right-4 bg-green-500 px-4 py-2 rounded-full text-white font-black shadow-xl border-2 border-white">
                     ${destination.price.toLocaleString()}
                   </div>
                 </div>
-                <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-500 -mt-6 relative z-10 border-4 border-white">
-                  <h3 className="text-3xl font-black text-gray-900 mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{destination.name}</h3>
+                <div className="bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-500 -mt-6 relative z-10 border-4 border-white">
+                  <h3 className="text-3xl font-black text-gray-900 mb-4">{destination.name}</h3>
                   <p className="text-4xl font-black text-green-600 mb-6 drop-shadow-sm">From ${destination.price.toLocaleString()}</p>
                   <div className="flex gap-3 flex-wrap">
                     {destination.tags.map((tag, tagIndex) => (
-                      <span key={tagIndex} className="px-5 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full text-sm font-bold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl transform hover:scale-105">
+                      <span key={tagIndex} className="px-5 py-3 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl transform hover:scale-105">
                         {tag}
                       </span>
                     ))}
                   </div>
                   {/* New: Book Now button */}
                   <div className="mt-6">
-                    <button className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-black py-4 px-6 rounded-2xl hover:from-orange-600 hover:to-red-700 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105">
+                    <button className="w-full bg-orange-600 text-white font-black py-4 px-6 rounded-2xl hover:bg-orange-700 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105">
                       Book This Trip →
                     </button>
                   </div>
@@ -592,10 +592,10 @@ export default function NewHomePage() {
       </section>
 
       {/* Decorative Break */}
-      <div className="h-20 bg-gradient-to-r from-cyan-400/25 via-blue-400/25 to-indigo-400/25"></div>
+      <div className="h-20 bg-cyan-100"></div>
 
       {/* Secondary CTAs Section */}
-      <section className="py-24 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <section className="py-24 bg-blue-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-black text-gray-900 mb-8">
             Ready to Experience Smarter Travel?
@@ -614,7 +614,7 @@ export default function NewHomePage() {
             </Link>
             <Link
               href="/pricing"
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-lg font-bold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="inline-flex items-center px-8 py-4 bg-indigo-600 text-white text-lg font-bold rounded-xl hover:bg-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               See Pricing
             </Link>
@@ -640,10 +640,10 @@ export default function NewHomePage() {
 
 
       {/* Decorative Break */}
-      <div className="h-16 bg-gradient-to-r from-yellow-400/30 via-orange-400/30 to-red-400/30"></div>
+      <div className="h-16 bg-yellow-100"></div>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600">
+      <section className="py-24 bg-blue-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-lg">
             Ready to Start Your Journey?
@@ -655,13 +655,13 @@ export default function NewHomePage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link 
               href="/dashboard"
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-lg font-bold rounded-xl hover:from-yellow-500 hover:to-orange-600 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
+              className="inline-flex items-center px-8 py-4 bg-yellow-500 text-black text-lg font-bold rounded-xl hover:bg-yellow-600 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
             >
               Open App Dashboard
             </Link>
             <Link 
               href="/plan-trip"
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-green-400 to-blue-500 text-white text-lg font-bold rounded-xl hover:from-green-500 hover:to-blue-600 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
+              className="inline-flex items-center px-8 py-4 bg-green-500 text-white text-lg font-bold rounded-xl hover:bg-green-600 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
             >
               Start Planning
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -671,7 +671,7 @@ export default function NewHomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100">
+      <section className="py-20 bg-indigo-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -703,7 +703,7 @@ export default function NewHomePage() {
       </section>
 
       {/* Decorative Break */}
-      <div className="h-16 bg-gradient-to-r from-pink-400/30 via-purple-400/30 to-indigo-400/30"></div>
+      <div className="h-16 bg-pink-100"></div>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-20">

@@ -176,7 +176,7 @@ export default function TripsPage() {
             {filteredTrips.map((trip) => (
               <div key={trip.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
                 {/* Trip Image Placeholder */}
-                <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 relative">
+                <div className="h-48 bg-blue-500 relative">
                   <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
                     <MapPin className="w-12 h-12 text-white" />
                   </div>

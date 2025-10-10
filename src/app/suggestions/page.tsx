@@ -235,7 +235,13 @@ function SuggestionsContent() {
       
       // The AI API already returns the correct format, so we can use it directly
       if (data.suggestions && Array.isArray(data.suggestions)) {
-        setSuggestions(data.suggestions);
+        // Ensure unique IDs for initial suggestions
+        const timestamp = Date.now();
+        const uniqueSuggestions = data.suggestions.map((suggestion: any, index: number) => ({
+          ...suggestion,
+          id: `initial_${timestamp}_${index}`
+        }));
+        setSuggestions(uniqueSuggestions);
         setDataSource(data.source || 'mock');
       } else {
         throw new Error('Invalid response format from AI suggestions API');
@@ -245,7 +251,6 @@ function SuggestionsContent() {
       // Fallback to comprehensive mock data if API fails
       const fallbackSuggestions: TripSuggestion[] = [
         {
-          id: '1',
           destination: 'Lisbon, Portugal',
           country: 'Portugal',
           city: 'Lisbon',
@@ -267,7 +272,6 @@ function SuggestionsContent() {
           }
         },
         {
-          id: '2',
           destination: 'Barcelona, Spain',
           country: 'Spain',
           city: 'Barcelona',
@@ -289,7 +293,6 @@ function SuggestionsContent() {
           }
         },
         {
-          id: '3',
           destination: 'Porto, Portugal',
           country: 'Portugal',
           city: 'Porto',
@@ -311,7 +314,6 @@ function SuggestionsContent() {
           }
         },
         {
-          id: '4',
           destination: 'Valencia, Spain',
           country: 'Spain',
           city: 'Valencia',
@@ -333,7 +335,6 @@ function SuggestionsContent() {
           }
         },
         {
-          id: '5',
           destination: 'Seville, Spain',
           country: 'Spain',
           city: 'Seville',
@@ -356,12 +357,14 @@ function SuggestionsContent() {
         }
       ];
 
-      // Fetch bookable add-ons for each destination
+      // Fetch bookable add-ons for each destination and ensure unique IDs
+      const timestamp = Date.now();
       const suggestionsWithAddOns = await Promise.all(
-        fallbackSuggestions.map(async (suggestion) => {
+        fallbackSuggestions.map(async (suggestion, index) => {
           const bookableAddOns = await fetchBookableAddOns(suggestion.city);
           return {
             ...suggestion,
+            id: `fallback_${timestamp}_${index}`, // Ensure unique ID
             bookableAddOns
           };
         })
@@ -396,47 +399,117 @@ function SuggestionsContent() {
 
   const handleLoadMore = async () => {
     setIsLoading(true);
-    // Simulate loading more destinations
-    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Add more suggestions (in a real app, this would be an API call)
-    const additionalSuggestions: TripSuggestion[] = [
-      {
-        id: '6',
-        destination: 'Madrid, Spain',
-        country: 'Spain',
-        city: 'Madrid',
-        fitScore: 78,
-        description: 'Vibrant capital with world-class museums and nightlife',
-        weather: { temp: 25, condition: 'Warm', icon: '🌤️' },
-        crowdLevel: 'High',
-        seasonality: 'Peak season, cultural events',
-        estimatedTotal: 1600,
-        flightBand: { min: 750, max: 900 },
-        hotelBand: { min: 100, max: 150, style: 'Luxury', area: 'Salamanca' },
-        highlights: ['Prado Museum', 'Royal Palace', 'Retiro Park', 'Tapas culture'],
-        whyItFits: 'Perfect for culture lovers with world-class museums and vibrant city life'
-      },
-      {
-        id: '7',
-        destination: 'Granada, Spain',
-        country: 'Spain',
-        city: 'Granada',
-        fitScore: 75,
-        description: 'Moorish architecture and stunning Alhambra palace',
-        weather: { temp: 23, condition: 'Mild', icon: '🌤️' },
-        crowdLevel: 'Medium',
-        seasonality: 'Great weather, moderate crowds',
-        estimatedTotal: 1200,
-        flightBand: { min: 650, max: 800 },
-        hotelBand: { min: 80, max: 120, style: 'Historic', area: 'Albaicín' },
-        highlights: ['Alhambra Palace', 'Generalife Gardens', 'Albaicín quarter', 'Flamenco shows'],
-        whyItFits: 'Ideal for history and architecture lovers with stunning Moorish heritage'
+    try {
+      // Get current search parameters to maintain context
+      const from = searchParams.get('from') || 'Vancouver';
+      const budget = searchParams.get('budget') || '2000';
+      const budgetAmount = searchParams.get('budgetAmount') || budget;
+      const vibes = searchParams.get('vibes') ? JSON.parse(searchParams.get('vibes')!) : [];
+      const additionalDetails = searchParams.get('additionalDetails') || '';
+      const adults = parseInt(searchParams.get('adults') || '2');
+      const kids = parseInt(searchParams.get('kids') || '0');
+      const startDate = searchParams.get('startDate') || '';
+      const endDate = searchParams.get('endDate') || '';
+      const budgetDaily = searchParams.get('budgetDaily') || '';
+      const budgetFlights = searchParams.get('budgetFlights') || '';
+      const budgetHotels = searchParams.get('budgetHotels') || '';
+      const budgetStyle = searchParams.get('budgetStyle') || 'comfortable';
+      const tripDuration = searchParams.get('tripDuration') || '7';
+
+      // Call the AI suggestions API to get more destinations
+      const response = await fetch('/api/ai/suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from,
+          budget: parseInt(budgetAmount),
+          budgetAmount: parseInt(budgetAmount),
+          budgetDaily: budgetDaily ? parseInt(budgetDaily) : undefined,
+          budgetFlights: budgetFlights ? parseInt(budgetFlights) : undefined,
+          budgetHotels: budgetHotels ? parseInt(budgetHotels) : undefined,
+          budgetStyle,
+          tripDuration: parseInt(tripDuration),
+          vibes,
+          additionalDetails,
+          adults,
+          kids,
+          startDate,
+          endDate
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
       }
-    ];
-    
-    setSuggestions(prev => [...prev, ...additionalSuggestions]);
-    setIsLoading(false);
+
+      const data = await response.json();
+      
+      if (data.suggestions && Array.isArray(data.suggestions)) {
+        // Add unique IDs to prevent React key conflicts
+        const timestamp = Date.now();
+        const additionalSuggestions = data.suggestions.map((suggestion: any, index: number) => ({
+          ...suggestion,
+          id: `load_more_${timestamp}_${index}`
+        }));
+        
+        setSuggestions(prev => [...prev, ...additionalSuggestions]);
+        
+        // Update data source indicator
+        if (data.source === 'ai') {
+          setDataSource('ai');
+        } else if (data.source === 'cache') {
+          setDataSource('cache');
+        }
+      } else {
+        throw new Error('Invalid response format from API');
+      }
+    } catch (error) {
+      console.error('Error loading more destinations:', error);
+      
+      // Fallback to hardcoded suggestions if API fails
+      const fallbackSuggestions: TripSuggestion[] = [
+        {
+          id: `fallback_${Date.now()}_1`,
+          destination: 'Madrid, Spain',
+          country: 'Spain',
+          city: 'Madrid',
+          fitScore: 78,
+          description: 'Vibrant capital with world-class museums and nightlife',
+          weather: { temp: 25, condition: 'Warm', icon: '🌤️' },
+          crowdLevel: 'High',
+          seasonality: 'Peak season, cultural events',
+          estimatedTotal: 1600,
+          flightBand: { min: 750, max: 900 },
+          hotelBand: { min: 100, max: 150, style: 'Luxury', area: 'Salamanca' },
+          highlights: ['Prado Museum', 'Royal Palace', 'Retiro Park', 'Tapas culture'],
+          whyItFits: 'Perfect for culture lovers with world-class museums and vibrant city life'
+        },
+        {
+          id: `fallback_${Date.now()}_2`,
+          destination: 'Granada, Spain',
+          country: 'Spain',
+          city: 'Granada',
+          fitScore: 75,
+          description: 'Moorish architecture and stunning Alhambra palace',
+          weather: { temp: 23, condition: 'Mild', icon: '🌤️' },
+          crowdLevel: 'Medium',
+          seasonality: 'Great weather, moderate crowds',
+          estimatedTotal: 1200,
+          flightBand: { min: 650, max: 800 },
+          hotelBand: { min: 80, max: 120, style: 'Historic', area: 'Albaicín' },
+          highlights: ['Alhambra Palace', 'Generalife Gardens', 'Albaicín quarter', 'Flamenco shows'],
+          whyItFits: 'Ideal for history and architecture lovers with stunning Moorish heritage'
+        }
+      ];
+      
+      setSuggestions(prev => [...prev, ...fallbackSuggestions]);
+      setDataSource('fallback');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isLoading) {

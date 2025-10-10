@@ -4,7 +4,8 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
   try {
-    const supabase = createServerComponentClient({ cookies });
+    const cookieStore = await cookies();
+    const supabase = createServerComponentClient({ cookies: () => cookieStore });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

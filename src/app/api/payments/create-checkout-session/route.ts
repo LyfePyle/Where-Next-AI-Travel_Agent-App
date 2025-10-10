@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,12 +12,11 @@ export async function POST(request: NextRequest) {
     const totalAmount = body.totalAmount || body.amount;
     const metadata = body.metadata || {};
 
-    // For development/demo, we'll simulate Stripe integration
-    // In production, you'd use the real Stripe API
-    
+    // Check if we're in demo mode or have real Stripe keys
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    const isDemoMode = !stripeSecretKey || stripeSecretKey === 'your_stripe_secret_key_here' || process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
     
-    if (!stripeSecretKey || stripeSecretKey === 'your_stripe_secret_key_here') {
+    if (isDemoMode) {
       // Demo mode - simulate successful session creation
       const mockSessionId = `cs_demo_${Date.now()}`;
       
@@ -27,6 +27,31 @@ export async function POST(request: NextRequest) {
         travelers: travelers.length,
         item: bookingType === 'flight' ? `${item.airline} ${item.id}` : item.name
       });
+      
+      // In demo mode, we can still create a mock payment session
+      try {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        
+        await supabase
+          .from("payment_sessions")
+          .insert({
+            user_id: 'demo-user',
+            stripe_checkout_session_id: mockSessionId,
+            status: 'created',
+            cart_snapshot: {
+              booking_type: bookingType,
+              total_amount: totalAmount,
+              travelers: travelers,
+              item: item,
+              metadata: metadata
+            }
+          });
+      } catch (error) {
+        console.log('Demo mode: Could not save payment session to database');
+      }
       
       return NextResponse.json({ 
         sessionId: mockSessionId,

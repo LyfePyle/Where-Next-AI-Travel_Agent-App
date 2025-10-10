@@ -73,7 +73,7 @@ export default function ToursPage() {
       name: 'Cultural & Historical', 
       icon: '🏛️', 
       description: 'Museums, monuments, and historical sites',
-      color: 'from-blue-500 to-purple-600',
+      color: 'bg-blue-600',
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-700'
     },
@@ -82,7 +82,7 @@ export default function ToursPage() {
       name: 'Food & Dining', 
       icon: '🍽️', 
       description: 'Local cuisine, markets, and restaurants',
-      color: 'from-orange-500 to-red-600',
+      color: 'bg-orange-600',
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-700'
     },
@@ -91,7 +91,7 @@ export default function ToursPage() {
       name: 'Nature & Parks', 
       icon: '🌳', 
       description: 'Parks, gardens, and outdoor spaces',
-      color: 'from-green-500 to-emerald-600',
+      color: 'bg-green-600',
       bgColor: 'bg-green-50',
       textColor: 'text-green-700'
     },
@@ -100,7 +100,7 @@ export default function ToursPage() {
       name: 'Shopping & Markets', 
       icon: '🛍️', 
       description: 'Local markets, boutiques, and shopping districts',
-      color: 'from-pink-500 to-rose-600',
+      color: 'bg-pink-600',
       bgColor: 'bg-pink-50',
       textColor: 'text-pink-700'
     },
@@ -109,7 +109,7 @@ export default function ToursPage() {
       name: 'Photography', 
       icon: '📸', 
       description: 'Scenic spots and photo opportunities',
-      color: 'from-purple-500 to-indigo-600',
+      color: 'bg-purple-600',
       bgColor: 'bg-purple-50',
       textColor: 'text-purple-700'
     },
@@ -118,7 +118,7 @@ export default function ToursPage() {
       name: 'Nightlife', 
       icon: '🌙', 
       description: 'Bars, clubs, and evening entertainment',
-      color: 'from-indigo-500 to-blue-600',
+      color: 'bg-indigo-600',
       bgColor: 'bg-indigo-50',
       textColor: 'text-indigo-700'
     }

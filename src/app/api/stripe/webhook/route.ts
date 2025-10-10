@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import Stripe from "stripe";
-import { supabaseService } from "@/lib/supabase-server";
+import { createServiceSupabaseClient } from "@/lib/supabase";
 import { confirmBookingsForOrder } from "@/lib/booking-worker";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const supabase = supabaseService();
+    const supabase = createServiceSupabaseClient();
 
     try {
       const { user_id, cart_id } = session.metadata!;
@@ -46,7 +46,58 @@ export async function POST(req: Request) {
       const total_cents = items.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
       const currency = items[0]?.currency || 'USD';
 
-      // Create order
+      // Create trip booking (final source of truth)
+      const { data: tripBooking } = await supabase
+        .from("trip_bookings")
+        .insert({
+          user_id,
+          trip_id: null, // Will be set if linked to a saved trip
+          booking_type: 'bundle', // or determine from items
+          status: 'paid',
+          total_amount_cents: total_cents,
+          currency: currency.toLowerCase(),
+          payment_intent_id: session.payment_intent as string,
+          confirmation_code: `WN${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+          metadata: {
+            cart_id,
+            items: items.map(item => ({
+              type: item.item_type,
+              name: item.name,
+              price_cents: item.price_cents,
+              quantity: item.quantity
+            }))
+          }
+        })
+        .select("*")
+        .single();
+
+      // Update payment session status
+      await supabase
+        .from("payment_sessions")
+        .update({ status: 'paid' })
+        .eq("stripe_checkout_session_id", session.id);
+
+      // Create booking confirmation
+      await supabase
+        .from("booking_confirmations")
+        .insert({
+          booking_id: tripBooking!.id,
+          user_id,
+          confirmation_payload: {
+            session_id: session.id,
+            payment_intent: session.payment_intent,
+            total_cents,
+            currency,
+            items: items.map(item => ({
+              type: item.item_type,
+              name: item.name,
+              price_cents: item.price_cents,
+              quantity: item.quantity
+            }))
+          }
+        });
+
+      // Also create order for backward compatibility
       const { data: order } = await supabase
         .from("orders")
         .insert({
@@ -88,7 +139,7 @@ export async function POST(req: Request) {
       // Trigger booking confirmations
       await confirmBookingsForOrder(order!.id);
 
-      console.log(`Order ${order!.id} created successfully for user ${user_id}`);
+      console.log(`Trip booking ${tripBooking!.id} and order ${order!.id} created successfully for user ${user_id}`);
     } catch (error) {
       console.error('Error processing checkout session:', error);
       return new Response('Internal Server Error', { status: 500 });

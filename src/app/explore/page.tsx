@@ -154,7 +154,7 @@ export default function ExplorePage() {
   }, [selectedCategory, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-blue-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -224,7 +224,7 @@ export default function ExplorePage() {
           {filteredDestinations.map((destination) => (
             <div key={destination.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group hover:scale-105">
               {/* Image/Emoji Header */}
-              <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+              <div className="h-48 bg-blue-500 flex items-center justify-center">
                 <div className="text-6xl">{destination.image}</div>
               </div>
 
@@ -311,7 +311,7 @@ export default function ExplorePage() {
         )}
 
         {/* Call to Action */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-12 text-center text-white">
+        <div className="bg-blue-600 rounded-3xl p-12 text-center text-white">
           <h2 className="text-3xl font-bold mb-4">Can't Find What You're Looking For?</h2>
           <p className="text-xl mb-8 opacity-90">
             Let our AI travel agent create personalized recommendations just for you

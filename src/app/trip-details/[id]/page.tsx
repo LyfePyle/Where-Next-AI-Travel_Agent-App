@@ -20,23 +20,41 @@ function TripDetailsContent() {
 
   const handleSaveTrip = async (tripData: TripSelection) => {
     try {
-      const savedTrips = JSON.parse(localStorage.getItem('savedTrips') || '[]');
-      const tripToSave = {
-        ...tripData,
-        savedAt: new Date().toISOString(),
-        name: `Trip to ${destination}`
-      };
-      
-      const existingIndex = savedTrips.findIndex((trip: any) => trip.id === tripId);
-      if (existingIndex >= 0) {
-        savedTrips[existingIndex] = tripToSave;
+      // Call the save trip API
+      const response = await fetch('/api/trips/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tripDetail: {
+            id: tripId,
+            destination,
+            city: destination.split(',')[0].trim(),
+            country: destination.split(',')[1]?.trim() || 'Unknown',
+            estimatedTotal: tripData.totalCost,
+            fitScore: 85 // Default fit score
+          },
+          preferences: {
+            startDate,
+            endDate,
+            adults,
+            kids,
+            budgetAmount: tripData.totalCost,
+            budgetStyle: 'comfortable',
+            vibes: ['travel']
+          }
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Trip saved successfully:', result);
+        alert('✅ Trip saved successfully!');
+        router.push('/saved');
       } else {
-        savedTrips.push(tripToSave);
+        throw new Error(`API request failed: ${response.status}`);
       }
-      
-      localStorage.setItem('savedTrips', JSON.stringify(savedTrips));
-      alert('✅ Trip saved successfully!');
-      router.push('/saved');
       
     } catch (error) {
       console.error('Error saving trip:', error);

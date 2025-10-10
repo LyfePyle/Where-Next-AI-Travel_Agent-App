@@ -13,11 +13,11 @@ interface SavedTrip {
   travelers?: number;
 }
 
-import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { createServerSupabaseClient } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createServerSupabaseClient();
     
     // Try to get user from session
     const { data: { user } } = await supabase.auth.getUser();
@@ -64,7 +64,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createServerSupabaseClient();
     const body = await request.json();
     
     // Get user from session

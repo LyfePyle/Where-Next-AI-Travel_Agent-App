@@ -91,12 +91,12 @@ function TripItineraryContent() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Get trip data from URL params
-  const tripId = searchParams.get('tripId');
-  const destination = searchParams.get('destination');
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
-  const budget = searchParams.get('budget');
-  const travelers = searchParams.get('travelers');
+  const tripId = searchParams.get('tripId') || 'thailand-adventure';
+  const destination = searchParams.get('destination') || 'Bangkok, Thailand';
+  const startDate = searchParams.get('startDate') || '2024-03-15';
+  const endDate = searchParams.get('endDate') || '2024-03-22';
+  const budget = searchParams.get('budget') || '2500';
+  const travelers = searchParams.get('travelers') || '2';
   const departureCity = searchParams.get('departureCity') || 'Vancouver';
 
   useEffect(() => {
@@ -192,6 +192,16 @@ function TripItineraryContent() {
         visaRequired: false,
         currency: 'EUR',
         baseCost: 3000
+      },
+      'Bangkok, Thailand': {
+        country: 'Thailand',
+        city: 'Bangkok',
+        highlights: ['Grand Palace', 'Floating Markets', 'Temple of Dawn', 'Street Food'],
+        description: 'Discover the vibrant culture of Thailand with its stunning temples, bustling markets, and world-famous cuisine.',
+        bestTimeToVisit: 'November-March (cool season)',
+        visaRequired: false,
+        currency: 'THB',
+        baseCost: 2500
       }
     };
 

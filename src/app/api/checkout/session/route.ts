@@ -11,7 +11,8 @@ export async function POST() {
   }
 
   try {
-    const supabase = createServerComponentClient({ cookies });
+    const cookieStore = await cookies();
+    const supabase = createServerComponentClient({ cookies: () => cookieStore });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -44,13 +45,32 @@ export async function POST() {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items,
-      success_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success`,
+      success_url: `${process.env.NEXT_PUBLIC_URL}/booking/confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/cart`,
       metadata: { 
         user_id: user.id, 
         cart_id: cart.id 
       }
     });
+
+    // Store payment session in database
+    await supabase
+      .from("payment_sessions")
+      .insert({
+        user_id: user.id,
+        stripe_checkout_session_id: session.id,
+        status: 'created',
+        cart_snapshot: {
+          cart_id: cart.id,
+          items: items.map(item => ({
+            type: item.item_type,
+            name: item.name,
+            price_cents: item.price_cents,
+            quantity: item.quantity,
+            currency: item.currency
+          }))
+        }
+      });
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

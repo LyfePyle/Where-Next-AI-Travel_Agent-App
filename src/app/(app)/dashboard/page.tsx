@@ -17,6 +17,7 @@ import {
   Compass,
   CheckCircle
 } from 'lucide-react';
+import RecentBookings from '@/components/dashboard/RecentBookings';
 
 export default function AppDashboardPage() {
   // Mock data for demo - in production this would come from your database
@@ -129,7 +130,7 @@ export default function AppDashboardPage() {
       {/* Trip Overview - Mobile First */}
       <div className="bg-blue-600 card-spacing rounded-2xl shadow-xl border-2 border-blue-800">
         {/* Trip Image */}
-        <div className="w-full h-36 md:h-44 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl mb-4 flex items-center justify-center">
+        <div className="w-full h-36 md:h-44 bg-blue-500 rounded-2xl mb-4 flex items-center justify-center">
           <div className="text-6xl">🏯</div>
         </div>
         
@@ -151,6 +152,22 @@ export default function AppDashboardPage() {
           <div className="w-full bg-gray-200 rounded-full h-3">
             <div className="bg-green-500 h-3 rounded-full" style={{width: '85%'}}></div>
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <Link
+            href="/trips/itinerary?tripId=thailand-adventure&destination=Bangkok%2C%20Thailand&startDate=2024-03-15&endDate=2024-03-22&budget=2500&travelers=2&departureCity=Vancouver"
+            className="bg-white text-blue-600 px-4 py-3 rounded-xl font-bold hover:bg-blue-50 transition-colors text-center"
+          >
+            📋 View Itinerary
+          </Link>
+          <Link
+            href="/budget?trip=thailand-adventure"
+            className="bg-white text-green-600 px-4 py-3 rounded-xl font-bold hover:bg-green-50 transition-colors text-center"
+          >
+            💰 Budget Breakdown
+          </Link>
         </div>
       </div>
 
@@ -192,7 +209,7 @@ export default function AppDashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-8 mb-8 border-2 border-indigo-200">
+      <div className="bg-indigo-50 rounded-2xl shadow-xl p-8 mb-8 border-2 border-indigo-200">
         <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
           <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center mr-3">
             <Compass className="w-5 h-5 text-white" />
@@ -279,7 +296,7 @@ export default function AppDashboardPage() {
                   </div>
                 </div>
                 <Link
-                  href={`/trip/${trip.id}`}
+                  href={`/trip-details/${trip.id}?destination=${trip.city}%2C%20${trip.country}&startDate=2024-03-15&endDate=2024-03-22&adults=2&kids=0&budgetAmount=${trip.budget}`}
                   className="text-blue-600 hover:text-blue-700"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -317,7 +334,7 @@ export default function AppDashboardPage() {
                   </div>
                 </div>
                 <Link
-                  href={`/trip/${trip.id}`}
+                  href={`/trip-details/${trip.id}?destination=${trip.city}%2C%20${trip.country}&startDate=2024-05-10&endDate=2024-05-17&adults=2&kids=0&budgetAmount=${trip.estimated_cost}`}
                   className="text-purple-600 hover:text-purple-700"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -363,7 +380,7 @@ export default function AppDashboardPage() {
       </div>
 
       {/* Upcoming Bookings Section */}
-      <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl shadow-xl p-8 border-2 border-green-200">
+      <div className="mt-8 bg-green-50 rounded-2xl shadow-xl p-8 border-2 border-green-200">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-black text-gray-900 flex items-center">
             <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
@@ -481,7 +498,7 @@ export default function AppDashboardPage() {
         </div>
 
         {/* AI Suggestions Card */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-200">
+        <div className="bg-purple-50 rounded-xl p-6 border border-purple-200">
           <div className="flex items-start">
             <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
               <Compass className="w-5 h-5 text-white" />
@@ -572,7 +589,7 @@ export default function AppDashboardPage() {
       </div>
 
       {/* Notifications & Alerts */}
-      <div className="mt-8 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-200">
+      <div className="mt-8 bg-yellow-50 rounded-xl p-6 border border-yellow-200">
         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
           <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center mr-3">
             <span className="text-white text-xs">!</span>
@@ -620,6 +637,9 @@ export default function AppDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Recent Bookings Section */}
+      <RecentBookings />
     </div>
     </div>
   );

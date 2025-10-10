@@ -1,238 +1,209 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, Download, Share2, Calendar, MapPin, Users, DollarSign, Clock, Plane, Hotel } from 'lucide-react';
+import { CheckCircle, Plane, Hotel, Calendar, MapPin, CreditCard, Mail, Download } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 
-interface BookingConfirmation {
-  bookingId: string;
-  tripName: string;
-  destination: string;
-  dates: {
-    start: string;
-    end: string;
-  };
-  travelers: number;
-  totalCost: number;
-  status: 'confirmed' | 'pending' | 'processing';
-  bookings: {
-    flights?: {
-      outbound: string;
-      return: string;
-      airline: string;
-      cost: number;
-    };
-    accommodation?: {
+interface BookingDetails {
+  id: string;
+  confirmation_code: string;
+  total_amount_cents: number;
+  currency: string;
+  status: string;
+  created_at: string;
+  metadata: {
+    items: Array<{
+      type: string;
       name: string;
-      checkIn: string;
-      checkOut: string;
-      nights: number;
-      cost: number;
-    };
-    activities?: Array<{
-      name: string;
-      date: string;
-      cost: number;
+      price_cents: number;
+      quantity: number;
     }>;
   };
 }
 
-// Generate destination-specific booking data
-function getDestinationBookingData(destination: string, startDate: string, endDate: string) {
-  const city = destination.split(',')[0].trim();
-  const country = destination.split(',')[1]?.trim() || '';
-  
-  // Calculate nights
-  const nights = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
-  
-  // Format dates
-  const startFormatted = new Date(startDate).toLocaleDateString('en-US', { 
-    year: 'numeric', month: 'long', day: 'numeric' 
-  });
-  const endFormatted = new Date(endDate).toLocaleDateString('en-US', { 
-    year: 'numeric', month: 'long', day: 'numeric' 
-  });
-  
-  if (city.toLowerCase().includes('toronto')) {
-    return {
-      flights: {
-        outbound: `YVR → YYZ, ${startFormatted}, 7:30 AM`,
-        return: `YYZ → YVR, ${endFormatted}, 6:45 PM`,
-        airline: 'Air Canada',
-        cost: 600
-      },
-      accommodation: {
-        name: 'Fairmont Royal York Toronto',
-        checkIn: startFormatted,
-        checkOut: endFormatted,
-        nights: nights,
-        cost: 600
-      },
-      activities: [
-        { name: 'CN Tower EdgeWalk Experience', date: `${startFormatted} + 1 day`, cost: 85 },
-        { name: 'Casa Loma Castle Tour', date: `${startFormatted} + 2 days`, cost: 45 },
-        { name: 'Distillery District Food Tour', date: `${startFormatted} + 3 days`, cost: 75 },
-        { name: 'Harbourfront Centre Event', date: `${startFormatted} + 4 days`, cost: 35 }
-      ]
-    };
-  }
-  
-  if (city.toLowerCase().includes('cancun') || city.toLowerCase().includes('acapulco')) {
-    return {
-      flights: {
-        outbound: `YVR → ${city.toUpperCase()}, ${startFormatted}, 8:30 AM`,
-        return: `${city.toUpperCase()} → YVR, ${endFormatted}, 3:15 PM`,
-        airline: 'WestJet',
-        cost: 850
-      },
-      accommodation: {
-        name: `All-Inclusive Resort ${city}`,
-        checkIn: startFormatted,
-        checkOut: endFormatted,
-        nights: nights,
-        cost: 180 * nights
-      },
-      activities: [
-        { name: 'Snorkeling Adventure', date: `${startFormatted} + 1 day`, cost: 65 },
-        { name: 'Mayan Ruins Tour', date: `${startFormatted} + 2 days`, cost: 85 },
-        { name: 'Beach Day Pass', date: `${startFormatted} + 3 days`, cost: 0 },
-        { name: 'Sunset Catamaran Cruise', date: `${startFormatted} + 4 days`, cost: 120 }
-      ]
-    };
-  }
-  
-  // Default booking data
-  return {
-    flights: {
-      outbound: `YVR → ${city.toUpperCase()}, ${startFormatted}, 9:30 AM`,
-      return: `${city.toUpperCase()} → YVR, ${endFormatted}, 4:15 PM`,
-      airline: 'Air Canada',
-      cost: 800
-    },
-    accommodation: {
-      name: `Grand Hotel ${city}`,
-      checkIn: startFormatted,
-      checkOut: endFormatted,
-      nights: nights,
-      cost: 150 * nights
-    },
-    activities: [
-      { name: `${city} City Tour`, date: `${startFormatted} + 1 day`, cost: 45 },
-      { name: `Local Cultural Experience`, date: `${startFormatted} + 2 days`, cost: 65 },
-      { name: `Food & Wine Tasting`, date: `${startFormatted} + 3 days`, cost: 85 },
-      { name: `Scenic Viewpoint Visit`, date: `${startFormatted} + 4 days`, cost: 25 }
-    ]
-  };
-}
-
-function BookingConfirmationPageContent() {
+export default function BookingConfirmationPage() {
   const searchParams = useSearchParams();
-  const [booking, setBooking] = useState<BookingConfirmation | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const sessionId = searchParams.get('session_id');
+  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get booking details from URL params
-    const bookingReference = searchParams.get('reference') || searchParams.get('id') || 'WN' + Date.now();
-    const bookingType = searchParams.get('type') || 'flight';
-    const amount = searchParams.get('amount') || '1200';
-    
-    // Create booking data from URL parameters
-    setTimeout(() => {
-      const destination = searchParams.get('destination') || 'Toronto, Canada';
-      const startDate = searchParams.get('startDate') || '2025-09-29';
-      const endDate = searchParams.get('endDate') || '2025-10-06';
-      const travelers = parseInt(searchParams.get('travelers') || '2');
-      const totalCost = parseInt(amount);
-      
-      // Get destination-specific data
-      const destinationData = getDestinationBookingData(destination, startDate, endDate);
-      
-      const mockBooking: BookingConfirmation = {
-        bookingId: bookingReference,
-        tripName: `${destination} Adventure`,
-        destination: destination,
-        dates: {
-          start: startDate,
-          end: endDate
-        },
-        travelers: travelers,
-        totalCost: totalCost,
-        status: 'confirmed',
-        bookings: destinationData
-      };
-      setBooking(mockBooking);
-      setIsLoading(false);
-    }, 1500);
-  }, [searchParams]);
+    // Check if we have a session_id (Stripe checkout) or booking details (direct booking)
+    const hasSessionId = !!sessionId;
+    const hasBookingDetails = !!(
+      searchParams.get('type') || 
+      searchParams.get('amount') || 
+      searchParams.get('reference')
+    );
 
-  const handleDownloadItinerary = () => {
-    // Create a downloadable itinerary
-    const itineraryText = `
-🎉 TRIP CONFIRMATION - ${booking?.tripName}
+    if (!hasSessionId && !hasBookingDetails) {
+      setError('No booking information provided');
+      setLoading(false);
+      return;
+    }
 
-📍 Destination: ${booking?.destination}
-📅 Dates: ${booking?.dates.start} to ${booking?.dates.end}
-👥 Travelers: ${booking?.travelers}
-💰 Total Cost: $${booking?.totalCost}
-🎫 Booking ID: ${booking?.bookingId}
-
-✈️ FLIGHTS:
-${booking?.bookings.flights?.outbound}
-${booking?.bookings.flights?.return}
-Airline: ${booking?.bookings.flights?.airline}
-
-🏨 ACCOMMODATION:
-${booking?.bookings.accommodation?.name}
-Check-in: ${booking?.bookings.accommodation?.checkIn}
-Check-out: ${booking?.bookings.accommodation?.checkOut}
-
-🎯 ACTIVITIES:
-${booking?.bookings.activities?.map(activity => 
-  `• ${activity.name} - ${activity.date} ($${activity.cost})`
-).join('\n')}
-
-Booked with WhereNext AI Travel Agent
-www.wherenext.travel
-    `.trim();
-
-    const blob = new Blob([itineraryText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${booking?.destination.replace(/[^a-zA-Z0-9]/g, '_')}_Itinerary.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleShare = async () => {
-    const shareData = {
-      title: `My ${booking?.destination} Trip`,
-      text: `I just booked an amazing trip to ${booking?.destination} with WhereNext! ${booking?.dates.start} to ${booking?.dates.end}`,
-      url: window.location.href
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        console.log('Error sharing:', err);
-      }
+    if (hasSessionId) {
+      fetchBookingDetailsFromSession();
     } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-      alert('Trip details copied to clipboard!');
+      createBookingFromParams();
+    }
+  }, [sessionId, searchParams]);
+
+  const fetchBookingDetailsFromSession = async () => {
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      // First try to get from payment_sessions
+      const { data: paymentSession } = await supabase
+        .from('payment_sessions')
+        .select('*')
+        .eq('stripe_checkout_session_id', sessionId)
+        .single();
+
+      if (paymentSession) {
+        // Get the associated trip booking
+        const { data: tripBooking } = await supabase
+          .from('trip_bookings')
+          .select('*')
+          .eq('payment_intent_id', paymentSession.stripe_checkout_session_id)
+          .single();
+
+        if (tripBooking) {
+          setBookingDetails(tripBooking);
+        } else {
+          // Fallback to mock data for demo
+          setBookingDetails({
+            id: 'demo-booking',
+            confirmation_code: `WN${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+            total_amount_cents: 124750,
+            currency: 'usd',
+            status: 'paid',
+            created_at: new Date().toISOString(),
+            metadata: {
+              items: [
+                { type: 'flight', name: 'Flight to Bangkok', price_cents: 75000, quantity: 1 },
+                { type: 'hotel', name: 'Bangkok Palace Hotel', price_cents: 49750, quantity: 3 }
+              ]
+            }
+          });
+        }
+      } else {
+        // Demo mode - create mock booking
+        setBookingDetails({
+          id: 'demo-booking',
+          confirmation_code: `WN${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+          total_amount_cents: 124750,
+          currency: 'usd',
+          status: 'paid',
+          created_at: new Date().toISOString(),
+          metadata: {
+            items: [
+              { type: 'flight', name: 'Flight to Bangkok', price_cents: 75000, quantity: 1 },
+              { type: 'hotel', name: 'Bangkok Palace Hotel', price_cents: 49750, quantity: 3 }
+            ]
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching booking details:', err);
+      setError('Failed to load booking details');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
+  const createBookingFromParams = async () => {
+    try {
+      // Extract booking details from URL parameters
+      const type = searchParams.get('type') || 'complete-trip';
+      const amount = searchParams.get('amount') || '0';
+      const reference = searchParams.get('reference') || `WN${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+      const destination = searchParams.get('destination') || 'Unknown Destination';
+      const startDate = searchParams.get('startDate') || '';
+      const endDate = searchParams.get('endDate') || '';
+
+      // Create booking details from URL parameters
+      const bookingDetails: BookingDetails = {
+        id: `booking-${Date.now()}`,
+        confirmation_code: reference,
+        total_amount_cents: parseInt(amount) * 100, // Convert to cents
+        currency: 'usd',
+        status: 'paid',
+        created_at: new Date().toISOString(),
+        metadata: {
+          items: [
+            {
+              type: type,
+              name: `${type.charAt(0).toUpperCase() + type.slice(1)} to ${destination}`,
+              price_cents: parseInt(amount) * 100,
+              quantity: 1
+            }
+          ],
+          destination,
+          startDate,
+          endDate
+        }
+      };
+
+      setBookingDetails(bookingDetails);
+    } catch (err) {
+      console.error('Error creating booking from params:', err);
+      setError('Failed to process booking details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (cents: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.toUpperCase()
+    }).format(cents / 100);
+  };
+
+  const getItemIcon = (type: string) => {
+    switch (type) {
+      case 'flight':
+        return <Plane className="w-5 h-5 text-blue-600" />;
+      case 'hotel':
+        return <Hotel className="w-5 h-5 text-green-600" />;
+      default:
+        return <Calendar className="w-5 h-5 text-purple-600" />;
+    }
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Processing your booking...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your booking confirmation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !bookingDetails) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-12 h-12 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Booking Not Found</h1>
+          <p className="text-gray-600 mb-8">{error || 'Unable to find your booking details.'}</p>
+          <Link 
+            href="/dashboard"
+            className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors"
+          >
+            Go to Dashboard
+          </Link>
         </div>
       </div>
     );
@@ -240,215 +211,131 @@ www.wherenext.travel
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Link href="/" className="text-2xl font-bold text-purple-600">Where Next</Link>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Success Header */}
+        <div className="text-center mb-12">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-12 h-12 text-green-600" />
         </div>
-      </header>
-
-      {/* Success Banner */}
-      <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <CheckCircle className="w-16 h-16 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold mb-2">Booking Confirmed! 🎉</h1>
-          <p className="text-lg opacity-90">Your amazing trip to {booking?.destination} is all set!</p>
-        </div>
+          <h1 className="text-4xl font-black text-gray-900 mb-4">
+            Booking Confirmed! 🎉
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Your travel booking has been successfully confirmed. You'll receive confirmation emails shortly.
+          </p>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Booking Summary */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Booking Summary</h2>
-            <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-semibold">
-              ✅ {booking?.status === 'confirmed' ? 'Confirmed' : 'Processing'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <MapPin className="w-5 h-5 text-purple-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Destination</p>
-                  <p className="font-semibold">{booking?.destination}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-purple-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Dates</p>
-                  <p className="font-semibold">{booking?.dates.start} to {booking?.dates.end}</p>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <Users className="w-5 h-5 text-purple-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Travelers</p>
-                  <p className="font-semibold">{booking?.travelers} people</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <DollarSign className="w-5 h-5 text-purple-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Total Cost</p>
-                  <p className="font-semibold text-2xl text-green-600">${booking?.totalCost?.toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t pt-6">
-            <p className="text-sm text-gray-600 mb-2">Booking Reference</p>
-            <p className="font-mono text-lg font-bold text-gray-900">{booking?.bookingId}</p>
-          </div>
-        </div>
-
         {/* Booking Details */}
-        <div className="space-y-6">
-          {/* Flights */}
-          {booking?.bookings.flights && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <Plane className="w-6 h-6 text-blue-600" />
-                <h3 className="text-xl font-bold">Flight Details</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 font-medium mb-1">Outbound Flight</p>
-                  <p className="text-gray-900">{booking.bookings.flights.outbound}</p>
-                </div>
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 font-medium mb-1">Return Flight</p>
-                  <p className="text-gray-900">{booking.bookings.flights.return}</p>
-                </div>
-              </div>
-              <div className="mt-4 flex justify-between items-center">
-                <p className="text-gray-600">Airline: {booking.bookings.flights.airline}</p>
-                <p className="font-bold text-blue-600">${booking.bookings.flights.cost}</p>
-              </div>
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+          <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200">
+                <div>
+              <h2 className="text-2xl font-bold text-gray-900">Booking Confirmation</h2>
+              <p className="text-gray-600 mt-1">Confirmation #{bookingDetails.confirmation_code}</p>
             </div>
-          )}
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Total Paid</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {formatCurrency(bookingDetails.total_amount_cents, bookingDetails.currency)}
+              </p>
+            </div>
+          </div>
 
-          {/* Accommodation */}
-          {booking?.bookings.accommodation && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <Hotel className="w-6 h-6 text-green-600" />
-                <h3 className="text-xl font-bold">Accommodation</h3>
-              </div>
-              <div className="bg-green-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-2">{booking.bookings.accommodation.name}</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-green-800 font-medium">Check-in</p>
-                    <p>{booking.bookings.accommodation.checkIn}</p>
+          {/* Booking Items */}
+          <div className="space-y-4 mb-6">
+            {bookingDetails.metadata.items.map((item, index) => (
+              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    {getItemIcon(item.type)}
                   </div>
                   <div>
-                    <p className="text-green-800 font-medium">Check-out</p>
-                    <p>{booking.bookings.accommodation.checkOut}</p>
+                    <p className="font-semibold text-gray-900">{item.name}</p>
+                    <p className="text-sm text-gray-600 capitalize">{item.type} booking</p>
+                    <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                   </div>
                 </div>
-                <div className="flex justify-between items-center mt-3">
-                  <p className="text-gray-600">{booking.bookings.accommodation.nights} nights</p>
-                  <p className="font-bold text-green-600">${booking.bookings.accommodation.cost}</p>
+                <div className="text-right">
+                  <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    Confirmed
+                  </span>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {formatCurrency(item.price_cents * item.quantity, bookingDetails.currency)}
+                  </p>
                 </div>
               </div>
+            ))}
             </div>
-          )}
 
-          {/* Activities */}
-          {booking?.bookings.activities && booking.bookings.activities.length > 0 && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <Clock className="w-6 h-6 text-orange-600" />
-                <h3 className="text-xl font-bold">Booked Activities</h3>
+          {/* Booking Summary */}
+          <div className="bg-blue-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-4 h-4 text-blue-600" />
+                <span className="text-gray-600">Booking Date:</span>
+                <span className="font-medium">
+                  {new Date(bookingDetails.created_at).toLocaleDateString()}
+                </span>
               </div>
-              <div className="space-y-3">
-                {booking.bookings.activities.map((activity, index) => (
-                  <div key={index} className="bg-orange-50 rounded-lg p-4 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{activity.name}</h4>
-                      <p className="text-orange-800 text-sm">{activity.date}</p>
-                    </div>
-                    <p className="font-bold text-orange-600">${activity.cost}</p>
-                  </div>
-                ))}
+              <div className="flex items-center space-x-2">
+                <CreditCard className="w-4 h-4 text-blue-600" />
+                <span className="text-gray-600">Payment Status:</span>
+                <span className="font-medium text-green-600 capitalize">{bookingDetails.status}</span>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mt-8">
-          <h3 className="text-xl font-bold mb-4">What's Next?</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={handleDownloadItinerary}
-              className="btn btn-primary flex items-center justify-center space-x-2"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Itinerary</span>
-            </button>
-            <button
-              onClick={handleShare}
-              className="btn btn-secondary flex items-center justify-center space-x-2"
-            >
-              <Share2 className="w-4 h-4" />
-              <span>Share Trip</span>
-            </button>
-            <Link
-              href="/my-trips"
-              className="btn btn-purple-light flex items-center justify-center space-x-2"
-            >
-              <Calendar className="w-4 h-4" />
-              <span>View All Trips</span>
-            </Link>
           </div>
         </div>
 
         {/* Next Steps */}
-        <div className="bg-purple-50 rounded-xl p-6 mt-8">
-          <h3 className="text-xl font-bold text-purple-900 mb-4">Important Reminders</h3>
-          <div className="space-y-3 text-purple-800">
-            <div className="flex items-start space-x-3">
-              <span className="bg-purple-200 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">1</span>
-              <p>Check your email for detailed booking confirmations from airlines and hotels</p>
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">What's Next?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-6 h-6 text-blue-600" />
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Email Confirmation</h4>
+              <p className="text-sm text-gray-600">
+                Check your email for detailed booking confirmations and travel documents.
+              </p>
             </div>
-            <div className="flex items-start space-x-3">
-              <span className="bg-purple-200 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">2</span>
-              <p>Ensure your passport is valid for at least 6 months from travel date</p>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Download className="w-6 h-6 text-green-600" />
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Travel Documents</h4>
+              <p className="text-sm text-gray-600">
+                Download your tickets and vouchers from your dashboard.
+              </p>
             </div>
-            <div className="flex items-start space-x-3">
-              <span className="bg-purple-200 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">3</span>
-              <p>Consider travel insurance for peace of mind</p>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPin className="w-6 h-6 text-purple-600" />
             </div>
-            <div className="flex items-start space-x-3">
-              <span className="bg-purple-200 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">4</span>
-              <p>Download your airline's app for easy check-in and updates</p>
+              <h4 className="font-semibold text-gray-900 mb-2">Travel Planning</h4>
+              <p className="text-sm text-gray-600">
+                Access your personalized itinerary and travel recommendations.
+              </p>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
 
-export default function BookingConfirmationPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading confirmation...</p>
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link 
+            href="/dashboard"
+            className="bg-blue-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg text-center"
+          >
+            View in Dashboard
+          </Link>
+          <Link 
+            href="/trips"
+            className="bg-gray-100 text-gray-700 px-8 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors shadow-lg text-center"
+          >
+            Plan Another Trip
+          </Link>
         </div>
       </div>
-    }>
-      <BookingConfirmationPageContent />
-    </Suspense>
+    </div>
   );
 }

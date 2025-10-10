@@ -65,6 +65,44 @@ const getDestinationPricing = (destination: string) => {
   };
 };
 
+const getCityCode = (destination: string) => {
+  const city = destination.split(',')[0].trim().toLowerCase();
+  
+  // Map common destinations to airport codes
+  const cityCodeMap: { [key: string]: string } = {
+    'cancun': 'CUN',
+    'honolulu': 'HNL',
+    'london': 'LHR',
+    'paris': 'CDG',
+    'madrid': 'MAD',
+    'barcelona': 'BCN',
+    'tokyo': 'NRT',
+    'bangkok': 'BKK',
+    'singapore': 'SIN',
+    'new york': 'JFK',
+    'los angeles': 'LAX',
+    'miami': 'MIA',
+    'toronto': 'YYZ',
+    'vancouver': 'YVR',
+    'rome': 'FCO',
+    'amsterdam': 'AMS',
+    'berlin': 'TXL',
+    'dubai': 'DXB',
+    'sydney': 'SYD',
+    'melbourne': 'MEL'
+  };
+  
+  // Try to find exact match
+  for (const [key, code] of Object.entries(cityCodeMap)) {
+    if (city.includes(key)) {
+      return code;
+    }
+  }
+  
+  // Default fallback
+  return 'LAX';
+};
+
 const getFlightDuration = (destination: string, flightType: 'direct' | 'one-stop' | 'premium') => {
   const city = destination.split(',')[0].trim().toLowerCase();
   
@@ -187,44 +225,64 @@ export default function TripDetailsEnhanced({
   const loadTripOptions = async () => {
     setIsLoading(true);
     try {
-      // Get destination-specific pricing
+      // Get destination-specific pricing for fallback
       const pricing = getDestinationPricing(destination);
       
-      // Load flight options (destination-specific)
-      const flights: FlightOption[] = [
-        {
-          id: 'flight_1',
-          airline: getAirlineName(destination, 0),
-          price: pricing.flights[0],
-          duration: getFlightDuration(destination, 'direct'),
-          departure: '08:30',
-          arrival: '21:00',
-          stops: 0,
-          aircraft: 'Boeing 787-9'
-        },
-        {
-          id: 'flight_2',
-          airline: getAirlineName(destination, 1),
-          price: pricing.flights[1],
-          duration: getFlightDuration(destination, 'one-stop'),
-          departure: '14:20',
-          arrival: '13:05',
-          stops: 1,
-          aircraft: 'Airbus A350'
-        },
-        {
-          id: 'flight_3',
-          airline: getAirlineName(destination, 2),
-          price: pricing.flights[2],
-          duration: getFlightDuration(destination, 'premium'),
-          departure: '10:15',
-          arrival: '08:30',
-          stops: 0,
-          aircraft: 'Boeing 777-300'
+      // Try to fetch real-time flights with better error handling
+      let flights: FlightOption[] = [];
+      try {
+        const cityCode = getCityCode(destination);
+        const flightResponse = await fetch(`/api/flights/search?origin=YVR&destination=${cityCode}&departureDate=${startDate}&adults=${travelers.adults}&max=3`);
+        
+        if (flightResponse.ok) {
+          const flightData = await flightResponse.json();
+          if (flightData.flights && flightData.flights.length > 0) {
+            flights = flightData.flights;
+            console.log('✅ Real-time flights loaded:', flights.length);
+          } else {
+            throw new Error('No flights returned');
+          }
+        } else {
+          throw new Error(`Flight API failed: ${flightResponse.status}`);
         }
-      ];
+      } catch (error) {
+        console.log('⚠️ Using fallback flight data:', error);
+        // Fallback to hardcoded flights
+        flights = [
+          {
+            id: 'flight_1',
+            airline: getAirlineName(destination, 0),
+            price: pricing.flights[0],
+            duration: getFlightDuration(destination, 'direct'),
+            departure: '08:30',
+            arrival: '21:00',
+            stops: 0,
+            aircraft: 'Boeing 787-9'
+          },
+          {
+            id: 'flight_2',
+            airline: getAirlineName(destination, 1),
+            price: pricing.flights[1],
+            duration: getFlightDuration(destination, 'one-stop'),
+            departure: '14:20',
+            arrival: '13:05',
+            stops: 1,
+            aircraft: 'Airbus A350'
+          },
+          {
+            id: 'flight_3',
+            airline: getAirlineName(destination, 2),
+            price: pricing.flights[2],
+            duration: getFlightDuration(destination, 'premium'),
+            departure: '10:15',
+            arrival: '08:30',
+            stops: 0,
+            aircraft: 'Boeing 777-300'
+          }
+        ];
+      }
 
-      // Load hotel options (destination-specific)
+      // Use fallback hotel data (hotel API temporarily disabled due to Amadeus client issues)
       const hotels: HotelOption[] = [
         {
           id: 'hotel_1',

@@ -1,10 +1,10 @@
-import { supabaseService } from "./supabase-server";
+import { createServiceSupabaseClient } from "./supabase";
 
 export async function confirmBookingsForOrder(orderId: string) {
   console.log("🚀 Starting booking confirmations for order:", orderId);
   
   try {
-    const supabase = supabaseService();
+    const supabase = createServiceSupabaseClient();
     
     // Fetch order items
     const { data: orderItems } = await supabase

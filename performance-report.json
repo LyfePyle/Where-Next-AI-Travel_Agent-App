@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-09-23T23:44:28.114Z",
+  "timestamp": "2025-10-08T02:14:42.364Z",
   "summary": {
     "totalTests": 16,
-    "passed": 3,
-    "warnings": 3,
+    "passed": 4,
+    "warnings": 2,
     "failed": 9
   },
   "baselines": {
@@ -153,7 +153,7 @@
     },
     {
       "test": "Concurrent Load - 15 users",
-      "avgResponseTime": 0,
+      "avgResponseTime": 0.6666666666666666,
       "failureRate": 1,
       "successCount": 0,
       "totalRequests": 15,
@@ -161,7 +161,7 @@
     },
     {
       "test": "Heavy Load - 30 users",
-      "avgResponseTime": 0,
+      "avgResponseTime": 0.9666666666666667,
       "failureRate": 1,
       "successCount": 0,
       "totalRequests": 30,
@@ -188,35 +188,35 @@
     {
       "endpoint": "/api/trips/saved (writes)",
       "baseline": 1500,
-      "avgResponseTime": 0,
+      "avgResponseTime": 1,
       "results": [
-        0,
-        0,
-        0
+        1,
+        1,
+        1
       ],
       "status": "PASS"
     },
     {
       "test": "Memory Usage",
-      "initialHeapUsed": 122448304,
-      "finalHeapUsed": 122477416,
-      "memoryIncrease": 29112,
+      "initialHeapUsed": 67162768,
+      "finalHeapUsed": 67193344,
+      "memoryIncrease": 30576,
       "maxAllowed": 104857600,
       "status": "PASS"
     },
     {
       "test": "Garbage Collection",
-      "beforeGC": 122637760,
-      "afterGC": 123438032,
-      "efficiency": -0.006525494268649395,
+      "beforeGC": 67328352,
+      "afterGC": 68128624,
+      "efficiency": -0.01188610705932621,
       "status": "INFO"
     },
     {
       "test": "Cache Performance",
-      "firstRequest": 0,
+      "firstRequest": 1,
       "avgCachedRequests": 0,
       "improvementRatio": null,
-      "status": "WARN"
+      "status": "PASS"
     }
   ]
 }

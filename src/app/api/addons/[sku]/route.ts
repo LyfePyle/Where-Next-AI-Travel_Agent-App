@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function GET(
@@ -16,7 +16,18 @@ export async function GET(
       );
     }
 
-    const supabase = createServerComponentClient({ cookies });
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (name) => cookieStore.get(name)?.value,
+          set: (name, value, options) => cookieStore.set({ name, value, ...options }),
+          remove: (name, options) => cookieStore.set({ name, value: "", ...options }),
+        },
+      }
+    );
     
     // First try to find in curated add-ons
     const { data: addon, error } = await supabase

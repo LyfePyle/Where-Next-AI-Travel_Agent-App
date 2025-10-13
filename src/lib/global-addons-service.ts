@@ -1,4 +1,4 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import OpenAI from 'openai';
 
@@ -42,14 +42,28 @@ interface GeneratedAddOn {
 }
 
 export class GlobalAddOnService {
-  private supabase = createServerComponentClient({ cookies });
+  private async getSupabase() {
+    const cookieStore = await cookies();
+    return createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (name) => cookieStore.get(name)?.value,
+          set: (name, value, options) => cookieStore.set({ name, value, ...options }),
+          remove: (name, options) => cookieStore.set({ name, value: "", ...options }),
+        },
+      }
+    );
+  }
 
   /**
    * Get or create city profile with AI assistance
    */
   async getCityProfile(cityName: string, country?: string): Promise<CityProfile | null> {
     // First, try to find existing profile
-    let { data: profile } = await this.supabase
+    const supabase = await this.getSupabase();
+    let { data: profile } = await supabase
       .from('city_profiles')
       .select('*')
       .ilike('city_name', cityName)
@@ -61,7 +75,7 @@ export class GlobalAddOnService {
     if (process.env.OPENAI_API_KEY) {
       profile = await this.generateCityProfile(cityName, country);
       if (profile) {
-        await this.supabase.from('city_profiles').insert(profile);
+        await supabase.from('city_profiles').insert(profile);
         return profile;
       }
     }
@@ -147,7 +161,8 @@ Be accurate and realistic with the cost_of_living_index. Examples: Bangkok=0.3, 
     itemType?: string, 
     limit: number = 6
   ): Promise<GeneratedAddOn[]> {
-    let query = this.supabase
+    const supabase = await this.getSupabase();
+    let query = supabase
       .from('addons')
       .select('*')
       .ilike('city', cityName)
@@ -252,7 +267,8 @@ Make prices realistic for the local cost of living. Be specific and authentic to
     const cityProfile = await this.getCityProfile(cityName);
     if (!cityProfile) return [];
 
-    let query = this.supabase
+    const supabase = await this.getSupabase();
+    let query = supabase
       .from('addon_templates')
       .select('*')
       .limit(limit);
@@ -320,7 +336,8 @@ Make prices realistic for the local cost of living. Be specific and authentic to
     
     if (addOns.length === 0) {
       // Try fuzzy search in existing add-ons
-      let searchQuery = this.supabase
+      const supabase = await this.getSupabase();
+      let searchQuery = supabase
         .from('addons')
         .select('*')
         .or(`city.ilike.%${query}%,title.ilike.%${query}%,description.ilike.%${query}%`)

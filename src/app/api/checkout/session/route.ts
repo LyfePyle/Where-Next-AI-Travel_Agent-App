@@ -6,10 +6,6 @@ import { cookies } from "next/headers";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST() {
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.ENABLE_REAL_PAYMENTS !== "true") {
-    return NextResponse.json({ error: "Payments disabled in demo mode" }, { status: 403 });
-  }
-
   try {
     const cookieStore = await cookies();
     const supabase = createServerClient(

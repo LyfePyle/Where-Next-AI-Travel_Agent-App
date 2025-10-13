@@ -3,10 +3,6 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 export async function POST(req: Request) {
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
-    return NextResponse.json({ error: "Demo mode: add-to-cart disabled" }, { status: 403 });
-  }
-  
   try {
     const body = await req.json();
     const cookieStore = await cookies();

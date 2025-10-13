@@ -49,11 +49,6 @@ export default function CartPage() {
   };
 
   const handleCheckout = async () => {
-    if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-      alert('Demo mode: Checkout is disabled. This would normally redirect to Stripe payment.');
-      return;
-    }
-    
     setIsCheckingOut(true);
     try {
       const res = await fetch('/api/checkout/session', { method: 'POST' });
@@ -109,22 +104,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* Demo Mode Banner */}
-        {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
-          <div className="bg-amber-100 border border-amber-300 rounded-xl p-4 mb-6">
-            <div className="flex items-center">
-              <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center mr-3">
-                <span className="text-white text-sm font-bold">!</span>
-              </div>
-              <div>
-                <p className="font-semibold text-amber-800">Demo Mode Active</p>
-                <p className="text-amber-700 text-sm">
-                  This is a demonstration. No real purchases will be made.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {!cart || items.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-xl p-12 text-center">

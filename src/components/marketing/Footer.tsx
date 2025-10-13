@@ -9,7 +9,7 @@ const footerSections = [
     title: 'Product',
     links: [
       { label: 'Trip Planning', href: '/product/trip-planning' },
-      { label: 'Budget Tracker', href: '/product/budget-tracker' },
+      { label: 'Budget Tracker', href: '/budget' },
       { label: 'AI Agent', href: '/product/ai-agent' },
       { label: 'Flight Booking', href: '/product/flight-booking' },
     ]

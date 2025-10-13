@@ -405,7 +405,8 @@ function SuggestionsContent() {
       const from = searchParams.get('from') || 'Vancouver';
       const budget = searchParams.get('budget') || '2000';
       const budgetAmount = searchParams.get('budgetAmount') || budget;
-      const vibes = searchParams.get('vibes') ? JSON.parse(searchParams.get('vibes')!) : [];
+      const vibesParam = searchParams.get('vibes');
+      const vibes = vibesParam ? (vibesParam.startsWith('[') ? JSON.parse(vibesParam) : [vibesParam]) : [];
       const additionalDetails = searchParams.get('additionalDetails') || '';
       const adults = parseInt(searchParams.get('adults') || '2');
       const kids = parseInt(searchParams.get('kids') || '0');
@@ -437,7 +438,8 @@ function SuggestionsContent() {
           adults,
           kids,
           startDate,
-          endDate
+          endDate,
+          loadMore: true
         }),
       });
 

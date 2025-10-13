@@ -563,9 +563,12 @@ export default function NewHomePage() {
                   </div>
                   {/* New: Book Now button */}
                   <div className="mt-6">
-                    <button className="w-full bg-orange-600 text-white font-black py-4 px-6 rounded-2xl hover:bg-orange-700 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105">
+                    <Link 
+                      href={`/trip-details/${destination.name.toLowerCase().replace(/[, ]+/g, '-')}?destination=${encodeURIComponent(destination.name)}&startDate=${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}&endDate=${new Date(Date.now() + (30 + parseInt(destination.duration)) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}&adults=2&kids=0&budgetAmount=${destination.price}`}
+                      className="block w-full bg-orange-600 text-white font-black py-4 px-6 rounded-2xl hover:bg-orange-700 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 text-center"
+                    >
                       Book This Trip →
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>

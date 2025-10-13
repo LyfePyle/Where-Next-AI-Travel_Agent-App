@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { from, budget, budgetAmount, vibes, additionalDetails, adults, kids, startDate, endDate } = body;
+    const { from, budget, budgetAmount, vibes, additionalDetails, adults, kids, startDate, endDate, loadMore } = body;
     
     // Normalize parameters
     const normalizedParams = {
@@ -123,7 +123,8 @@ async function generateAISuggestions(preferences: any) {
     total: preferences.budgetAmount
   } : null;
 
-  const prompt = `You are an expert travel AI assistant. Generate 3 diverse, realistic trip suggestions based on these preferences:
+  const numSuggestions = loadMore ? 2 : 3;
+  const prompt = `You are an expert travel AI assistant. Generate ${numSuggestions} diverse, realistic trip suggestions based on these preferences:
 
 TRAVELER DETAILS:
 - From: ${preferences.from}
@@ -139,7 +140,7 @@ ${budgetBreakdown ? `- Daily spending: $${budgetBreakdown.daily}/day (food, acti
 - Hotel budget: $${budgetBreakdown.hotels}/night
 - TOTAL PER PERSON: $${budgetBreakdown.total}` : `- Total budget: $${preferences.budgetAmount} (${preferences.budgetStyle} style)`}
 
-Please provide 3 diverse destination suggestions that match these preferences. For each suggestion, include:
+Please provide ${numSuggestions} diverse destination suggestions that match these preferences. For each suggestion, include:
 
 1. A unique destination that fits the budget and interests
 2. Realistic pricing estimates based on the budget style - IMPORTANT: estimatedTotal should be the TOTAL trip cost for ALL ${preferences.adults + preferences.kids} travelers, not per person

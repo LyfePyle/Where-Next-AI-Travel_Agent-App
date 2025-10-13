@@ -20,7 +20,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Where Next - AI Travel Planning",
   description: "Plan your perfect trip with AI-powered travel recommendations",
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

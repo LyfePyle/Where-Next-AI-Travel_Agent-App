@@ -1,4 +1,5 @@
-import { Metadata } from 'next';
+'use client';
+
 import Hero from '@/components/marketing/Hero';
 import Section from '@/components/marketing/Section';
 import helpData from '@/data/marketing/help.sample.json';
@@ -11,11 +12,6 @@ import {
   Star,
   Clock
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: "Help Center | Where Next",
-  description: "Step-by-step guides for planning, budgets, and bookings.",
-};
 
 // Get popular articles
 const popularArticles = helpData.filter(article => article.popular);

@@ -79,6 +79,9 @@ export default function TripsPage() {
         } else {
           setTrips(data || []);
         }
+      } else {
+        // User not authenticated, set empty trips
+        setTrips([]);
       }
     } catch (error) {
       console.error('Error loading trips:', error);

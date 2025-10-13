@@ -91,5 +91,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, email });
+  // Return redirect to dashboard
+  return NextResponse.redirect(new URL("/dashboard", process.env.NEXT_PUBLIC_URL || "http://localhost:3000"));
 }

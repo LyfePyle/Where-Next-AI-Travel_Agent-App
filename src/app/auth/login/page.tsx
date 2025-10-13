@@ -45,6 +45,25 @@ export default function LoginPage() {
     }
   };
 
+  const handleGuestPreview = async () => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const res = await fetch('/api/auth/preview-guest', { method: 'POST' });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || `HTTP ${res.status}`);
+      }
+      // Go straight to dashboard
+      window.location.href = '/dashboard';
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
@@ -145,6 +164,19 @@ export default function LoginPage() {
             >
               Try Demo Mode
             </button>
+
+            {/* Guest Preview Button */}
+            {process.env.NEXT_PUBLIC_PREVIEW_HINT === "true" && (
+              <button
+                type="button"
+                onClick={handleGuestPreview}
+                disabled={isLoading}
+                className="w-full flex justify-center items-center py-3 px-4 border border-purple-300 rounded-lg shadow-sm text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Creates a temporary preview user and logs you in"
+              >
+                {isLoading ? "Starting preview…" : "Continue as Guest (Preview)"}
+              </button>
+            )}
           </form>
 
           {/* Divider */}

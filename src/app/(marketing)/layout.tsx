@@ -1,8 +1,9 @@
 import TopNav from '@/components/marketing/TopNav';
 import Footer from '@/components/marketing/Footer';
 
-export const metadata = {
-  viewport: "width=device-width, initial-scale=1",
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function MarketingLayout({

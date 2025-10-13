@@ -1,3 +1,5 @@
+'use client';
+
 import { Metadata } from 'next';
 import Hero from '@/components/marketing/Hero';
 import Section from '@/components/marketing/Section';

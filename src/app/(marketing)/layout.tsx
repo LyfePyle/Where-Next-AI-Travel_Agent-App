@@ -1,5 +1,11 @@
+import { Metadata } from 'next';
 import TopNav from '@/components/marketing/TopNav';
 import Footer from '@/components/marketing/Footer';
+
+export const metadata: Metadata = {
+  title: "Where Next - AI Travel Planning",
+  description: "Plan your perfect trip with AI-powered travel recommendations",
+};
 
 export const viewport = {
   width: "device-width",

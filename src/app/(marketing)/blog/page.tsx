@@ -1,6 +1,5 @@
 'use client';
 
-import { Metadata } from 'next';
 import Hero from '@/components/marketing/Hero';
 import Section from '@/components/marketing/Section';
 import blogData from '@/data/marketing/blog.sample.json';
@@ -12,11 +11,6 @@ import {
   Mail,
   Search
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: "Blog | Where Next",
-  description: "Guides, product updates, and travel tactics.",
-};
 
 // Get featured post (first one)
 const featuredPost = blogData[0];

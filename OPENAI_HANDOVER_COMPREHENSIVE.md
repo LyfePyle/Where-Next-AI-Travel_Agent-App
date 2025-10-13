@@ -4,13 +4,14 @@
 
 **Where Next** is an AI-powered travel planning application built on Next.js 15, Supabase, and OpenAI. The project is **75% complete** with most core features implemented but **critical gaps in the complete user journey**, particularly around **checkout flow completion** and **end-to-end booking integration**.
 
-### **Current Status: 80% Complete**
+### **Current Status: 85% Complete**
 - ✅ **Core Infrastructure**: Database, API routes, authentication
 - ✅ **Frontend Components**: Dashboard, trip planning, budget management  
 - ✅ **AI Integration**: OpenAI integration for trip suggestions and planning
 - ✅ **Payment Setup**: Stripe integration (demo mode)
 - ✅ **Build Issues Fixed**: All Next.js build errors resolved
 - ✅ **Vercel Deployment**: Successfully deployed to production
+- ✅ **Preview Guest System**: Implemented for OpenAI testing without registration
 - ❌ **Complete Checkout Flow**: Missing final booking confirmation and persistence
 - ❌ **End-to-End Testing**: Limited coverage of critical user flows
 - ❌ **Environment Variables**: Missing API keys in production
@@ -46,6 +47,42 @@ where-next/
 ├── docs/                      # Documentation
 └── public/                    # Static assets
 ```
+
+---
+
+## 🔐 **PREVIEW GUEST SYSTEM FOR OPENAI TESTING**
+
+### **Overview**
+A secure preview guest system has been implemented to allow OpenAI to test the application without requiring user registration. This system only works in Vercel preview environments and includes automatic user seeding.
+
+### **How It Works**
+1. **Guest Login Button**: Appears on login page when `NEXT_PUBLIC_PREVIEW_HINT=true`
+2. **Secure API Route**: `/api/auth/preview-guest` creates temporary users with rate limiting
+3. **Server-side Auth Gate**: App layout checks authentication server-side to prevent infinite spinners
+4. **Automatic Seeding**: Creates user profile and open cart for immediate testing
+5. **Environment Security**: Only works when `PREVIEW_GUEST_ENABLED=true` and `VERCEL_ENV=preview`
+
+### **Environment Variables Required**
+```bash
+# Preview Environment Only
+PREVIEW_GUEST_ENABLED=true
+NEXT_PUBLIC_PREVIEW_HINT=true
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+```
+
+### **Testing Checklist**
+- [ ] Configure environment variables in Vercel preview environment
+- [ ] Deploy to Vercel preview
+- [ ] Visit login page → click "Continue as Guest (Preview)"
+- [ ] Verify user is logged in and redirected to dashboard
+- [ ] Test cart functionality with seeded data
+- [ ] Test trip planning and AI suggestions
+
+### **Security Features**
+- Rate limiting: 1 request per 5 seconds per IP
+- Environment restrictions: Only works in Vercel preview
+- Temporary users: Created with `preview_*@guest.local` emails
+- Automatic cleanup: Users can be cleaned up after 7 days
 
 ---
 
@@ -128,6 +165,14 @@ where-next/
 - ✅ **Metadata Exports**: Removed metadata exports from client components
 - ✅ **Vercel Deployment**: Successfully deployed to production
 
+### **Preview Guest System Implemented**
+- ✅ **Preview Guest API**: Created secure preview guest authentication route
+- ✅ **Server-side Auth Gate**: Converted app layout to server-side authentication checking
+- ✅ **Guest Login Button**: Added conditional guest preview button to login page
+- ✅ **User Seeding**: Automatic profile and cart creation for preview users
+- ✅ **Rate Limiting**: Basic rate limiting to prevent abuse
+- ✅ **Environment Security**: Preview system only works in Vercel preview environment
+
 ### **Current Production URL**
 - **Live Site**: https://where-next-ai-travel-agent-njpxci66u-evan-s-projects-5e90a7db.vercel.app
 - **Status**: Deployed but missing environment variables
@@ -144,6 +189,8 @@ where-next/
 - `POST /api/ai/walking-tour` - AI walking tours
 - `GET /api/budgets` - Budget management (demo data)
 - `GET /api/expenses` - Expense tracking (demo data)
+- `POST /api/auth/preview-guest` - Preview guest authentication (Vercel preview only)
+- `GET /api/health` - Environment health check
 
 ### **⚠️ PARTIALLY WORKING APIs**
 - `GET /api/flights/search` - Flight search (falls back to mock data)
@@ -226,6 +273,10 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key_here
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+
+# Preview Guest System (Preview Environment Only)
+PREVIEW_GUEST_ENABLED=true
+NEXT_PUBLIC_PREVIEW_HINT=true
 ```
 
 #### **1.2 Update Vercel Environment Variables**
@@ -317,6 +368,12 @@ NEXT_PUBLIC_URL=http://localhost:3000
 - `src/app/trip-details/[id]/page.tsx` - Trip details with booking
 - `src/components/TripDetailsEnhanced.tsx` - Main trip details component
 
+### **🔐 Preview Guest System**
+- `src/app/api/auth/preview-guest/route.ts` - Preview guest authentication API
+- `src/app/api/health/route.ts` - Environment health check endpoint
+- `src/app/(app)/layout.tsx` - Server-side authentication gate
+- `src/components/app/AppNavigation.tsx` - Client-side navigation component
+
 ### **🤖 AI Integration**
 - `src/app/api/ai/suggestions/route.ts` - OpenAI integration for trip suggestions
 - `src/lib/validations/trip.ts` - Zod schemas for form validation
@@ -385,10 +442,10 @@ NEXT_PUBLIC_URL=http://localhost:3000
 ## 🚀 **NEXT STEPS FOR OPENAI**
 
 ### **Immediate Actions (Next 2 Hours)**
-1. **Fix Cart System**: Remove demo mode restrictions, add database persistence
-2. **Fix Checkout Flow**: Remove demo mode restrictions, add proper Stripe integration
-3. **Fix Demo Mode**: Disable demo mode, enable production features
-4. **Test Critical Flows**: Verify cart → checkout → payment → confirmation flow
+1. **Configure Preview Environment**: Set up environment variables in Vercel for preview guest system
+2. **Test Preview Guest System**: Verify guest login works in Vercel preview environment
+3. **Fix Cart System**: Remove demo mode restrictions, add database persistence
+4. **Fix Checkout Flow**: Remove demo mode restrictions, add proper Stripe integration
 
 ### **Short Term (Next 2 Days)**
 1. **Complete Payment Integration**: Add webhook handling, booking confirmation

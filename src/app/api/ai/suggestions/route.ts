@@ -123,7 +123,7 @@ async function generateAISuggestions(preferences: any) {
     total: preferences.budgetAmount
   } : null;
 
-  const numSuggestions = loadMore ? 2 : 3;
+  const numSuggestions = 3;
   const prompt = `You are an expert travel AI assistant. Generate ${numSuggestions} diverse, realistic trip suggestions based on these preferences:
 
 TRAVELER DETAILS:

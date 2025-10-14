@@ -17,28 +17,28 @@ const footerSections = [
   {
     title: 'Company', 
     links: [
-      { label: 'About Us', href: '/company/about' },
-      { label: 'Careers', href: '/company/careers' },
-      { label: 'Press Kit', href: '/company/press-kit' },
+      { label: 'About Us', href: '/about' },
+      { label: 'Careers', href: '/careers' },
+      { label: 'Press Kit', href: '/press' },
       { label: 'Blog', href: '/blog' },
     ]
   },
   {
     title: 'Support',
     links: [
-      { label: 'Help Center', href: '/support' },
-      { label: 'Contact Us', href: '/support/contact' },
-      { label: 'Privacy Policy', href: '/support/privacy-policy' },
-      { label: 'Terms of Service', href: '/support/terms' },
+      { label: 'Help Center', href: '/help' },
+      { label: 'Contact Us', href: '/contact' },
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Terms of Service', href: '/terms' },
     ]
   },
   {
     title: 'Resources',
     links: [
-      { label: 'Travel Tools', href: '/resources/tools' },
-      { label: 'Walking Tours', href: '/resources/walking-tours' },
-      { label: 'Saved Trips', href: '/resources/saved-trips' },
-      { label: 'My Trips', href: '/resources/my-trips' },
+      { label: 'Travel Tools', href: '/tools' },
+      { label: 'Walking Tours', href: '/tours' },
+      { label: 'Saved Trips', href: '/saved' },
+      { label: 'My Trips', href: '/saved' },
     ]
   }
 ];

@@ -55,11 +55,14 @@ export default function LoginPage() {
         const j = await res.json().catch(() => ({}));
         throw new Error(j?.error || `HTTP ${res.status}`);
       }
-      // Go straight to dashboard
-      window.location.href = '/dashboard';
+      // The API route handles the redirect, but fallback to client redirect
+      if (res.redirected) {
+        window.location.href = res.url;
+      } else {
+        window.location.href = '/dashboard';
+      }
     } catch (e: any) {
       setError(e.message);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -166,17 +169,15 @@ export default function LoginPage() {
             </button>
 
             {/* Guest Preview Button */}
-            {process.env.NEXT_PUBLIC_PREVIEW_HINT === "true" && (
-              <button
-                type="button"
-                onClick={handleGuestPreview}
-                disabled={isLoading}
-                className="w-full flex justify-center items-center py-3 px-4 border border-purple-300 rounded-lg shadow-sm text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Creates a temporary preview user and logs you in"
-              >
-                {isLoading ? "Starting preview…" : "Continue as Guest (Preview)"}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleGuestPreview}
+              disabled={isLoading}
+              className="w-full flex justify-center items-center py-3 px-4 border border-purple-300 rounded-lg shadow-sm text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Creates a temporary preview user and logs you in"
+            >
+              {isLoading ? "Starting preview…" : "Continue as Guest (Preview)"}
+            </button>
           </form>
 
           {/* Divider */}

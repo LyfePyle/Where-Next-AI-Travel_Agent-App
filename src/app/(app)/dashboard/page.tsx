@@ -232,7 +232,7 @@ export default function AppDashboardPage() {
           </Link>
 
           <Link
-            href="/app/budget"
+            href="/budget"
             className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
           >
             <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center mr-4">
@@ -349,7 +349,7 @@ export default function AppDashboardPage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900">Budget Overview</h2>
             <Link 
-              href="/app/budget"
+              href="/budget"
               className="text-green-600 hover:text-green-700 text-sm font-medium"
             >
               Manage

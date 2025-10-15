@@ -740,7 +740,7 @@ export default function NewHomePage() {
               <h3 className="text-2xl font-bold mb-8 text-white">Product</h3>
               <ul className="space-y-4">
                 <li><Link href="/plan-trip" className="text-gray-300 hover:text-white transition-colors text-lg block">Trip Planning</Link></li>
-                <li><Link href="/app/budget" className="text-gray-300 hover:text-white transition-colors text-lg block">Budget Tracker</Link></li>
+                <li><Link href="/budget" className="text-gray-300 hover:text-white transition-colors text-lg block">Budget Tracker</Link></li>
                 <li><Link href="/ai-travel-agent" className="text-gray-300 hover:text-white transition-colors text-lg block">AI Agent</Link></li>
                 <li><Link href="/flight-booking" className="text-gray-300 hover:text-white transition-colors text-lg block">Flight Booking</Link></li>
               </ul>

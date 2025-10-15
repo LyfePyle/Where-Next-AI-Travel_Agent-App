@@ -17,7 +17,7 @@
     "test:openai": "node test-openai-api.js",
     "seed:addons": "node scripts/seed-addons.js",
     "test:amadeus": "node test-amadeus-simple.js",
-    "test:database": "node test-database.js",
+    "test:database": "node scripts/test-database.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
@@ -38,7 +38,6 @@
     "test:all": "npm run test && npm run test:api && npm run test:performance && npm run test:database",
     "test:all-critical": "npm run test:critical && npm run test:e2e",
     "test:full-suite": "npm run test:comprehensive && npm run test:critical",
-    "test:database": "node scripts/test-database.js",
     "setup:database": "echo 'Please run the SQL from supabase/sql/2025-setup.sql in your Supabase dashboard'",
     "seed:database": "node scripts/seed-database.js"
   },
@@ -70,7 +69,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.62.0",
     "sonner": "^2.0.3",
-    "stripe": "^17.0.0",
+    "stripe": "^17.7.0",
     "tailwind-merge": "^3.3.1",
     "uuid": "^11.1.0",
     "zod": "^3.25.76"

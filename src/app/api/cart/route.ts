@@ -45,29 +45,39 @@ function normalize(items: any[]) {
 }
 
 export async function GET() {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (n) => cookieStore.get(n)?.value,
-        set: (n, v, o) => cookieStore.set({ name: n, value: v, ...o }),
-        remove: (n, o) => cookieStore.set({ name: n, value: "", ...o }),
-      },
+  try {
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (n) => cookieStore.get(n)?.value,
+          set: (n, v, o) => cookieStore.set({ name: n, value: v, ...o }),
+          remove: (n, o) => cookieStore.set({ name: n, value: "", ...o }),
+        },
+      }
+    );
+
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const cartId = await getOrCreateCart(supabase, auth.user.id);
+
+    const { data: items, error } = await supabase
+      .from("cart_items")
+      .select("id, sku, name, quantity, unit_amount, currency")
+      .eq("cart_id", cartId);
+
+    if (error) {
+      console.error('Cart fetch error:', { user_id: auth.user.id, cart_id: cartId, error: error.message });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
-  );
-
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const cartId = await getOrCreateCart(supabase, auth.user.id);
-
-  const { data: items, error } = await supabase
-    .from("cart_items")
-    .select("id, sku, name, quantity, unit_amount, currency")
-    .eq("cart_id", cartId);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ cart_id: cartId, ...normalize(items ?? []) });
+    
+    console.log('Cart fetched successfully:', { user_id: auth.user.id, cart_id: cartId, item_count: items?.length || 0 });
+    return NextResponse.json({ cart_id: cartId, ...normalize(items ?? []) });
+  } catch (error: any) {
+    console.error('Cart GET error:', { error: error.message });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

@@ -41,6 +41,36 @@ export default async function ConfirmationPage({ searchParams }: { searchParams:
         <h1 className="text-xl font-semibold mb-2">We're confirming your booking…</h1>
         <p className="text-sm text-gray-600">If this takes more than a minute, refresh this page.</p>
         <a className="underline mt-4 inline-block" href="/saved">Go to My Trips</a>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Auto-poll for order confirmation
+              let attempts = 0;
+              const maxAttempts = 10;
+              const pollInterval = setInterval(async () => {
+                attempts++;
+                if (attempts > maxAttempts) {
+                  clearInterval(pollInterval);
+                  document.querySelector('h1').textContent = 'Still processing your payment...';
+                  document.querySelector('p').textContent = 'This can take up to 5 minutes. Check back soon.';
+                  return;
+                }
+                
+                try {
+                  const response = await fetch(window.location.href);
+                  if (response.ok) {
+                    const text = await response.text();
+                    if (text.includes('Booking Confirmed')) {
+                      window.location.reload();
+                    }
+                  }
+                } catch (e) {
+                  console.log('Polling attempt', attempts);
+                }
+              }, 2000);
+            `,
+          }}
+        />
       </main>
     );
   }

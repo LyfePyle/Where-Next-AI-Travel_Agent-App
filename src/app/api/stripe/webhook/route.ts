@@ -1,8 +1,10 @@
+export const runtime = "nodejs";          // Stripe SDK requires Node
+export const dynamic = "force-dynamic";   // Do not cache webhooks
+export const preferredRegion = "iad1";    // Optional: keep traffic near Stripe (US-East)
+
 import Stripe from "stripe";
 import { NextRequest } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-
-export const dynamic = "force-dynamic"; // ensure no caching of webhook
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");

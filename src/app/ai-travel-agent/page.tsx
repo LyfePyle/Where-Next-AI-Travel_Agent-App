@@ -13,9 +13,10 @@ import {
   Search,
   Sparkles,
   ArrowRight,
+  User,
+  Eye,
   Loader2,
   Heart,
-  Eye,
   Navigation
 } from 'lucide-react';
 
@@ -809,9 +810,29 @@ export default function AITravelAgentPage() {
               
               {aiRecommendations.length === 0 && (
                 <div className="text-center py-12">
-                  <Sparkles className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-500 mb-2">No recommendations yet</h3>
-                  <p className="text-gray-400">Get personalized AI recommendations based on your travel preferences</p>
+                  <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Sparkles className="w-12 h-12 text-purple-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Sign in or use Guest Preview to get recommendations</h3>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    Get personalized AI travel recommendations based on your preferences. Sign in to save your favorites or try our guest preview.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Link
+                      href="/auth/login?next=/ai-travel-agent"
+                      className="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Sign In
+                    </Link>
+                    <Link
+                      href="/auth/login?next=/ai-travel-agent&guest=true"
+                      className="inline-flex items-center px-6 py-3 bg-white text-purple-600 rounded-lg font-medium border border-purple-600 hover:bg-purple-50 transition-colors"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Guest Preview
+                    </Link>
+                  </div>
                 </div>
               )}
               

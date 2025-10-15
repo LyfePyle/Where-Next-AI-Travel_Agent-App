@@ -200,14 +200,14 @@ export default function NewHomePage() {
             {/* Primary CTAs - Full width on mobile */}
             <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:gap-6 justify-center items-stretch md:items-center mb-12 md:mb-16">
               <Link 
-                href="/plan-trip"
+                href="/auth/login?next=/dashboard"
                 className="tap-lg w-full md:w-auto inline-flex items-center justify-center px-6 md:px-10 py-4 md:py-5 bg-blue-600 text-white text-lg md:text-xl font-bold rounded-2xl hover:bg-blue-700 transition-all duration-300 shadow-xl hover:shadow-2xl"
               >
                 Start Planning Free
                 <ArrowRight className="ml-3 h-5 w-5 md:h-6 md:w-6" />
               </Link>
               <Link
-                href="/dashboard"
+                href="/auth/login?next=/dashboard"
                 className="tap-lg w-full md:w-auto inline-flex items-center justify-center px-6 md:px-10 py-4 md:py-5 bg-purple-600 text-white text-lg md:text-xl font-bold rounded-2xl hover:bg-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 Try Demo Mode
@@ -657,13 +657,13 @@ export default function NewHomePage() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link 
-              href="/dashboard"
+              href="/auth/login?next=/dashboard"
               className="inline-flex items-center px-8 py-4 bg-yellow-500 text-black text-lg font-bold rounded-xl hover:bg-yellow-600 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
             >
               Open App Dashboard
             </Link>
             <Link 
-              href="/plan-trip"
+              href="/auth/login?next=/dashboard"
               className="inline-flex items-center px-8 py-4 bg-green-500 text-white text-lg font-bold rounded-xl hover:bg-green-600 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
             >
               Start Planning
@@ -772,10 +772,10 @@ export default function NewHomePage() {
             <div className="text-center">
               <h3 className="text-2xl font-bold mb-8 text-white">Resources</h3>
               <ul className="space-y-4">
-                <li><Link href="/app/utilities" className="text-gray-300 hover:text-white transition-colors text-lg block">Travel Tools</Link></li>
+                <li><Link href="/tools" className="text-gray-300 hover:text-white transition-colors text-lg block">Travel Tools</Link></li>
                 <li><Link href="/tours" className="text-gray-300 hover:text-white transition-colors text-lg block">Walking Tours</Link></li>
                 <li><Link href="/saved" className="text-gray-300 hover:text-white transition-colors text-lg block">Saved Trips</Link></li>
-                <li><Link href="/app/trips" className="text-gray-300 hover:text-white transition-colors text-lg block">My Trips</Link></li>
+                <li><Link href="/saved" className="text-gray-300 hover:text-white transition-colors text-lg block">My Trips</Link></li>
               </ul>
             </div>
           </div>

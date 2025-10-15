@@ -18,7 +18,7 @@ const plans = [
       'Mobile app access'
     ],
     cta: 'Get Started Free',
-    href: '/plan-trip',
+    href: '/auth/login?next=/dashboard',
     popular: false
   },
   {
@@ -36,7 +36,7 @@ const plans = [
       'Collaborative planning'
     ],
     cta: 'Start Pro Trial',
-    href: '/plan-trip?plan=pro',
+    href: '/auth/login?next=/billing',
     popular: true
   },
   {
@@ -228,7 +228,7 @@ export default function PricingPage() {
             </p>
             <div className="mt-8">
               <Link
-                href="/plan-trip"
+                href="/auth/login?next=/dashboard"
                 className="inline-flex items-center px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <Zap className="w-5 h-5 mr-2" />

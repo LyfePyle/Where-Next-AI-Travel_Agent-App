@@ -287,9 +287,30 @@ export default function FlightSearch({
 
       {/* No Results */}
       {!loading && flights.length === 0 && !error && (
-        <div className="text-center py-8">
-          <Plane className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">No flights found. Try adjusting your search criteria.</p>
+        <div className="text-center py-12">
+          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Plane className="w-12 h-12 text-blue-600" />
+          </div>
+          <h3 className="text-xl font-semibold mb-4">Connect Amadeus to enable live results</h3>
+          <p className="text-gray-600 mb-6 max-w-md mx-auto">
+            Live flight search requires Amadeus API keys. Configure your environment variables to see real-time pricing and availability.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="/plan-trip"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              <Search className="w-4 h-4 mr-2" />
+              Plan Trip
+            </a>
+            <a
+              href="/tools"
+              className="inline-flex items-center px-6 py-3 bg-white text-blue-600 rounded-lg font-medium border border-blue-600 hover:bg-blue-50 transition-colors"
+            >
+              <Plane className="w-4 h-4 mr-2" />
+              Travel Tools
+            </a>
+          </div>
         </div>
       )}
     </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, DollarSign, Plane, Hotel, Star, Clock, Wifi, Car } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Plane, Hotel, Star, Clock, Wifi, Car, Compass } from 'lucide-react';
+import Link from 'next/link';
 import { useTripBudget, type TripSelection } from '@/hooks/useTripBudget';
 import TravelHacksPanel from './TravelHacksPanel';
 import PriceTrackingPanel from './PriceTrackingPanel';
@@ -479,9 +480,30 @@ export default function TripDetailsEnhanced({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading trip options...</p>
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Plane className="w-12 h-12 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-semibold mb-4">Live pricing requires provider keys</h2>
+          <p className="text-gray-600 mb-6">
+            Here's a sample itinerary for {destination}. Connect Amadeus and other providers to see real-time pricing and availability.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/plan-trip"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              Plan Trip
+            </Link>
+            <Link
+              href="/explore"
+              className="inline-flex items-center px-6 py-3 bg-white text-blue-600 rounded-lg font-medium border border-blue-600 hover:bg-blue-50 transition-colors"
+            >
+              <Compass className="w-4 h-4 mr-2" />
+              Explore
+            </Link>
+          </div>
         </div>
       </div>
     );

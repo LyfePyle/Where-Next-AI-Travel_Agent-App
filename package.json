@@ -39,7 +39,15 @@
     "test:all-critical": "npm run test:critical && npm run test:e2e",
     "test:full-suite": "npm run test:comprehensive && npm run test:critical",
     "setup:database": "echo 'Please run the SQL from supabase/sql/2025-setup.sql in your Supabase dashboard'",
-    "seed:database": "node scripts/seed-database.js"
+    "seed:database": "node scripts/seed-database.js",
+    "db:migrate": "tsx scripts/reset-db.ts --run",
+    "db:reset": "tsx scripts/reset-db.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "env:validate": "tsx -e \"import('./lib/env.mjs')\"",
+    "setup:env": "node setup-new-supabase.js",
+    "login:diagnose": "node scripts/diagnose-login.js",
+    "login:fix": "node scripts/fix-login-issues.js",
+    "login:test": "node scripts/test-login-e2e.js"
   },
   "dependencies": {
     "@axe-core/playwright": "^4.10.2",
@@ -55,14 +63,14 @@
     "@stripe/stripe-js": "^3.0.10",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.58.0",
+    "@supabase/supabase-js": "^2.79.0",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/uuid": "^10.0.0",
     "amadeus": "^11.0.0",
     "class-variance-authority": "^0.7.1",
     "dotenv": "^17.2.1",
     "lucide-react": "^0.540.0",
-    "next": "15.4.6",
+    "next": "15.4.10",
     "node-fetch": "^3.3.2",
     "openai": "^5.15.0",
     "react": "^18.3.1",
@@ -93,6 +101,7 @@
     "playwright": "^1.55.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.13",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }

@@ -451,9 +451,9 @@ export default function AITravelAgentPage() {
           <div className="bg-white rounded-lg p-1 shadow-sm">
             <button
               onClick={() => setActiveTab('ai')}
-              className={`px-6 py-3 rounded-md font-medium transition-colors ${
+              className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
                 activeTab === 'ai'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-purple-600 text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -464,7 +464,7 @@ export default function AITravelAgentPage() {
               onClick={() => setActiveTab('inspiration')}
               className={`px-6 py-3 rounded-md font-medium transition-colors ${
                 activeTab === 'inspiration'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-purple-600 text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -475,7 +475,7 @@ export default function AITravelAgentPage() {
               onClick={() => setActiveTab('search')}
               className={`px-6 py-3 rounded-md font-medium transition-colors ${
                 activeTab === 'search'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-purple-600 text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -486,7 +486,7 @@ export default function AITravelAgentPage() {
               onClick={() => setActiveTab('hotels')}
               className={`px-6 py-3 rounded-md font-medium transition-colors ${
                 activeTab === 'hotels'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-purple-600 text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -497,7 +497,7 @@ export default function AITravelAgentPage() {
               onClick={() => setActiveTab('tours')}
               className={`px-6 py-3 rounded-md font-medium transition-colors ${
                 activeTab === 'tours'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-purple-600 text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -536,7 +536,7 @@ export default function AITravelAgentPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => handleBookFlight(flight)}
-                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
+                        className="w-full bg-purple-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm h-10"
                       >
                         Book Flight
                       </button>
@@ -553,7 +553,7 @@ export default function AITravelAgentPage() {
               <div className="mt-8 text-center">
                 <button
                   onClick={handleFlightSearch}
-                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center"
+                  className="bg-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center w-48 h-12 justify-center"
                 >
                   Search More Flights
                   <ArrowRight className="ml-2 w-4 h-4" />
@@ -600,7 +600,7 @@ export default function AITravelAgentPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => handleBookHotel(hotel)}
-                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
+                        className="w-full bg-purple-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm h-10"
                       >
                         Book Hotel
                       </button>
@@ -617,7 +617,7 @@ export default function AITravelAgentPage() {
               <div className="mt-8 text-center">
                 <button
                   onClick={handlePlanTrip}
-                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center"
+                  className="bg-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center w-48 h-12 justify-center"
                 >
                   Search More Hotels
                   <ArrowRight className="ml-2 w-4 h-4" />
@@ -717,7 +717,7 @@ export default function AITravelAgentPage() {
                           }}
                           className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                             userPreferences.interests.includes(interest)
-                              ? 'bg-blue-600 text-white'
+                              ? 'bg-purple-600 text-white shadow-md'
                               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                           }`}
                         >
@@ -850,7 +850,7 @@ export default function AITravelAgentPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-28 md:mt-32 grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link
             href="/plan-trip"
             className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-center"

@@ -101,23 +101,23 @@ export default function PrivacyPolicyPage() {
             
             <ul className="space-y-4 text-gray-700">
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 <span><strong>Provide our service:</strong> Create and manage your trips, process bookings, and provide AI recommendations.</span>
               </li>
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 <span><strong>Personalization:</strong> Customize recommendations based on your travel style and preferences.</span>
               </li>
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 <span><strong>Communication:</strong> Send you booking confirmations, trip updates, and important service announcements.</span>
               </li>
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 <span><strong>Improve our service:</strong> Analyze usage patterns to enhance features and fix bugs.</span>
               </li>
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 <span><strong>Security:</strong> Detect and prevent fraud, unauthorized access, and other security threats.</span>
               </li>
             </ul>

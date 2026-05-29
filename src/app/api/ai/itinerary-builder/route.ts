@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { z } from 'zod';
+import { rateLimit } from '@/lib/rate-limit';
 
-interface ItineraryRequest {
-  tripId: string;
-  preferences: {
-    from: string;
-    tripDuration: number;
-    budgetAmount: number;
-    budgetStyle: string;
-    vibes: string[];
-    additionalDetails: string;
-    adults: number;
-    kids: number;
-    startDate?: string;
-    endDate?: string;
-  };
-}
+const ItineraryRequestSchema = z.object({
+  tripId: z.string(),
+  destination: z.string().min(1),
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
+  tripDuration: z.number().int().positive(),
+  travelers: z.number().int().positive().optional(),
+  budget: z.number().nonnegative().optional(),
+  budgetStyle: z.enum(['budget', 'comfortable', 'luxury']).optional(),
+  preferences: z.union([z.array(z.string()), z.string()]).optional(),
+  from: z.string().optional(),
+  singleActivity: z.boolean().optional(),
+  dayNumber: z.number().int().positive().optional(),
+  existingActivities: z.array(z.string()).optional(),
+});
 
 interface ItineraryDay {
   day: number;
@@ -30,30 +32,96 @@ interface ItineraryDay {
   };
 }
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+function buildItineraryPreferences(parsed: z.infer<typeof ItineraryRequestSchema>) {
+  const preferences = Array.isArray(parsed.preferences)
+    ? parsed.preferences
+    : parsed.preferences
+      ? [parsed.preferences]
+      : [];
+
+  return {
+    destination: parsed.destination,
+    tripDuration: parsed.tripDuration,
+    budgetAmount: parsed.budget ?? 3000,
+    budgetStyle: parsed.budgetStyle ?? 'comfortable',
+    vibes: preferences,
+    additionalDetails: '',
+    adults: parsed.travelers ?? 2,
+    kids: 0,
+    from: parsed.from ?? 'Vancouver',
+    startDate: parsed.startDate ?? undefined,
+    endDate: parsed.endDate ?? undefined,
+  };
+}
+
+function getClientIp(request: NextRequest) {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown';
+  return (
+    request.headers.get('x-real-ip') ||
+    request.headers.get('cf-connecting-ip') ||
+    request.headers.get('fastly-client-ip') ||
+    request.headers.get('true-client-ip') ||
+    'unknown'
+  );
+}
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const limit = rateLimit({
+    key: `ai-itinerary:${ip}`,
+    limit: 5,
+    windowMs: 60 * 1000,
+  });
+
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Try again soon.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(limit.retryAfter),
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': String(limit.remaining),
+          'X-RateLimit-Reset': String(Math.floor(limit.resetAt / 1000)),
+        },
+      }
+    );
+  }
+
+  let tripId = '';
+  let requestBody: any = null;
+  let itineraryPreferences: ReturnType<typeof buildItineraryPreferences> | null = null;
   try {
-    const requestBody = await request.json();
-    const { tripId, destination, startDate, endDate, tripDuration, travelers, budget, preferences } = requestBody;
-    
-    // Convert to expected format
-    const itineraryPreferences = {
-      destination,
-      tripDuration,
-      budgetAmount: budget,
-      budgetStyle: 'comfortable', // default
-      vibes: Array.isArray(preferences) ? preferences : [preferences].filter(Boolean),
-      additionalDetails: '',
-      adults: travelers || 2,
-      kids: 0,
-      from: 'Vancouver' // default
-    };
-    
-    // Generate AI-powered itinerary based on preferences
+    requestBody = await request.json().catch(() => null);
+    const parsed = ItineraryRequestSchema.safeParse(requestBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', issues: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    ({ tripId } = parsed.data);
+    itineraryPreferences = buildItineraryPreferences(parsed.data);
+
+    if (parsed.data.singleActivity) {
+      const activity = await generateAIActivity({
+        destination: itineraryPreferences.destination,
+        budgetAmount: itineraryPreferences.budgetAmount,
+        budgetStyle: itineraryPreferences.budgetStyle,
+        vibes: itineraryPreferences.vibes,
+        dayNumber: parsed.data.dayNumber ?? 1,
+        existingActivities: parsed.data.existingActivities ?? [],
+      });
+
+      return NextResponse.json({ activity });
+    }
+
     const itinerary = await generateAIItinerary(tripId, itineraryPreferences);
     
     return NextResponse.json({ itinerary });
@@ -62,8 +130,26 @@ export async function POST(request: NextRequest) {
     
     // Fallback to mock data if OpenAI fails
     try {
+      if (!itineraryPreferences) {
+        return NextResponse.json(
+          { error: 'Failed to generate itinerary' },
+          { status: 500 }
+        );
+      }
+
+      if (requestBody?.singleActivity) {
+        const activity = buildFallbackActivity(
+          itineraryPreferences.destination,
+          requestBody?.dayNumber ?? 1
+        );
+        return NextResponse.json({
+          activity,
+          warning: 'Using fallback data due to AI service issue',
+        });
+      }
+
       const fallbackItinerary = await generateMockItinerary(tripId, itineraryPreferences);
-      return NextResponse.json({ 
+      return NextResponse.json({
         itinerary: fallbackItinerary,
         warning: 'Using fallback data due to AI service issue'
       });
@@ -76,12 +162,136 @@ export async function POST(request: NextRequest) {
   }
 }
 
+type ActivityResponse = {
+  id: string;
+  name: string;
+  type: 'attraction' | 'restaurant' | 'transport' | 'shopping' | 'experience' | 'rest';
+  duration: number;
+  cost: number;
+  location: {
+    name: string;
+    address: string;
+    coordinates: { lat: number; lng: number };
+  };
+  description: string;
+  rating: number;
+  tips: string[];
+  timeSlot: { start: string; end: string };
+  bookingUrl?: string;
+};
+
+function buildFallbackActivity(destination: string, dayNumber: number): ActivityResponse {
+  const city = destination.split(',')[0]?.trim() || destination;
+  return {
+    id: `fallback-${Date.now()}`,
+    name: `${city} Local Experience`,
+    type: 'experience',
+    duration: 120,
+    cost: 35,
+    location: {
+      name: `${city} Central District`,
+      address: `${city} City Center`,
+      coordinates: { lat: 35.6762, lng: 139.6503 },
+    },
+    description: `Explore a recommended local experience in ${city} with flexible timing.`,
+    rating: 4.4,
+    tips: ['Arrive early to avoid crowds', 'Bring comfortable walking shoes'],
+    timeSlot: { start: dayNumber === 1 ? '11:00' : '10:00', end: dayNumber === 1 ? '13:00' : '12:00' },
+    bookingUrl: 'https://www.getyourguide.com/?ref=wherenext',
+  };
+}
+
+async function generateAIActivity(params: {
+  destination: string;
+  budgetAmount: number;
+  budgetStyle: string;
+  vibes: string[];
+  dayNumber: number;
+  existingActivities: string[];
+}): Promise<ActivityResponse> {
+  if (!openai) {
+    return buildFallbackActivity(params.destination, params.dayNumber);
+  }
+
+  const existing = params.existingActivities.length
+    ? params.existingActivities.join(', ')
+    : 'None yet';
+
+  const prompt = `You are a travel expert. Suggest ONE single activity for day ${params.dayNumber} in ${params.destination}.
+Budget: $${params.budgetAmount} (${params.budgetStyle})
+Vibes: ${params.vibes.join(', ') || 'general'}
+Already planned: ${existing}
+
+Return ONLY a single JSON object with these exact fields:
+{
+  "id": "activity_id",
+  "name": "Specific Activity Name",
+  "type": "attraction | restaurant | transport | shopping | experience | rest",
+  "duration": 120,
+  "cost": 25,
+  "location": {
+    "name": "Specific Location",
+    "address": "Full Address",
+    "coordinates": {"lat": 0, "lng": 0}
+  },
+  "description": "Short description",
+  "rating": 4.5,
+  "tips": ["Tip 1", "Tip 2"],
+  "timeSlot": {"start": "13:00", "end": "15:00"},
+  "bookingUrl": "https://example.com/book"
+}
+
+No markdown. No extra text.`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.6,
+      max_tokens: 800,
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? '';
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start === -1 || end === -1) {
+      return buildFallbackActivity(params.destination, params.dayNumber);
+    }
+
+    const obj = JSON.parse(raw.slice(start, end + 1));
+    return {
+      id: obj.id || `activity_${Date.now()}`,
+      name: obj.name || 'Local Activity',
+      type: obj.type || 'experience',
+      duration: obj.duration || 90,
+      cost: obj.cost || 25,
+      location: obj.location || {
+        name: params.destination,
+        address: params.destination,
+        coordinates: { lat: 0, lng: 0 },
+      },
+      description: obj.description || 'AI-suggested activity.',
+      rating: obj.rating || 4.4,
+      tips: Array.isArray(obj.tips) ? obj.tips : ['Book in advance'],
+      timeSlot: obj.timeSlot || { start: '13:00', end: '15:00' },
+      bookingUrl: obj.bookingUrl,
+    };
+  } catch (error: any) {
+    console.error('OpenAI activity generation error:', error?.message ?? error);
+    return buildFallbackActivity(params.destination, params.dayNumber);
+  }
+}
+
 async function generateAIItinerary(tripId: string, preferences: any): Promise<ItineraryDay[]> {
   const { tripDuration, vibes, additionalDetails, budgetStyle, budgetAmount, from, destination } = preferences;
   
   // Get destination info - try from preferences first, then fallback to tripId lookup
   let destinationInfo = destination ? { destination, city: destination.split(',')[0].trim() } : await getDestinationInfo(tripId);
   if (!destinationInfo) return [];
+
+  if (!openai) {
+    return generateMockItinerary(tripId, preferences);
+  }
   
   const prompt = `You are an expert travel planner. Create a detailed ${tripDuration}-day itinerary for ${destinationInfo.destination}.
 
@@ -149,7 +359,7 @@ Make it practical, detailed, and perfectly tailored to their preferences.`;
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -197,10 +407,10 @@ Make it practical, detailed, and perfectly tailored to their preferences.`;
     
     return itinerary;
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('OpenAI API Error:', error);
     
-    if (error.message.includes('401') || error.message.includes('invalid_api_key')) {
+    if (error.message?.includes('401') || error.message?.includes('invalid_api_key')) {
       console.error('OpenAI API key issue - using fallback');
       return generateMockItinerary(tripId, preferences);
     } else {
@@ -210,7 +420,7 @@ Make it practical, detailed, and perfectly tailored to their preferences.`;
 }
 
 async function getDestinationInfo(tripId: string): Promise<any> {
-  const destinations = {
+  const destinations: Record<string, { destination: string; city: string }> = {
     '1': { destination: 'Lisbon, Portugal', city: 'Lisbon' },
     '2': { destination: 'Barcelona, Spain', city: 'Barcelona' },
     '3': { destination: 'Porto, Portugal', city: 'Porto' },
@@ -230,7 +440,7 @@ async function generateMockItinerary(tripId: string, preferences: any): Promise<
   let destinationInfo = destination ? { destination, city: destination.split(',')[0].trim() } : await getDestinationInfo(tripId);
   if (!destinationInfo) return [];
   
-  const dailyBudget = budgetStyle === 'thrifty' ? 60 : budgetStyle === 'splurge' ? 200 : 120;
+  const dailyBudget = budgetStyle === 'budget' ? 60 : budgetStyle === 'luxury' ? 200 : 120;
   
   // Generate enhanced mock itinerary based on duration
   return Array.from({ length: tripDuration }, (_, i) => ({

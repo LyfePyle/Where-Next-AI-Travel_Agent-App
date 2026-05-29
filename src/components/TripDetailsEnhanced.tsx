@@ -1,856 +1,597 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, DollarSign, Plane, Hotel, Star, Clock, Wifi, Car, Compass } from 'lucide-react';
+/**
+ * Trip preview — no Duffel/Stripe/cart. Save → Trip Hub → Book via affiliates.
+ */
+
+import { useState } from 'react';
 import Link from 'next/link';
-import { useTripBudget, type TripSelection } from '@/hooks/useTripBudget';
-import TravelHacksPanel from './TravelHacksPanel';
-import PriceTrackingPanel from './PriceTrackingPanel';
-import BookingOptionsPanel from './BookingOptionsPanel';
-import { analytics } from '@/lib/analytics';
+import { useRouter } from 'next/navigation';
 
-// Helper function to get destination-appropriate names
-const getHotelName = (destination: string, tier: string) => {
-  const city = destination.split(',')[0].trim();
-  
-  if (city.toLowerCase().includes('cancun')) {
-    return tier === 'luxury' ? 'The Ritz-Carlton Cancun' : 
-           tier === 'budget' ? 'Cancun Beach Resort' : 'Fiesta Americana Cancun';
-  }
-  
-  if (city.toLowerCase().includes('honolulu')) {
-    return tier === 'luxury' ? 'Four Seasons Resort Oahu' : 
-           tier === 'budget' ? 'Waikiki Beach Hotel' : 'Royal Hawaiian Hotel';
-  }
-  
-  // Default fallback
-  return tier === 'luxury' ? `Grand ${city} Palace` : 
-         tier === 'budget' ? `Budget Hotel ${city}` : `Hotel ${city} Plaza`;
-};
-
-const getAirlineName = (destination: string, index: number) => {
-  const city = destination.split(',')[0].trim();
-  
-  if (city.toLowerCase().includes('cancun')) {
-    return ['Air Canada', 'WestJet', 'Sunwing'][index] || 'Air Canada';
-  }
-  
-  if (city.toLowerCase().includes('honolulu')) {
-    return ['Air Canada', 'WestJet', 'Hawaiian Airlines'][index] || 'Air Canada';
-  }
-  
-  return ['Air Canada', 'Lufthansa', 'KLM'][index] || 'Air Canada';
-};
-
-const getDestinationPricing = (destination: string) => {
-  const city = destination.split(',')[0].trim();
-  
-  if (city.toLowerCase().includes('cancun')) {
-    return {
-      flights: [850, 650, 1200],
-      hotels: [180, 120, 350]
-    };
-  }
-  
-  if (city.toLowerCase().includes('honolulu')) {
-    return {
-      flights: [950, 750, 1400], 
-      hotels: [220, 140, 450]
-    };
-  }
-  
-  // Default pricing
-  return {
-    flights: [850, 720, 980],
-    hotels: [180, 140, 280]
-  };
-};
-
-const getCityCode = (destination: string) => {
-  const city = destination.split(',')[0].trim().toLowerCase();
-  
-  // Map common destinations to airport codes
-  const cityCodeMap: { [key: string]: string } = {
-    'cancun': 'CUN',
-    'honolulu': 'HNL',
-    'london': 'LHR',
-    'paris': 'CDG',
-    'madrid': 'MAD',
-    'barcelona': 'BCN',
-    'tokyo': 'NRT',
-    'bangkok': 'BKK',
-    'singapore': 'SIN',
-    'new york': 'JFK',
-    'los angeles': 'LAX',
-    'miami': 'MIA',
-    'toronto': 'YYZ',
-    'vancouver': 'YVR',
-    'rome': 'FCO',
-    'amsterdam': 'AMS',
-    'berlin': 'TXL',
-    'dubai': 'DXB',
-    'sydney': 'SYD',
-    'melbourne': 'MEL'
-  };
-  
-  // Try to find exact match
-  for (const [key, code] of Object.entries(cityCodeMap)) {
-    if (city.includes(key)) {
-      return code;
-    }
-  }
-  
-  // Default fallback
-  return 'LAX';
-};
-
-const getFlightDuration = (destination: string, flightType: 'direct' | 'one-stop' | 'premium') => {
-  const city = destination.split(',')[0].trim().toLowerCase();
-  
-  // Mexico destinations (Cancun, Acapulco, etc.)
-  if (city.includes('cancun') || city.includes('acapulco') || city.includes('puerto vallarta')) {
-    return {
-      direct: '6h 30m',
-      'one-stop': '9h 15m', 
-      premium: '5h 45m'
-    }[flightType];
-  }
-  
-  // Hawaii
-  if (city.includes('honolulu') || city.includes('maui')) {
-    return {
-      direct: '9h 20m',
-      'one-stop': '12h 30m',
-      premium: '8h 45m'
-    }[flightType];
-  }
-  
-  // Europe destinations
-  if (city.includes('london') || city.includes('paris') || city.includes('madrid')) {
-    return {
-      direct: '9h 45m',
-      'one-stop': '13h 20m',
-      premium: '9h 15m'
-    }[flightType];
-  }
-  
-  // Asia destinations
-  if (city.includes('tokyo') || city.includes('bangkok') || city.includes('singapore')) {
-    return {
-      direct: '11h 30m',
-      'one-stop': '16h 45m',
-      premium: '10h 50m'
-    }[flightType];
-  }
-  
-  // Default (medium-distance destinations)
-  return {
-    direct: '8h 30m',
-    'one-stop': '12h 15m',
-    premium: '7h 45m'
-  }[flightType];
-};
-
-interface FlightOption {
-  id: string;
-  airline: string;
-  price: number;
-  duration: string;
-  departure: string;
-  arrival: string;
-  stops: number;
-  aircraft: string;
-}
-
-interface HotelOption {
-  id: string;
-  name: string;
-  rating: number;
-  pricePerNight: number;
-  totalPrice: number;
-  area: string;
-  amenities: string[];
-  image: string;
-  description: string;
-}
-
-interface TripDetailsEnhancedProps {
+export interface TripDetailsEnhancedProps {
   tripId: string;
   destination: string;
   startDate: string;
   endDate: string;
   travelers: { adults: number; kids: number };
-  onSaveTrip?: (tripData: TripSelection) => void;
+  budgetAmount?: number;
+  vibe?: string;
+  description?: string;
+  highlights?: string[];
+  whyItFits?: string;
+  fitScore?: number;
+  crowdLevel?: 'Low' | 'Medium' | 'High';
+  seasonality?: string;
+  flightBand?: { min: number; max: number };
+  hotelBand?: { min: number; max: number; style?: string; area?: string };
+  weatherTemp?: number;
+  weatherIcon?: string;
 }
 
-export default function TripDetailsEnhanced({ 
-  tripId, 
-  destination, 
-  startDate, 
-  endDate, 
-  travelers,
-  onSaveTrip 
-}: TripDetailsEnhancedProps) {
-  const [selectedFlightId, setSelectedFlightId] = useState<string>('');
-  const [selectedHotelId, setSelectedHotelId] = useState<string>('');
-  const [flightOptions, setFlightOptions] = useState<FlightOption[]>([]);
-  const [hotelOptions, setHotelOptions] = useState<HotelOption[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Calculate trip duration
-  const tripDuration = Math.ceil(
-    (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  // Create trip selection for budget calculation
-  const tripSelection: TripSelection = {
-    id: tripId,
-    destination,
-    startDate,
-    endDate,
-    selectedFlight: flightOptions.find(f => f.id === selectedFlightId),
-    selectedHotel: hotelOptions.find(h => h.id === selectedHotelId),
-    travelers
-  };
-
-  // Use the budget hook for real-time calculations
-  const budgetData = useTripBudget({ trip: tripSelection });
-
-  useEffect(() => {
-    loadTripOptions();
-    
-    // Track trip details view
-    analytics.tripPlanned(destination, { departure: startDate, return: endDate }, travelers.adults);
-  }, [destination, startDate, endDate, travelers]);
-
-  const loadTripOptions = async () => {
-    setIsLoading(true);
-    try {
-      // Get destination-specific pricing for fallback
-      const pricing = getDestinationPricing(destination);
-      
-      // Try to fetch real-time flights with better error handling
-      let flights: FlightOption[] = [];
-      try {
-        const cityCode = getCityCode(destination);
-        const flightResponse = await fetch(`/api/flights/search?origin=YVR&destination=${cityCode}&departureDate=${startDate}&adults=${travelers.adults}&max=3`);
-        
-        if (flightResponse.ok) {
-          const flightData = await flightResponse.json();
-          if (flightData.flights && flightData.flights.length > 0) {
-            flights = flightData.flights;
-            console.log('✅ Real-time flights loaded:', flights.length);
-          } else {
-            throw new Error('No flights returned');
-          }
-        } else {
-          throw new Error(`Flight API failed: ${flightResponse.status}`);
-        }
-      } catch (error) {
-        console.log('⚠️ Using fallback flight data:', error);
-        // Fallback to hardcoded flights
-        flights = [
-          {
-            id: 'flight_1',
-            airline: getAirlineName(destination, 0),
-            price: pricing.flights[0],
-            duration: getFlightDuration(destination, 'direct'),
-            departure: '08:30',
-            arrival: '21:00',
-            stops: 0,
-            aircraft: 'Boeing 787-9'
-          },
-          {
-            id: 'flight_2',
-            airline: getAirlineName(destination, 1),
-            price: pricing.flights[1],
-            duration: getFlightDuration(destination, 'one-stop'),
-            departure: '14:20',
-            arrival: '13:05',
-            stops: 1,
-            aircraft: 'Airbus A350'
-          },
-          {
-            id: 'flight_3',
-            airline: getAirlineName(destination, 2),
-            price: pricing.flights[2],
-            duration: getFlightDuration(destination, 'premium'),
-            departure: '10:15',
-            arrival: '08:30',
-            stops: 0,
-            aircraft: 'Boeing 777-300'
-          }
-        ];
-      }
-
-      // Use fallback hotel data (hotel API temporarily disabled due to Amadeus client issues)
-      const hotels: HotelOption[] = [
-        {
-          id: 'hotel_1',
-          name: getHotelName(destination, 'mid'),
-          rating: 4.5,
-          pricePerNight: pricing.hotels[0],
-          totalPrice: pricing.hotels[0] * tripDuration,
-          area: 'Premium Area',
-          amenities: ['Free WiFi', 'Pool', 'Restaurant', 'Beach/City Access'],
-          image: '/images/hotel-placeholder.jpg',
-          description: `Premium hotel in the heart of ${destination.split(',')[0]} with excellent amenities`
-        },
-        {
-          id: 'hotel_2',
-          name: getHotelName(destination, 'budget'),
-          rating: 4.2,
-          pricePerNight: pricing.hotels[1],
-          totalPrice: pricing.hotels[1] * tripDuration,
-          area: 'Central Location',
-          amenities: ['Free WiFi', 'Breakfast', 'Concierge'],
-          image: '/images/hotel-placeholder.jpg',
-          description: `Comfortable hotel with great value in ${destination.split(',')[0]}`
-        },
-        {
-          id: 'hotel_3',
-          name: getHotelName(destination, 'luxury'),
-          rating: 4.8,
-          pricePerNight: pricing.hotels[2],
-          totalPrice: pricing.hotels[2] * tripDuration,
-          area: 'Luxury District',
-          amenities: ['Free WiFi', 'Spa', 'Pool', 'Valet Parking', 'Fine Dining'],
-          image: '/images/hotel-placeholder.jpg',
-          description: `Luxury resort with world-class service in ${destination.split(',')[0]}`
-        }
-      ];
-
-      setFlightOptions(flights);
-      setHotelOptions(hotels);
-      
-      // Auto-select first options
-      setSelectedFlightId(flights[0]?.id || '');
-      setSelectedHotelId(hotels[0]?.id || '');
-      
-    } catch (error) {
-      console.error('Error loading trip options:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSaveTrip = () => {
-    if (!selectedFlightId || !selectedHotelId) {
-      alert('🎯 Please select your preferred flight and hotel options first!\n\nThen click "Save Trip" to save your complete vacation plan.');
-      return;
-    }
-
-    // Track trip saving
-    analytics.tripSaved(tripId, budgetData.totalBudget, destination);
-    
-    if (onSaveTrip) {
-      onSaveTrip(tripSelection);
-    }
-  };
-
-  const handleUseBudget = () => {
-    if (!selectedFlightId || !selectedHotelId) {
-      alert('🎯 Please select your preferred flight and hotel options first!\n\nThen click "Set Budget" to save your trip budget for expense tracking.');
-      return;
-    }
-
-    try {
-      // Save budget to localStorage
-      const budgets = JSON.parse(localStorage.getItem('tripBudgets') || '{}');
-      const budgetKey = `${destination}_${startDate}_${endDate}`;
-      
-      budgets[budgetKey] = {
-        ...budgetData,
-        tripName: `${destination} Trip`,
-        destination,
-        startDate,
-        endDate,
-        travelers,
-        savedAt: new Date().toISOString()
-      };
-      
-      localStorage.setItem('tripBudgets', JSON.stringify(budgets));
-      
-      alert('✅ Budget set successfully!\n\nYour trip budget has been saved and will be used for expense tracking.');
-      
-      // Optional: Navigate to budget page
-      // window.location.href = '/budget';
-    } catch (error) {
-      console.error('Error setting budget:', error);
-      alert('❌ Error setting budget. Please try again.');
-    }
-  };
-
-  const handleBuyCompleteTrip = () => {
-    if (!selectedFlightId || !selectedHotelId) {
-      alert('🎯 Please select your preferred flight and hotel options first!\n\nThen click "Buy Complete Trip" to purchase your full vacation package.');
-      return;
-    }
-
-    const selectedFlight = flightOptions.find(f => f.id === selectedFlightId);
-    const selectedHotel = hotelOptions.find(h => h.id === selectedHotelId);
-
-    // Create complete trip package for checkout
-    const tripPackage = {
-      type: 'complete-trip',
-      destination,
-      startDate,
-      endDate,
-      travelers,
-      duration: tripDuration,
-      selectedFlight,
-      selectedHotel,
-      budgetBreakdown: budgetData.breakdown,
-      totalAmount: budgetData.totalBudget,
-      includes: {
-        flights: true,
-        accommodation: true,
-        meals: true,
-        activities: true,
-        transport: true,
-        emergency_buffer: true
-      }
-    };
-
-    // Navigate to checkout with complete trip
-    const totalTravelers = (travelers.adults || 0) + (travelers.kids || 0);
-    const checkoutUrl = `/booking/checkout?${new URLSearchParams({
-      type: 'complete-trip',
-      item: encodeURIComponent(JSON.stringify(tripPackage)),
-      price: budgetData.totalBudget.toString(),
-      destination: destination,
-      travelers: totalTravelers.toString()
-    }).toString()}`;
-    
-    // Track purchase intent
-    analytics.tripPlanned(destination, { departure: startDate, return: endDate }, travelers.adults);
-    
-    window.location.href = checkoutUrl;
-  };
-
-  const handleAddFlightToCart = (flight: FlightOption) => {
-    // Add flight to cart (stored in localStorage)
-    try {
-      const cart = JSON.parse(localStorage.getItem('travelCart') || '[]');
-      const flightItem = {
-        id: `flight_${flight.id}_${Date.now()}`,
-        type: 'flight',
-        destination,
-        flight,
-        travelers,
-        totalPrice: flight.price * travelers.adults,
-        addedAt: new Date().toISOString()
-      };
-      
-      cart.push(flightItem);
-      localStorage.setItem('travelCart', JSON.stringify(cart));
-      
-      alert(`✅ ${flight.airline} flight added to cart!\n\nTotal: $${(flight.price * travelers.adults).toLocaleString()}`);
-    } catch (error) {
-      console.error('Error adding flight to cart:', error);
-      alert('❌ Error adding to cart. Please try again.');
-    }
-  };
-
-  const handleAddHotelToCart = (hotel: HotelOption) => {
-    // Add hotel to cart (stored in localStorage)
-    try {
-      const cart = JSON.parse(localStorage.getItem('travelCart') || '[]');
-      const hotelItem = {
-        id: `hotel_${hotel.id}_${Date.now()}`,
-        type: 'hotel',
-        destination,
-        hotel,
-        duration: tripDuration,
-        travelers,
-        totalPrice: hotel.totalPrice,
-        addedAt: new Date().toISOString()
-      };
-      
-      cart.push(hotelItem);
-      localStorage.setItem('travelCart', JSON.stringify(cart));
-      
-      alert(`✅ ${hotel.name} added to cart!\n\nTotal: $${hotel.totalPrice.toLocaleString()} for ${tripDuration} nights`);
-    } catch (error) {
-      console.error('Error adding hotel to cart:', error);
-      alert('❌ Error adding to cart. Please try again.');
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto px-6">
-          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Plane className="w-12 h-12 text-blue-600" />
-          </div>
-          <h2 className="text-2xl font-semibold mb-4">Live pricing requires provider keys</h2>
-          <p className="text-gray-600 mb-6">
-            Here's a sample itinerary for {destination}. Connect Amadeus and other providers to see real-time pricing and availability.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/plan-trip"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              <MapPin className="w-4 h-4 mr-2" />
-              Plan Trip
-            </Link>
-            <Link
-              href="/explore"
-              className="inline-flex items-center px-6 py-3 bg-white text-blue-600 rounded-lg font-medium border border-blue-600 hover:bg-blue-50 transition-colors"
-            >
-              <Compass className="w-4 h-4 mr-2" />
-              Explore
-            </Link>
-          </div>
-        </div>
-      </div>
+function fmt(d: string, opts?: Intl.DateTimeFormatOptions) {
+  if (!d) return '—';
+  try {
+    return new Date(d).toLocaleDateString(
+      'en-GB',
+      opts ?? { day: 'numeric', month: 'long', year: 'numeric' }
     );
+  } catch {
+    return d;
+  }
+}
+
+function nights(start: string, end: string) {
+  if (!start || !end) return 0;
+  return Math.max(
+    0,
+    Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000)
+  );
+}
+
+function crowdColor(level?: string) {
+  if (level === 'Low') return { bg: '#DCFCE7', text: '#15803D' };
+  if (level === 'High') return { bg: '#FEE2E2', text: '#DC2626' };
+  return { bg: '#FFFBEB', text: '#D97706' };
+}
+
+/** Real Supabase trip IDs are UUIDs — not AI suggestion ids like ai_123_0 */
+function isValidHubTripId(id: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+export default function TripDetailsEnhanced({
+  tripId,
+  destination,
+  startDate,
+  endDate,
+  travelers,
+  budgetAmount,
+  vibe,
+  description,
+  highlights,
+  whyItFits,
+  fitScore,
+  crowdLevel,
+  seasonality,
+  flightBand,
+  hotelBand,
+  weatherTemp,
+  weatherIcon,
+}: TripDetailsEnhancedProps) {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const tripNights = nights(startDate, endDate);
+  const totalTravelers = (travelers.adults ?? 1) + (travelers.kids ?? 0);
+  const crowd = crowdColor(crowdLevel);
+
+  const estTotal =
+    budgetAmount ??
+    (flightBand && hotelBand
+      ? Math.round(
+          ((flightBand.min + flightBand.max) / 2 +
+            ((hotelBand.min + hotelBand.max) / 2) * tripNights) *
+            totalTravelers
+        )
+      : 0);
+
+  const hubTripId = isValidHubTripId(tripId) ? tripId : null;
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/trips/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          destination,
+          estimatedCost: estTotal,
+          reason: whyItFits,
+          fitScore,
+          source: 'trip-details',
+          adults: travelers.adults,
+          kids: travelers.kids,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          vibe: vibe || undefined,
+          title: `${destination.split(',')[0]?.trim() || destination} Trip`,
+        }),
+      });
+
+      if (res.status === 401) {
+        const returnPath =
+          typeof window !== 'undefined'
+            ? `${window.location.pathname}${window.location.search}`
+            : `/trip-details/${tripId}`;
+        router.push(`/auth/login?redirectTo=${encodeURIComponent(returnPath)}`);
+        return;
+      }
+      if (res.status === 409) {
+        setSaved(true);
+        setTimeout(() => router.push('/saved'), 800);
+        return;
+      }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || 'Save failed');
+      }
+
+      const data = await res.json();
+      setSaved(true);
+
+      const realId = data?.trip?.id as string | undefined;
+      setTimeout(() => {
+        if (realId && isValidHubTripId(realId)) {
+          router.push(`/my-trip/${realId}`);
+        } else {
+          router.push('/saved');
+        }
+      }, 800);
+    } catch (err: unknown) {
+      alert(`Could not save trip: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{destination}</h1>
-              <div className="flex items-center space-x-6 text-gray-600 mt-2">
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  <span>{new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center">
-                  <Users className="w-4 h-4 mr-1" />
-                  <span>{travelers.adults} adult{travelers.adults !== 1 ? 's' : ''}</span>
-                  {travelers.kids > 0 && <span>, {travelers.kids} child{travelers.kids !== 1 ? 'ren' : ''}</span>}
-                </div>
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  <span>{tripDuration} day{tripDuration !== 1 ? 's' : ''}</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Total Cost Display */}
-            <div className="text-right">
-              <div className="text-sm text-gray-600">Estimated Total</div>
-              <div className="text-3xl font-bold text-green-600">${budgetData.totalBudget.toLocaleString()}</div>
-              <div className="text-sm text-gray-500">for {travelers.adults} traveler{travelers.adults !== 1 ? 's' : ''}</div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div
+      style={{
+        fontFamily: "Georgia, 'Times New Roman', serif",
+        background: '#F8F7F4',
+        minHeight: '100vh',
+        color: '#1C1917',
+      }}
+    >
+      <div
+        style={{
+          background: '#1C1917',
+          color: '#fff',
+          padding: '2.5rem 1.5rem 2rem',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            background:
+              'radial-gradient(ellipse at 75% 40%, rgba(217,119,6,0.18) 0%, transparent 55%)',
+          }}
+        />
+        <div style={{ maxWidth: 800, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <Link
+            href="/suggestions"
+            style={{
+              display: 'inline-block',
+              fontSize: 12,
+              fontFamily: 'monospace',
+              color: 'rgba(255,255,255,0.4)',
+              textDecoration: 'none',
+              marginBottom: 16,
+              letterSpacing: '0.04em',
+            }}
+          >
+            ← Back to suggestions
+          </Link>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Flight Options */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <Plane className="w-5 h-5 mr-2 text-blue-600" />
-                Choose Your Flight
-              </h2>
-              
-              <div className="space-y-4">
-                {flightOptions.map((flight) => (
-                  <div 
-                    key={flight.id}
-                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                      selectedFlightId === flight.id 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setSelectedFlightId(flight.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-semibold text-gray-900">{flight.airline}</h3>
-                          <div className="text-right">
-                            <div className="text-xl font-bold text-green-600">${flight.price}</div>
-                            <div className="text-sm text-gray-500">per person</div>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <div className="text-gray-500">Departure</div>
-                            <div className="font-medium">{flight.departure}</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-gray-500">{flight.duration}</div>
-                            <div className="text-xs">
-                              {flight.stops === 0 ? 'Direct' : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-gray-500">Arrival</div>
-                            <div className="font-medium">{flight.arrival}</div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between mt-3">
-                          <div className="text-xs text-gray-600">
-                            {flight.aircraft}
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddFlightToCart(flight);
-                            }}
-                            className="text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
-                            style={{
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              border: 'none'
-                            }}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
-                          >
-                            🛒 Add to Cart
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Hotel Options */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <Hotel className="w-5 h-5 mr-2 text-green-600" />
-                Choose Your Hotel
-              </h2>
-              
-              <div className="space-y-4">
-                {hotelOptions.map((hotel) => (
-                  <div 
-                    key={hotel.id}
-                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                      selectedHotelId === hotel.id 
-                        ? 'border-green-500 bg-green-50' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setSelectedHotelId(hotel.id)}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{hotel.name}</h3>
-                        <div className="flex items-center mt-1">
-                          <div className="flex items-center">
-                            {[...Array(Math.floor(hotel.rating))].map((_, i) => (
-                              <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
-                            ))}
-                            {hotel.rating % 1 !== 0 && (
-                              <Star className="w-4 h-4 text-yellow-400 fill-current opacity-50" />
-                            )}
-                          </div>
-                          <span className="ml-2 text-sm text-gray-600">{hotel.rating} stars</span>
-                        </div>
-                        <div className="text-sm text-gray-600 mt-1">{hotel.area}</div>
-                      </div>
-                      
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-green-600">${hotel.pricePerNight}</div>
-                        <div className="text-sm text-gray-500">per night</div>
-                        <div className="text-sm font-medium text-gray-700">${hotel.totalPrice} total</div>
-                      </div>
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 mb-3">{hotel.description}</p>
-                    
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {hotel.amenities.slice(0, 4).map((amenity, index) => (
-                        <span key={index} className="inline-flex items-center px-2 py-1 bg-gray-100 text-xs rounded">
-                          {amenity === 'Free WiFi' && <Wifi className="w-3 h-3 mr-1" />}
-                          {amenity === 'Valet Parking' && <Car className="w-3 h-3 mr-1" />}
-                          {amenity}
-                        </span>
-                      ))}
-                      {hotel.amenities.length > 4 && (
-                        <span className="text-xs text-gray-500">
-                          +{hotel.amenities.length - 4} more
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddHotelToCart(hotel);
-                        }}
-                        className="text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
-                        style={{
-                          backgroundColor: '#10b981',
-                          color: 'white',
-                          border: 'none'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#059669'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = '#10b981'}
-                      >
-                        🛒 Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Budget Summary Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border p-6 sticky top-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <DollarSign className="w-5 h-5 mr-2 text-purple-600" />
-                Trip Budget
-              </h3>
-              
-              <div className="space-y-4">
-                <div className="bg-blue-50 p-3 rounded-lg mb-4">
-                  <div className="text-sm text-blue-700 font-medium mb-1">Base Trip Costs</div>
-                  <div className="text-xs text-blue-600">Core flight + accommodation costs</div>
-                </div>
-
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Flights ({travelers.adults} × ${tripSelection.selectedFlight?.price || 0})</span>
-                  <span className="font-medium">${budgetData.breakdown.flights.toLocaleString()}</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Hotels ({tripDuration} nights)</span>
-                  <span className="font-medium">${budgetData.breakdown.hotels.toLocaleString()}</span>
-                </div>
-
-                <div className="bg-orange-50 p-3 rounded-lg my-4">
-                  <div className="text-sm text-orange-700 font-medium mb-1">Additional Estimates</div>
-                  <div className="text-xs text-orange-600">Meals, activities, and emergency buffer</div>
-                </div>
-                
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Emergency Buffer (15%)</span>
-                  <span className="font-medium">${budgetData.breakdown.buffer.toLocaleString()}</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Daily Expenses ($100/day)</span>
-                  <span className="font-medium">${budgetData.breakdown.dailyExpenses.toLocaleString()}</span>
-                </div>
-                
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold">Complete Trip Budget</span>
-                    <span className="text-2xl font-bold text-purple-600">
-                      ${budgetData.totalBudget.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Includes flights, hotels, meals, activities & buffer
-                  </div>
-                </div>
-              </div>
-
-              {/* Buy Complete Trip Button */}
-              <button
-                onClick={handleBuyCompleteTrip}
-                className="w-full mt-6 py-4 px-4 rounded-lg font-bold text-lg transition-all duration-300 text-white shadow-lg hover:shadow-xl transform hover:scale-105"
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            {fitScore != null && fitScore > 0 && (
+              <span
                 style={{
-                  backgroundColor: '#7c3aed',
-                  color: 'white',
-                  border: 'none'
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '4px 12px',
+                  borderRadius: 100,
+                  background: 'linear-gradient(90deg,#6366F1,#8B5CF6)',
+                  color: '#fff',
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#6d28d9'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#7c3aed'}
               >
-                🛒 Buy Complete Trip - ${budgetData.totalBudget.toLocaleString()}
-              </button>
-              
-              {/* Individual Action Buttons */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <button
-                  onClick={handleSaveTrip}
-                  className="py-3 px-4 rounded-lg font-semibold transition-all duration-300 text-white shadow-md hover:shadow-lg transform hover:scale-105"
+                {fitScore}/100 Fit
+              </span>
+            )}
+            {vibe && (
+              <span
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  padding: '4px 12px',
+                  borderRadius: 100,
+                  background: 'rgba(217,119,6,0.2)',
+                  color: '#FCD34D',
+                }}
+              >
+                {vibe}
+              </span>
+            )}
+            {crowdLevel && (
+              <span
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  padding: '4px 10px',
+                  borderRadius: 100,
+                  background: crowd.bg,
+                  color: crowd.text,
+                }}
+              >
+                Crowd: {crowdLevel}
+              </span>
+            )}
+          </div>
+
+          <h1
+            style={{
+              fontSize: 'clamp(1.75rem,5vw,2.75rem)',
+              fontWeight: 400,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
+              marginBottom: 6,
+            }}
+          >
+            {destination}
+          </h1>
+
+          <div
+            style={{
+              fontFamily: 'monospace',
+              fontSize: 12,
+              color: 'rgba(255,255,255,0.45)',
+              letterSpacing: '0.04em',
+              marginBottom: 20,
+            }}
+          >
+            {startDate ? fmt(startDate, { day: 'numeric', month: 'short' }) : '—'} —{' '}
+            {endDate
+              ? fmt(endDate, { day: 'numeric', month: 'short', year: 'numeric' })
+              : '—'}
+            {seasonality && ` · ${seasonality}`}
+          </div>
+
+          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+            {[
+              {
+                label: 'Duration',
+                val: tripNights > 0 ? `${tripNights} nights` : 'Flexible',
+              },
+              {
+                label: 'Travellers',
+                val: `${totalTravelers} (${travelers.adults} adult${travelers.adults !== 1 ? 's' : ''}${travelers.kids ? `, ${travelers.kids} child${travelers.kids !== 1 ? 'ren' : ''}` : ''})`,
+              },
+              ...(estTotal > 0
+                ? [{ label: 'Est. budget', val: `$${estTotal.toLocaleString()}` }]
+                : []),
+              ...(weatherTemp != null
+                ? [{ label: 'Weather', val: `${weatherIcon ?? '🌤'} ${weatherTemp}°C` }]
+                : []),
+            ].map(({ label, val }) => (
+              <div key={label}>
+                <div
                   style={{
-                    backgroundColor: '#8b5cf6',
-                    color: 'white',
-                    border: 'none'
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: 'rgba(255,255,255,0.35)',
+                    marginBottom: 2,
                   }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#7c3aed'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#8b5cf6'}
                 >
-                  💾 Save Trip
-                </button>
-                
-                <button 
-                  onClick={handleUseBudget}
-                  className="py-3 px-4 rounded-lg font-semibold transition-all duration-300 text-white shadow-md hover:shadow-lg transform hover:scale-105"
-                  style={{
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
-                    border: 'none'
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
-                >
-                  📊 Set Budget
-                </button>
+                  {label}
+                </div>
+                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)' }}>{val}</div>
               </div>
-              
-              <div className="mt-4 text-center">
-                <p className="text-xs text-gray-500">
-                  Complete trip includes flights, hotels, meals & activities
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* Travel Hacks and Price Tracking */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
-          {/* Travel Hacks Panel */}
-          <TravelHacksPanel 
-            origin="Vancouver"
-            destination={destination}
-          />
-          
-          {/* Price Tracking Panel */}
-          <PriceTrackingPanel
-            origin="Vancouver"
-            destination={destination}
-            departureDate={startDate}
-            returnDate={endDate}
-            currentPrice={tripSelection.selectedFlight?.price || 850}
-          />
-        </div>
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
+          {description && (
+            <Card>
+              <SectionLabel>About this trip</SectionLabel>
+              <p style={{ fontSize: 15, lineHeight: 1.7, color: '#44403C' }}>{description}</p>
+            </Card>
+          )}
 
-        {/* Booking Options */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-          {/* Flight Booking */}
-          <BookingOptionsPanel
-            productType="flight"
-            origin="Vancouver"
-            destination={destination}
-            dates={{ departure: startDate, return: endDate }}
-            travelers={travelers}
-            estimatedPrice={tripSelection.selectedFlight?.price || 850}
-          />
-          
-          {/* Hotel Booking */}
-          <BookingOptionsPanel
-            productType="hotel"
-            destination={destination}
-            dates={{ departure: startDate, return: endDate }}
-            travelers={travelers}
-            estimatedPrice={tripSelection.selectedHotel?.totalPrice || 600}
-          />
+          {whyItFits && (
+            <div
+              style={{
+                background: 'linear-gradient(135deg,#EEF2FF,#F5F3FF)',
+                border: '1px solid #C7D2FE',
+                borderRadius: 12,
+                padding: '1.25rem',
+              }}
+            >
+              <SectionLabel>Why this works for you</SectionLabel>
+              <p
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.65,
+                  color: '#3730A3',
+                  fontStyle: 'italic',
+                }}
+              >
+                &ldquo;{whyItFits}&rdquo;
+              </p>
+            </div>
+          )}
+
+          {highlights && highlights.length > 0 && (
+            <Card>
+              <SectionLabel>Highlights</SectionLabel>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {highlights.map((h, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      background: 'linear-gradient(135deg,#EDE9FE,#DBEAFE)',
+                      color: '#5B21B6',
+                      padding: '6px 14px',
+                      borderRadius: 100,
+                      fontSize: 13,
+                      fontWeight: 500,
+                    }}
+                  >
+                    ✨ {h}
+                  </span>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {(flightBand || hotelBand) && (
+            <Card>
+              <SectionLabel>Estimated costs</SectionLabel>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))',
+                  gap: 10,
+                }}
+              >
+                {flightBand && (
+                  <CostBox
+                    icon="✈️"
+                    label="Flights (per person)"
+                    val={`$${flightBand.min.toLocaleString()} – $${flightBand.max.toLocaleString()}`}
+                  />
+                )}
+                {hotelBand && (
+                  <CostBox
+                    icon="🏨"
+                    label={`Hotel${hotelBand.style ? ` · ${hotelBand.style}` : ''}`}
+                    val={`$${hotelBand.min.toLocaleString()} – $${hotelBand.max.toLocaleString()}/night`}
+                    sub={hotelBand.area}
+                  />
+                )}
+                <CostBox
+                  icon="🚗"
+                  label="Local transport"
+                  val="Included (est.)"
+                  sub="Transit + transfers"
+                />
+              </div>
+              <p
+                style={{
+                  fontSize: 11,
+                  color: '#9CA3AF',
+                  marginTop: 10,
+                  fontFamily: 'monospace',
+                }}
+              >
+                Estimates only — final prices shown on partner booking sites.
+              </p>
+            </Card>
+          )}
+
+          <div
+            style={{
+              background: '#fff',
+              border: '1px solid #E5E7EB',
+              borderRadius: 14,
+              padding: '1.5rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            }}
+          >
+            <SectionLabel>Ready to go?</SectionLabel>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || saved}
+              style={{
+                width: '100%',
+                padding: '14px 20px',
+                background: saved ? '#15803D' : saving ? '#6B7280' : '#1C1917',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: saving || saved ? 'not-allowed' : 'pointer',
+                marginBottom: 10,
+                fontFamily: 'inherit',
+              }}
+            >
+              {saved ? '✅ Saved! Opening My trips…' : saving ? 'Saving…' : '💾 Save to My trips'}
+            </button>
+
+            {hubTripId && (
+              <Link
+                href={`/my-trip/${hubTripId}`}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '12px 20px',
+                  background: '#F3F4F6',
+                  color: '#374151',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  textAlign: 'center',
+                  marginBottom: 10,
+                  boxSizing: 'border-box',
+                }}
+              >
+                🗺 Open trip hub
+              </Link>
+            )}
+
+            {hubTripId && (
+              <Link
+                href={`/my-trip/${hubTripId}?tab=book`}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '12px 20px',
+                  background: '#EEF2FF',
+                  color: '#4F46E5',
+                  border: '1px solid #C7D2FE',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  textAlign: 'center',
+                  boxSizing: 'border-box',
+                }}
+              >
+                🔗 Book flights, hotels & activities →
+              </Link>
+            )}
+
+            {!hubTripId && (
+              <p
+                style={{
+                  fontSize: 12,
+                  color: '#78716C',
+                  textAlign: 'center',
+                  marginBottom: 10,
+                  lineHeight: 1.5,
+                }}
+              >
+                Save this trip first — then open your trip hub from My trips.
+              </p>
+            )}
+
+            <p
+              style={{
+                fontSize: 11,
+                color: '#9CA3AF',
+                textAlign: 'center',
+                marginTop: 10,
+                fontFamily: 'monospace',
+              }}
+            >
+              Book on partner sites (Booking.com, Skyscanner, Viator). We may earn a small
+              commission at no extra cost to you.
+            </p>
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1px solid #E5E7EB',
+        borderRadius: 12,
+        padding: '1.25rem',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        fontFamily: 'monospace',
+        fontSize: 10,
+        textTransform: 'uppercase',
+        letterSpacing: '0.1em',
+        color: '#9CA3AF',
+        marginBottom: 12,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function CostBox({
+  icon,
+  label,
+  val,
+  sub,
+}: {
+  icon: string;
+  label: string;
+  val: string;
+  sub?: string;
+}) {
+  return (
+    <div
+      style={{
+        background: '#F9FAFB',
+        border: '1px solid #E5E7EB',
+        borderRadius: 8,
+        padding: '12px',
+      }}
+    >
+      <div style={{ fontSize: '1.1rem', marginBottom: 4 }}>{icon}</div>
+      <div
+        style={{
+          fontSize: 11,
+          color: '#6B7280',
+          marginBottom: 4,
+          fontFamily: 'monospace',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#1C1917' }}>{val}</div>
+      {sub && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }

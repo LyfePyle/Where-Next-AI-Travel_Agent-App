@@ -1,1051 +1,292 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-interface Flight {
+/** Matches normalized shape from GET /api/trips/[id] */
+type Trip = {
   id: string;
-  airline: string;
-  flightNumber: string;
-  departure: string;
-  arrival: string;
-  departureTime: string;
-  arrivalTime: string;
-  duration: string;
-  price: number;
-  stops: number;
-  aircraft: string;
-  seats: number;
-  cabinClass: string;
-}
+  title: string;
+  destination: string;
+  start_date: string | null;
+  end_date: string | null;
+  travelers: { adults: number; kids: number };
+  budget_amount: number | null;
+};
 
-interface Hotel {
-  id: string;
-  name: string;
-  location: string;
-  rating: number;
-  price: number;
-  amenities: string[];
-  image: string;
-  description: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
-  roomType: string;
-}
+function BookingPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
-interface Tour {
-  id: string;
-  name: string;
-  location: string;
-  duration: string;
-  price: number;
-  rating: number;
-  description: string;
-  image: string;
-  category: string;
-  maxGroupSize: number;
-  includes: string[];
-}
+  const tripId = searchParams.get('tripId');
+  const destinationParam = searchParams.get('destination');
+  const startDateParam = searchParams.get('startDate');
+  const endDateParam = searchParams.get('endDate');
+  const adultsParam = searchParams.get('adults');
+  const kidsParam = searchParams.get('kids');
+  const budgetAmountParam = searchParams.get('budgetAmount') ?? searchParams.get('budget');
 
-interface Activity {
-  id: string;
-  name: string;
-  location: string;
-  price: number;
-  rating: number;
-  description: string;
-  image: string;
-  category: string;
-  duration: string;
-  difficulty: string;
-  ageRestriction: string;
-}
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [loading, setLoading] = useState(!!tripId);
 
-export default function BookingPage() {
-  const [activeTab, setActiveTab] = useState('flights');
-  const [searchData, setSearchData] = useState({
-    from: '',
-    to: '',
-    departureDate: '',
-    returnDate: '',
-    passengers: 1,
-    cabinClass: 'economy',
-    hotelLocation: '',
-    checkIn: '',
-    checkOut: '',
-    guests: 1,
-    roomType: 'standard',
-    tourLocation: '',
-    tourDate: '',
-    tourCategory: 'all',
-    activityLocation: '',
-    activityDate: '',
-    activityCategory: 'all'
-  });
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
 
-  const [searchResults, setSearchResults] = useState<{
-    flights: Flight[];
-    hotels: Hotel[];
-    tours: Tour[];
-    activities: Activity[];
-  }>({
-    flights: [],
-    hotels: [],
-    tours: [],
-    activities: []
-  });
-
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<{
-    flights: Flight[];
-    hotels: Hotel[];
-    tours: Tour[];
-    activities: Activity[];
-  }>({
-    flights: [],
-    hotels: [],
-    tours: [],
-    activities: []
-  });
-
-  const [showBookingSummary, setShowBookingSummary] = useState(false);
-
-  const cabinClasses = [
-    { value: 'economy', label: 'Economy', icon: '🛋️' },
-    { value: 'premium_economy', label: 'Premium Economy', icon: '🪑' },
-    { value: 'business', label: 'Business', icon: '💼' },
-    { value: 'first', label: 'First Class', icon: '👑' }
-  ];
-
-  const roomTypes = [
-    { value: 'standard', label: 'Standard Room', icon: '🛏️' },
-    { value: 'deluxe', label: 'Deluxe Room', icon: '🛏️✨' },
-    { value: 'suite', label: 'Suite', icon: '🏰' },
-    { value: 'family', label: 'Family Room', icon: '👨‍👩‍👧‍👦' }
-  ];
-
-  const tourCategories = [
-    { value: 'all', label: 'All Tours' },
-    { value: 'cultural', label: 'Cultural Tours' },
-    { value: 'adventure', label: 'Adventure Tours' },
-    { value: 'food', label: 'Food & Wine Tours' },
-    { value: 'nature', label: 'Nature Tours' },
-    { value: 'city', label: 'City Tours' }
-  ];
-
-  const activityCategories = [
-    { value: 'all', label: 'All Activities' },
-    { value: 'outdoor', label: 'Outdoor Activities' },
-    { value: 'indoor', label: 'Indoor Activities' },
-    { value: 'water', label: 'Water Sports' },
-    { value: 'cultural', label: 'Cultural Activities' },
-    { value: 'adventure', label: 'Adventure Sports' }
-  ];
-
-  const searchFlights = async () => {
-    setIsSearching(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockFlights: Flight[] = [
-      {
-        id: '1',
-        airline: 'Air Canada',
-        flightNumber: 'AC123',
-        departure: 'Vancouver (YVR)',
-        arrival: 'Toronto (YYZ)',
-        departureTime: '08:30',
-        arrivalTime: '16:45',
-        duration: '4h 15m',
-        price: 299,
-        stops: 0,
-        aircraft: 'Boeing 787-9',
-        seats: 4,
-        cabinClass: 'Economy'
-      },
-      {
-        id: '2',
-        airline: 'WestJet',
-        flightNumber: 'WS456',
-        departure: 'Vancouver (YVR)',
-        arrival: 'Toronto (YYZ)',
-        departureTime: '10:15',
-        arrivalTime: '18:30',
-        duration: '4h 15m',
-        price: 275,
-        stops: 0,
-        aircraft: 'Boeing 737 MAX',
-        seats: 2,
-        cabinClass: 'Economy'
-      },
-      {
-        id: '3',
-        airline: 'Delta',
-        flightNumber: 'DL789',
-        departure: 'Vancouver (YVR)',
-        arrival: 'Toronto (YYZ)',
-        departureTime: '14:20',
-        arrivalTime: '22:35',
-        duration: '4h 15m',
-        price: 325,
-        stops: 1,
-        aircraft: 'Airbus A320',
-        seats: 1,
-        cabinClass: 'Economy'
+  useEffect(() => {
+    if (!tripId) {
+      setLoading(false);
+      return;
+    }
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/trips/${encodeURIComponent(tripId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.trip) setTrip(data.trip);
+        }
+      } catch (e) {
+        console.error('Error fetching trip:', e);
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setSearchResults(prev => ({ ...prev, flights: mockFlights }));
-    setIsSearching(false);
+    })();
+  }, [tripId]);
+
+  // Primary: URL params. Fallback: API trip.
+  const destination =
+    destinationParam ?? trip?.destination ?? 'Unknown';
+  const startDate =
+    startDateParam ?? trip?.start_date ?? 'Flexible';
+  const endDate =
+    endDateParam ?? trip?.end_date ?? 'Flexible';
+  const adults =
+    adultsParam != null
+      ? parseInt(adultsParam, 10)
+      : trip?.travelers?.adults ?? 2;
+  const children =
+    kidsParam != null
+      ? parseInt(kidsParam, 10)
+      : trip?.travelers?.kids ?? 0;
+  const tripName = trip?.title ?? destination;
+  const budgetAmountValue =
+    budgetAmountParam != null && budgetAmountParam !== ''
+      ? budgetAmountParam
+      : trip?.budget_amount != null
+        ? String(trip.budget_amount)
+        : '';
+
+  const handleProceed = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams({
+      tripId: tripId ?? '',
+      destination,
+      startDate,
+      endDate,
+      fullName,
+      email,
+      phone,
+      adults: String(adults),
+      kids: String(children),
+    });
+    if (budgetAmountValue) params.set('budgetAmount', budgetAmountValue);
+    router.push(`/booking/checkout?${params.toString()}`);
   };
 
-  const searchHotels = async () => {
-    setIsSearching(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const mockHotels: Hotel[] = [
-      {
-        id: '1',
-        name: 'The Ritz-Carlton Toronto',
-        location: 'Downtown Toronto',
-        rating: 4.8,
-        price: 450,
-        amenities: ['Free WiFi', 'Spa', 'Restaurant', 'Pool', 'Gym'],
-        image: '/api/placeholder/300/200',
-        description: 'Luxury hotel in the heart of downtown Toronto',
-        checkIn: '15:00',
-        checkOut: '11:00',
-        guests: 2,
-        roomType: 'Deluxe Room'
-      },
-      {
-        id: '2',
-        name: 'Holiday Inn Express',
-        location: 'Airport Area',
-        rating: 4.2,
-        price: 180,
-        amenities: ['Free WiFi', 'Breakfast', 'Shuttle'],
-        image: '/api/placeholder/300/200',
-        description: 'Comfortable hotel near the airport',
-        checkIn: '14:00',
-        checkOut: '12:00',
-        guests: 2,
-        roomType: 'Standard Room'
-      }
-    ];
-    
-    setSearchResults(prev => ({ ...prev, hotels: mockHotels }));
-    setIsSearching(false);
-  };
-
-  const searchTours = async () => {
-    setIsSearching(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockTours: Tour[] = [
-      {
-        id: '1',
-        name: 'Toronto City Walking Tour',
-        location: 'Downtown Toronto',
-        duration: '3 hours',
-        price: 45,
-        rating: 4.7,
-        description: 'Explore the best of Toronto on foot',
-        image: '/api/placeholder/300/200',
-        category: 'City Tours',
-        maxGroupSize: 15,
-        includes: ['Guide', 'Snacks', 'Photos']
-      },
-      {
-        id: '2',
-        name: 'Niagara Falls Day Trip',
-        location: 'Niagara Falls',
-        duration: '8 hours',
-        price: 120,
-        rating: 4.9,
-        description: 'Visit one of the world\'s natural wonders',
-        image: '/api/placeholder/300/200',
-        category: 'Adventure Tours',
-        maxGroupSize: 20,
-        includes: ['Transport', 'Guide', 'Lunch', 'Boat Tour']
-      }
-    ];
-    
-    setSearchResults(prev => ({ ...prev, tours: mockTours }));
-    setIsSearching(false);
-  };
-
-  const searchActivities = async () => {
-    setIsSearching(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const mockActivities: Activity[] = [
-      {
-        id: '1',
-        name: 'CN Tower EdgeWalk',
-        location: 'CN Tower, Toronto',
-        price: 195,
-        rating: 4.8,
-        description: 'Walk around the outside of the CN Tower',
-        image: '/api/placeholder/300/200',
-        category: 'Adventure',
-        duration: '1.5 hours',
-        difficulty: 'Moderate',
-        ageRestriction: '13+'
-      },
-      {
-        id: '2',
-        name: 'Royal Ontario Museum Visit',
-        location: 'Downtown Toronto',
-        price: 23,
-        rating: 4.5,
-        description: 'Explore world-class exhibits',
-        image: '/api/placeholder/300/200',
-        category: 'Cultural',
-        duration: '3-4 hours',
-        difficulty: 'Easy',
-        ageRestriction: 'All ages'
-      }
-    ];
-    
-    setSearchResults(prev => ({ ...prev, activities: mockActivities }));
-    setIsSearching(false);
-  };
-
-  const handleSearch = (type: string) => {
-    switch (type) {
-      case 'flights':
-        searchFlights();
-        break;
-      case 'hotels':
-        searchHotels();
-        break;
-      case 'tours':
-        searchTours();
-        break;
-      case 'activities':
-        searchActivities();
-        break;
+  const handleBack = () => {
+    if (tripId) {
+      const backParams = new URLSearchParams();
+      if (destination) backParams.set('destination', destination);
+      if (startDate && startDate !== 'Flexible') backParams.set('startDate', startDate);
+      if (endDate && endDate !== 'Flexible') backParams.set('endDate', endDate);
+      backParams.set('adults', String(adults));
+      backParams.set('kids', String(children));
+      router.push(`/trip-details/${tripId}?${backParams.toString()}`);
+    } else {
+      router.back();
     }
   };
 
-  const addToBooking = (type: string, item: any) => {
-    setSelectedItems(prev => ({
-      ...prev,
-      [type]: [...prev[type as keyof typeof prev], item]
-    }));
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading booking...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const removeFromBooking = (type: string, itemId: string) => {
-    setSelectedItems(prev => ({
-      ...prev,
-      [type]: prev[type as keyof typeof prev].filter(item => item.id !== itemId)
-    }));
-  };
-
-  const getTotalPrice = () => {
-    const flights = selectedItems.flights.reduce((sum, flight) => sum + flight.price, 0);
-    const hotels = selectedItems.hotels.reduce((sum, hotel) => sum + hotel.price, 0);
-    const tours = selectedItems.tours.reduce((sum, tour) => sum + tour.price, 0);
-    const activities = selectedItems.activities.reduce((sum, activity) => sum + activity.price, 0);
-    return flights + hotels + tours + activities;
-  };
+  if (!tripId && !destinationParam) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="p-6 text-center">
+          <h1 className="text-xl font-semibold mb-2">Booking</h1>
+          <p className="text-gray-600">Missing trip info. Go back and select a trip.</p>
+          <button
+            onClick={() => router.push('/plan-trip')}
+            className="mt-4 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+          >
+            Plan a Trip
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="text-blue-600 hover:text-blue-700">
-                ← Back to Home
-              </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Booking Management</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowBookingSummary(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                📋 Booking Summary ({selectedItems.flights.length + selectedItems.hotels.length + selectedItems.tours.length + selectedItems.activities.length})
-              </button>
-            </div>
+    <div className="min-h-screen bg-slate-50">
+      <main className="mx-auto max-w-6xl px-4 py-10">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+          <div>
+            <button
+              type="button"
+              onClick={handleBack}
+              className="text-sm text-purple-700 hover:text-purple-800 font-semibold"
+            >
+              ← Back to trip details
+            </button>
+            <h1 className="mt-2 text-3xl font-bold text-gray-900">Complete your booking</h1>
+            <p className="text-gray-600 mt-1">Review your trip details and add traveler info.</p>
+          </div>
+          <div className="hidden md:flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm border">
+            🔒 Secure checkout • No charges until confirmation
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="border-b border-gray-200 mb-8">
-          <nav className="-mb-px flex space-x-8">
-            {[
-              { id: 'flights', name: 'Flights', icon: '✈️' },
-              { id: 'hotels', name: 'Hotels', icon: '🏨' },
-              { id: 'tours', name: 'Tours', icon: '🎫' },
-              { id: 'activities', name: 'Activities', icon: '🎯' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.name}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Content based on active tab */}
-        <div className="bg-white rounded-lg shadow p-6">
-          {activeTab === 'flights' && (
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Flight Search</h2>
-              <form className="space-y-6" onSubmit={(e) => {
-                e.preventDefault();
-                handleSearch('flights');
-              }}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      From
-                    </label>
-                    <input
-                      type="text"
-                      value={searchData.from}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, from: e.target.value }))}
-                      placeholder="Departure city or airport"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      To
-                    </label>
-                    <input
-                      type="text"
-                      value={searchData.to}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, to: e.target.value }))}
-                      placeholder="Destination city or airport"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500 bg-white"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Departure Date
-                    </label>
-                    <input
-                      type="date"
-                      value={searchData.departureDate}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, departureDate: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Return Date
-                    </label>
-                    <input
-                      type="date"
-                      value={searchData.returnDate}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, returnDate: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Passengers
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="9"
-                      value={searchData.passengers}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, passengers: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cabin Class
-                    </label>
-                    <select
-                      value={searchData.cabinClass}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, cabinClass: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    >
-                      {cabinClasses.map(cabin => (
-                        <option key={cabin.value} value={cabin.value}>
-                          {cabin.icon} {cabin.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <button 
-                  type="submit"
-                  disabled={isSearching}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {isSearching ? 'Searching...' : 'Search Flights'}
-                </button>
-              </form>
-
-              {/* Flight Results */}
-              {searchResults.flights.length > 0 && (
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-4">Available Flights</h3>
-                  <div className="space-y-4">
-                    {searchResults.flights.map((flight) => (
-                      <div key={flight.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-center">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-4">
-                              <div>
-                                <p className="font-semibold">{flight.airline}</p>
-                                <p className="text-sm text-gray-600">{flight.flightNumber}</p>
-                                <p className="text-xs text-gray-500">{flight.aircraft}</p>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <div className="text-center">
-                                  <span className="font-medium">{flight.departureTime}</span>
-                                  <p className="text-xs text-gray-600">{flight.departure}</p>
-                                </div>
-                                <div className="flex flex-col items-center">
-                                  <span className="text-gray-400">→</span>
-                                  <span className="text-xs text-gray-600">{flight.duration}</span>
-                                </div>
-                                <div className="text-center">
-                                  <span className="font-medium">{flight.arrivalTime}</span>
-                                  <p className="text-xs text-gray-600">{flight.arrival}</p>
-                                </div>
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                <p>{flight.cabinClass}</p>
-                                <p>{flight.stops === 0 ? 'Direct' : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`}</p>
-                                <p>{flight.seats} seats left</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-green-600">${flight.price}</p>
-                            <button 
-                              onClick={() => addToBooking('flights', flight)}
-                              className="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                            >
-                              Select Flight
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'hotels' && (
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Hotel Search</h2>
-              <form className="space-y-6" onSubmit={(e) => {
-                e.preventDefault();
-                handleSearch('hotels');
-              }}>
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-6">
+            <section className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Destination
-                  </label>
-                  <input
-                    type="text"
-                    value={searchData.hotelLocation}
-                    onChange={(e) => setSearchData(prev => ({ ...prev, hotelLocation: e.target.value }))}
-                    placeholder="City, hotel, or landmark"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500 bg-white"
-                  />
+                  <h2 className="text-xl font-semibold text-gray-900">{tripName}</h2>
+                  <p className="text-sm text-gray-600">{destination}</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Check-in Date
-                    </label>
-                    <input
-                      type="date"
-                      value={searchData.checkIn}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, checkIn: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Check-out Date
-                    </label>
-                    <input
-                      type="date"
-                      value={searchData.checkOut}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, checkOut: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Guests
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={searchData.guests}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, guests: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Room Type
-                    </label>
-                    <select
-                      value={searchData.roomType}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, roomType: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    >
-                      {roomTypes.map(room => (
-                        <option key={room.value} value={room.value}>
-                          {room.icon} {room.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <span className="inline-flex items-center rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">
+                  Trip summary
+                </span>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-3 text-sm text-gray-700">
+                <div className="rounded-xl bg-gray-50 p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Dates</p>
+                  <p className="font-semibold">{startDate} → {endDate}</p>
                 </div>
-                <button 
-                  type="submit"
-                  disabled={isSearching}
-                  className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {isSearching ? 'Searching...' : 'Search Hotels'}
-                </button>
-              </form>
+                <div className="rounded-xl bg-gray-50 p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Travelers</p>
+                  <p className="font-semibold">
+                    {adults} adults{children > 0 ? `, ${children} kids` : ''}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Budget target</p>
+                  <p className="font-semibold">
+                    {budgetAmountValue ? `$${Number(budgetAmountValue).toLocaleString()}` : 'Not set'}
+                  </p>
+                </div>
+              </div>
+            </section>
 
-              {/* Hotel Results */}
-              {searchResults.hotels.length > 0 && (
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-4">Available Hotels</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {searchResults.hotels.map((hotel) => (
-                      <div key={hotel.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                        <div className="h-48 bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-500">Hotel Image</span>
-                        </div>
-                        <div className="p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-semibold text-lg">{hotel.name}</h4>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-green-600">${hotel.price}</p>
-                              <p className="text-sm text-gray-600">per night</p>
-                            </div>
-                          </div>
-                          <p className="text-gray-600 mb-2">{hotel.location}</p>
-                          <div className="flex items-center mb-2">
-                            <span className="text-yellow-500">★</span>
-                            <span className="ml-1">{hotel.rating}</span>
-                            <span className="text-gray-600 ml-2">({hotel.roomType})</span>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">{hotel.description}</p>
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {hotel.amenities.slice(0, 3).map((amenity, index) => (
-                              <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                {amenity}
-                              </span>
-                            ))}
-                          </div>
-                          <button 
-                            onClick={() => addToBooking('hotels', hotel)}
-                            className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
-                          >
-                            Select Hotel
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <section className="rounded-2xl border bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">What happens next</h3>
+              <ul className="space-y-3 text-sm text-gray-600">
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-purple-500" />
+                  We confirm your traveler details and preferences.
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-purple-500" />
+                  You’ll review a full breakdown of flights, hotels, and experiences.
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-purple-500" />
+                  Checkout is secure and you can save your trip anytime.
+                </li>
+              </ul>
+            </section>
+          </div>
+
+          <section className="rounded-2xl border bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Traveler details</h2>
+              <span className="text-xs text-gray-500">Required for booking</span>
             </div>
-          )}
 
-          {activeTab === 'tours' && (
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Tour & Experience Search</h2>
-              <form className="space-y-6" onSubmit={(e) => {
-                e.preventDefault();
-                handleSearch('tours');
-              }}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Destination
-                    </label>
-                    <input
-                      type="text"
-                      value={searchData.tourLocation}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, tourLocation: e.target.value }))}
-                      placeholder="City or region"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      value={searchData.tourDate}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, tourDate: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Category
-                    </label>
-                    <select
-                      value={searchData.tourCategory}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, tourCategory: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    >
-                      {tourCategories.map(category => (
-                        <option key={category.value} value={category.value}>
-                          {category.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <button 
-                  type="submit"
-                  disabled={isSearching}
-                  className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            <form onSubmit={handleProceed} className="mt-5 space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Full name</label>
+                <input
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  placeholder="John Doe"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+                <input
+                  type="email"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="john@example.com"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Phone (optional)</label>
+                <input
+                  type="tel"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+
+              <div className="rounded-xl bg-purple-50 px-4 py-3 text-sm text-purple-800">
+                We’ll use this info to keep your booking updated and confirm your itinerary.
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                 >
-                  {isSearching ? 'Searching...' : 'Search Tours'}
+                  Back
                 </button>
-              </form>
-
-              {/* Tour Results */}
-              {searchResults.tours.length > 0 && (
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-4">Available Tours</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {searchResults.tours.map((tour) => (
-                      <div key={tour.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                        <div className="h-48 bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-500">Tour Image</span>
-                        </div>
-                        <div className="p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-semibold text-lg">{tour.name}</h4>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-purple-600">${tour.price}</p>
-                              <p className="text-sm text-gray-600">per person</p>
-                            </div>
-                          </div>
-                          <p className="text-gray-600 mb-2">{tour.location}</p>
-                          <div className="flex items-center mb-2">
-                            <span className="text-yellow-500">★</span>
-                            <span className="ml-1">{tour.rating}</span>
-                            <span className="text-gray-600 ml-2">({tour.duration})</span>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">{tour.description}</p>
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {tour.includes.map((include, index) => (
-                              <span key={index} className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                                {include}
-                              </span>
-                            ))}
-                          </div>
-                          <button 
-                            onClick={() => addToBooking('tours', tour)}
-                            className="w-full bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700"
-                          >
-                            Select Tour
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'activities' && (
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Activities & Attractions Search</h2>
-              <form className="space-y-6" onSubmit={(e) => {
-                e.preventDefault();
-                handleSearch('activities');
-              }}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Location
-                    </label>
-                    <input
-                      type="text"
-                      value={searchData.activityLocation}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, activityLocation: e.target.value }))}
-                      placeholder="City or attraction"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      value={searchData.activityDate}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, activityDate: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Category
-                    </label>
-                    <select
-                      value={searchData.activityCategory}
-                      onChange={(e) => setSearchData(prev => ({ ...prev, activityCategory: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                    >
-                      {activityCategories.map(category => (
-                        <option key={category.value} value={category.value}>
-                          {category.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <button 
+                <button
                   type="submit"
-                  disabled={isSearching}
-                  className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="rounded-lg bg-purple-600 px-5 py-2 text-sm font-semibold text-white hover:bg-purple-700"
                 >
-                  {isSearching ? 'Searching...' : 'Search Activities'}
+                  Continue to checkout →
                 </button>
-              </form>
-
-              {/* Activity Results */}
-              {searchResults.activities.length > 0 && (
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-4">Available Activities</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {searchResults.activities.map((activity) => (
-                      <div key={activity.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                        <div className="h-48 bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-500">Activity Image</span>
-                        </div>
-                        <div className="p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-semibold text-lg">{activity.name}</h4>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-orange-600">${activity.price}</p>
-                              <p className="text-sm text-gray-600">per person</p>
-                            </div>
-                          </div>
-                          <p className="text-gray-600 mb-2">{activity.location}</p>
-                          <div className="flex items-center mb-2">
-                            <span className="text-yellow-500">★</span>
-                            <span className="ml-1">{activity.rating}</span>
-                            <span className="text-gray-600 ml-2">({activity.duration})</span>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">{activity.description}</p>
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
-                              {activity.category}
-                            </span>
-                            <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                              {activity.difficulty}
-                            </span>
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              {activity.ageRestriction}
-                            </span>
-                          </div>
-                          <button 
-                            onClick={() => addToBooking('activities', activity)}
-                            className="w-full bg-orange-600 text-white py-2 px-4 rounded hover:bg-orange-700"
-                          >
-                            Select Activity
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            </form>
+          </section>
         </div>
       </main>
+    </div>
+  );
+}
 
-      {/* Booking Summary Modal */}
-      {showBookingSummary && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold">Booking Summary</h3>
-              <button
-                onClick={() => setShowBookingSummary(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              {/* Flights */}
-              {selectedItems.flights.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-semibold mb-3">✈️ Flights</h4>
-                  {selectedItems.flights.map((flight) => (
-                    <div key={flight.id} className="border border-gray-200 rounded-lg p-4 mb-3">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-semibold">{flight.airline} {flight.flightNumber}</p>
-                          <p className="text-sm text-gray-600">{flight.departure} → {flight.arrival}</p>
-                          <p className="text-sm text-gray-600">{flight.departureTime} - {flight.arrivalTime} ({flight.duration})</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-green-600">${flight.price}</p>
-                          <button
-                            onClick={() => removeFromBooking('flights', flight.id)}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Hotels */}
-              {selectedItems.hotels.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-semibold mb-3">🏨 Hotels</h4>
-                  {selectedItems.hotels.map((hotel) => (
-                    <div key={hotel.id} className="border border-gray-200 rounded-lg p-4 mb-3">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-semibold">{hotel.name}</p>
-                          <p className="text-sm text-gray-600">{hotel.location}</p>
-                          <p className="text-sm text-gray-600">{hotel.roomType} • {hotel.guests} guests</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-green-600">${hotel.price}/night</p>
-                          <button
-                            onClick={() => removeFromBooking('hotels', hotel.id)}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Tours */}
-              {selectedItems.tours.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-semibold mb-3">🎫 Tours</h4>
-                  {selectedItems.tours.map((tour) => (
-                    <div key={tour.id} className="border border-gray-200 rounded-lg p-4 mb-3">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-semibold">{tour.name}</p>
-                          <p className="text-sm text-gray-600">{tour.location}</p>
-                          <p className="text-sm text-gray-600">{tour.duration} • {tour.category}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-green-600">${tour.price}</p>
-                          <button
-                            onClick={() => removeFromBooking('tours', tour.id)}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Activities */}
-              {selectedItems.activities.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-semibold mb-3">🎯 Activities</h4>
-                  {selectedItems.activities.map((activity) => (
-                    <div key={activity.id} className="border border-gray-200 rounded-lg p-4 mb-3">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-semibold">{activity.name}</p>
-                          <p className="text-sm text-gray-600">{activity.location}</p>
-                          <p className="text-sm text-gray-600">{activity.duration} • {activity.category}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-green-600">${activity.price}</p>
-                          <button
-                            onClick={() => removeFromBooking('activities', activity.id)}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Total */}
-              <div className="border-t pt-6">
-                <div className="flex justify-between items-center text-xl font-bold">
-                  <span>Total:</span>
-                  <span className="text-green-600">${getTotalPrice().toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-4">
-                <button
-                  onClick={() => {/* Handle booking confirmation */}}
-                  className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700"
-                >
-                  💳 Proceed to Payment
-                </button>
-                <button
-                  onClick={() => setShowBookingSummary(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-400"
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            </div>
+export default function BookingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading booking page...</p>
           </div>
         </div>
-      )}
-    </div>
+      }
+    >
+      <BookingPageContent />
+    </Suspense>
   );
 }

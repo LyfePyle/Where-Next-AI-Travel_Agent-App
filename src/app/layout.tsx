@@ -4,8 +4,8 @@ import "./globals.css";
 import { TripCartProvider } from "@/components/TripCartDrawer";
 import TripCartDrawer from "@/components/TripCartDrawer";
 import { AuthProvider } from "@/contexts/AuthContext";
-// import { AppProvider } from "@/contexts/AppContext";
-import Navigation from "@/components/Navigation";
+import { AppProvider } from "@/contexts/AppContext";
+import GlobalNav from "@/components/GlobalNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,13 +38,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          {/* <AppProvider> */}
-            <Navigation />
+          <AppProvider>
+            <GlobalNav />
             <TripCartProvider>
               {children}
               <TripCartDrawer />
             </TripCartProvider>
-          {/* </AppProvider> */}
+          </AppProvider>
         </AuthProvider>
       </body>
     </html>

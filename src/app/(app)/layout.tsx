@@ -14,9 +14,13 @@ export default async function AppLayout({ children }: AppLayoutProps) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name) => cookieStore.get(name)?.value,
-        set: (name, value, options) => cookieStore.set({ name, value, ...options }),
-        remove: (name, options) => cookieStore.set({ name, value: "", ...options }),
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(_cookiesToSet) {
+          // No-op: Next.js 15 layouts cannot write cookies (only Route Handlers / Server Actions).
+          // Session refresh is handled in middleware.ts before this layout runs.
+        },
       },
     }
   );
@@ -46,7 +50,7 @@ export default async function AppLayout({ children }: AppLayoutProps) {
       <AppNavigation />
 
       {/* Main Content */}
-      <div className="lg:pl-64">
+      <div className="lg:pt-16">
         <main className="flex-1 pb-20 md:pb-0">
           {children}
         </main>

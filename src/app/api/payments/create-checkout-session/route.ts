@@ -4,15 +4,20 @@ import { createServerClient } from "@supabase/ssr";
 import Stripe from "stripe";
 
 export async function POST() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (n) => cookieStore.get(n)?.value,
-        set: (n, v, o) => cookieStore.set({ name: n, value: v, ...o }),
-        remove: (n, o) => cookieStore.set({ name: n, value: "", ...o }),
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set({ name, value, ...options })
+          );
+        },
       },
     }
   );
@@ -34,7 +39,7 @@ export async function POST() {
     return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
 
   const line_items = items.map((it) => ({
     quantity: it.quantity,

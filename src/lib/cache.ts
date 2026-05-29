@@ -71,7 +71,12 @@ export const generateCacheKey = {
     vibes: string[];
     adults: number;
     kids: number;
-  }) => `suggestions_${params.from}_${params.budget}_${params.vibes.sort().join(',')}_${params.adults}_${params.kids}`,
+    tripType?: string;
+    numberOfStops?: number;
+    destination?: string;
+    stopsKey?: string;
+  }) =>
+    `suggestions_${params.from}_${params.budget}_${params.vibes.sort().join(',')}_${params.adults}_${params.kids}_${params.tripType ?? 'single'}_${params.numberOfStops ?? ''}_${params.destination ?? ''}_${params.stopsKey ?? ''}`,
   
   flights: (params: {
     origin: string;

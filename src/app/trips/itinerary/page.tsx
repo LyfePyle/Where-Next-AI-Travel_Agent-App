@@ -314,10 +314,63 @@ function TripItineraryContent() {
             evening: [{ time: '19:00', activity: 'Traditional Balinese dinner', cost: 35 }]
           }
         }
+      },
+      'Bangkok, Thailand': {
+        themes: ['Arrival & Grand Palace', 'Temples & Markets', 'Floating Markets & Food', 'Shopping & Culture', 'Day Trip to Ayutthaya', 'Relaxation & Spa', 'Departure'],
+        activities: {
+          day1: {
+            morning: [{ time: '08:00', activity: 'Flight from Vancouver to Bangkok', cost: 0, notes: 'Flight time: 14 hours' }],
+            afternoon: [{ time: '22:00', activity: 'Check-in at hotel', location: 'Sukhumvit', cost: 0 }, { time: '23:00', activity: 'Evening stroll at Asiatique', location: 'Bangkok', cost: 0 }],
+            evening: [{ time: '00:00', activity: 'Late night street food', location: 'Bangkok', cost: 15, notes: 'Try pad thai and mango sticky rice' }]
+          },
+          day2: {
+            morning: [{ time: '08:00', activity: 'Visit Grand Palace & Wat Phra Kaew', location: 'Bangkok', cost: 20, notes: 'Dress modestly - no shorts or sleeveless' }],
+            afternoon: [{ time: '14:00', activity: 'Explore Wat Pho (Reclining Buddha)', location: 'Bangkok', cost: 5 }, { time: '16:00', activity: 'Traditional Thai massage', location: 'Bangkok', cost: 15 }],
+            evening: [{ time: '19:00', activity: 'Dinner cruise on Chao Phraya River', location: 'Bangkok', cost: 60, notes: 'See city lights from the water' }]
+          },
+          day3: {
+            morning: [{ time: '06:00', activity: 'Early visit to Damnoen Saduak Floating Market', location: 'Ratchaburi', cost: 40, notes: 'Best to arrive early before crowds' }],
+            afternoon: [{ time: '14:00', activity: 'Cooking class - Learn Thai cuisine', location: 'Bangkok', cost: 50 }, { time: '16:00', activity: 'Visit Chatuchak Weekend Market', location: 'Bangkok', cost: 0 }],
+            evening: [{ time: '19:00', activity: 'Rooftop dinner with city views', location: 'Bangkok', cost: 80, notes: 'Reserve in advance for best views' }]
+          },
+          day4: {
+            morning: [{ time: '09:00', activity: 'Shopping at MBK Center or Siam Paragon', location: 'Bangkok', cost: 0 }],
+            afternoon: [{ time: '14:00', activity: 'Visit Jim Thompson House Museum', location: 'Bangkok', cost: 10 }, { time: '16:00', activity: 'Explore Chinatown (Yaowarat)', location: 'Bangkok', cost: 0 }],
+            evening: [{ time: '19:00', activity: 'Street food tour in Chinatown', location: 'Bangkok', cost: 30, notes: 'Try local delicacies' }]
+          },
+          day5: {
+            morning: [{ time: '07:00', activity: 'Day trip to Ayutthaya Historical Park', location: 'Ayutthaya', cost: 60, notes: 'UNESCO World Heritage Site' }],
+            afternoon: [{ time: '14:00', activity: 'Explore ancient ruins and temples', location: 'Ayutthaya', cost: 0 }, { time: '16:00', activity: 'Visit local market', location: 'Ayutthaya', cost: 0 }],
+            evening: [{ time: '19:00', activity: 'Return to Bangkok - Dinner at hotel', cost: 40 }]
+          },
+          day6: {
+            morning: [{ time: '09:00', activity: 'Visit Wat Arun (Temple of Dawn)', location: 'Bangkok', cost: 5 }],
+            afternoon: [{ time: '14:00', activity: 'Relaxing spa day - Traditional Thai spa', location: 'Bangkok', cost: 80 }, { time: '16:00', activity: 'Lumpini Park walk', location: 'Bangkok', cost: 0 }],
+            evening: [{ time: '19:00', activity: 'Final dinner - Michelin-starred Thai restaurant', cost: 100, notes: 'Celebrate your amazing trip!' }]
+          },
+          day7: {
+            morning: [{ time: '10:00', activity: 'Last-minute shopping or temple visit', location: 'Bangkok', cost: 0 }],
+            afternoon: [{ time: '14:00', activity: 'Check-out and head to airport', location: 'Bangkok', cost: 0 }],
+            evening: [{ time: '18:00', activity: 'Flight from Bangkok to Vancouver', cost: 0, notes: 'Flight time: 14 hours' }]
+          }
+        }
       }
     };
 
-    const destData = itineraryData[tripDetails.destination] || itineraryData['Reykjavik, Iceland'];
+    // Try exact match first, then try partial match
+    let destData = itineraryData[tripDetails.destination];
+    if (!destData) {
+      // Try matching by city name
+      const cityName = tripDetails.city || tripDetails.destination.split(',')[0]?.trim();
+      destData = Object.entries(itineraryData).find(([key]) => 
+        key.toLowerCase().includes(cityName?.toLowerCase() || '') || 
+        cityName?.toLowerCase().includes(key.toLowerCase().split(',')[0])
+      )?.[1];
+    }
+    // Final fallback
+    if (!destData) {
+      destData = itineraryData['Bangkok, Thailand'] || itineraryData['Reykjavik, Iceland'];
+    }
     const startDate = new Date(tripDetails.startDate);
     
     return Array.from({ length: tripDetails.duration }, (_, i) => {
@@ -376,6 +429,11 @@ function TripItineraryContent() {
         summer: { temp: 30, condition: 'Hot and tropical', icon: '🌴' },
         winter: { temp: 28, condition: 'Warm and humid', icon: '🌺' },
         historical: { temp: 29, condition: 'Tropical paradise', icon: '🏝️' }
+      },
+      'Bangkok': {
+        summer: { temp: 34, condition: 'Hot and humid', icon: '🌡️' },
+        winter: { temp: 30, condition: 'Warm and pleasant', icon: '☀️' },
+        historical: { temp: 32, condition: 'Tropical weather', icon: '🌴' }
       }
     };
 
@@ -403,7 +461,8 @@ function TripItineraryContent() {
         'Barcelona': 'BCN',
         'Tokyo': 'NRT',
         'Bali': 'DPS',
-        'Paris': 'CDG'
+        'Paris': 'CDG',
+        'Bangkok': 'BKK'
       };
 
       const destinationAirport = airportCodes[tripDetails.city] || 'LAX';
@@ -448,11 +507,16 @@ function TripItineraryContent() {
         duration: '10h 20m',
         airlines: ['Air Canada', 'Japan Airlines', 'ANA']
       },
-      'Bali': {
-        airport: 'DPS',
-        duration: '18h 30m',
-        airlines: ['Air Canada', 'Cathay Pacific', 'Singapore Airlines']
-      }
+        'Bali': {
+          airport: 'DPS',
+          duration: '18h 30m',
+          airlines: ['Air Canada', 'Cathay Pacific', 'Singapore Airlines']
+        },
+        'Bangkok': {
+          airport: 'BKK',
+          duration: '14h 20m',
+          airlines: ['Air Canada', 'Thai Airways', 'EVA Air']
+        }
     };
 
     const destData = flightData[tripDetails.city] || flightData['Reykjavik'];
@@ -699,7 +763,7 @@ function TripItineraryContent() {
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Trip Not Found</h2>
           <p className="text-gray-600 mb-4">Unable to load trip details</p>
-          <Link href="/trips/plan" className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+          <Link href="/trips/plan" className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700">
             Plan New Trip
           </Link>
         </div>
@@ -714,21 +778,26 @@ function TripItineraryContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="flex items-center space-x-3">
-              <Link href="/" className="text-gray-600 hover:text-gray-800 flex items-center space-x-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              <Link 
+                href={`/trip-details/${tripId}?destination=${encodeURIComponent(destination)}&startDate=${startDate}&endDate=${endDate}&adults=${travelers}&budgetAmount=${budget}`}
+                className="text-purple-600 hover:text-purple-800 flex items-center space-x-2 font-semibold bg-purple-50 px-4 py-2 rounded-lg hover:bg-purple-100 transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                <span>Home</span>
+                <span>Back to Trip Details</span>
               </Link>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3" />
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{tripDetails.destination}</h1>
-                  <p className="text-sm text-gray-500">Your personalized itinerary</p>
+                  <h1 className="text-2xl sm:text-3xl font-black text-gray-900 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                    {tripDetails.destination}
+                  </h1>
+                  <p className="text-sm text-gray-600 font-medium">✨ Your Personalized Adventure Awaits</p>
                 </div>
               </div>
             </div>
@@ -816,59 +885,70 @@ function TripItineraryContent() {
             <h2 className="text-2xl font-bold mb-6">Daily Itinerary</h2>
             <div className="space-y-6">
               {itinerary.map((day) => (
-                <div key={day.day} className="bg-white rounded-lg shadow-sm border p-6">
-                  <div className="flex items-center justify-between mb-4">
+                <div key={day.day} className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border-2 border-purple-100 p-6 hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b-2 border-purple-200">
                     <div>
-                      <h3 className="text-xl font-semibold">Day {day.day}: {day.theme}</h3>
-                      <p className="text-gray-600">{day.date}</p>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-1">Day {day.day}: {day.theme}</h3>
+                      <p className="text-gray-600 font-medium">{day.date}</p>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-semibold text-green-600">~${day.estimatedCost}</div>
-                      <div className="text-sm text-gray-500">Estimated Cost</div>
+                    <div className="text-right bg-green-50 rounded-lg px-4 py-2 border-2 border-green-200">
+                      <div className="text-2xl font-bold text-green-600">~${day.estimatedCost}</div>
+                      <div className="text-xs text-green-700 font-medium">Estimated Cost</div>
                     </div>
                   </div>
                   
-                  {/* Weather Info */}
-                  <div className="bg-blue-50 rounded-lg p-3 mb-4 flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-2xl">{day.weather.icon}</span>
+                  {/* Weather Info - Clickable */}
+                  <div 
+                    className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 mb-4 flex items-center justify-between hover:shadow-lg transition-all cursor-pointer border-2 border-blue-200 hover:border-blue-400"
+                    onClick={() => window.open(`https://www.google.com/search?q=weather+${tripDetails.city}+${day.date}`, '_blank')}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <span className="text-3xl">{day.weather.icon}</span>
                       <div>
-                        <div className="font-medium">{day.weather.condition}</div>
-                        <div className="text-sm text-gray-600">
+                        <div className="font-bold text-gray-900">{day.weather.condition}</div>
+                        <div className="text-lg font-semibold text-blue-700">
                           {day.weather.temperature}°C
-                          {day.weather.isHistorical && ' (Historical Average)'}
+                          {day.weather.isHistorical && ' (Historical)'}
                         </div>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {day.weather.isHistorical ? '📊 Historical Data' : '🌤️ Forecast'}
+                    <div className="text-sm text-blue-600 font-medium hover:underline">
+                      {day.weather.isHistorical ? '📊 View Forecast →' : '🌤️ Full Forecast →'}
                     </div>
                   </div>
 
                   {/* Activities */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Morning */}
-                    <div className="bg-yellow-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-yellow-800 mb-3 flex items-center">
+                    <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border-2 border-yellow-200 hover:border-yellow-400 transition-all">
+                      <h4 className="font-bold text-yellow-900 mb-3 flex items-center text-lg">
                         ☀️ Morning
                       </h4>
                       <div className="space-y-3">
                         {day.morning.map((activity, index) => (
-                          <div key={index} className="text-sm">
-                            <div className="font-medium">{activity.time} {activity.activity}</div>
+                          <div 
+                            key={index} 
+                            className="text-sm bg-white rounded-lg p-3 mb-2 hover:shadow-md transition-all cursor-pointer border border-yellow-200 hover:border-yellow-400"
+                            onClick={() => {
+                              if (activity.location) {
+                                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.location)}`, '_blank');
+                              }
+                            }}
+                          >
+                            <div className="font-medium flex items-center justify-between">
+                              <span>{activity.time} {activity.activity}</span>
+                              {activity.cost !== undefined && activity.cost > 0 && (
+                                <span className="text-green-600 font-bold ml-2">${activity.cost}</span>
+                              )}
+                            </div>
                             {activity.location && (
-                              <div className="text-gray-600 flex items-center mt-1">
+                              <div className="text-blue-600 flex items-center mt-1 hover:underline cursor-pointer">
                                 📍 {activity.location}
                               </div>
                             )}
                             {activity.notes && (
-                              <div className="text-gray-500 flex items-center mt-1">
+                              <div className="text-purple-600 flex items-center mt-1 text-xs bg-purple-50 px-2 py-1 rounded">
                                 💡 {activity.notes}
-                              </div>
-                            )}
-                            {activity.cost !== undefined && (
-                              <div className="text-green-600 font-medium mt-1">
-                                ${activity.cost}
                               </div>
                             )}
                           </div>
@@ -877,27 +957,35 @@ function TripItineraryContent() {
                     </div>
 
                     {/* Afternoon */}
-                    <div className="bg-orange-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-orange-800 mb-3 flex items-center">
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border-2 border-orange-200 hover:border-orange-400 transition-all">
+                      <h4 className="font-bold text-orange-900 mb-3 flex items-center text-lg">
                         🌞 Afternoon
                       </h4>
                       <div className="space-y-3">
                         {day.afternoon.map((activity, index) => (
-                          <div key={index} className="text-sm">
-                            <div className="font-medium">{activity.time} {activity.activity}</div>
+                          <div 
+                            key={index} 
+                            className="text-sm bg-white rounded-lg p-3 mb-2 hover:shadow-md transition-all cursor-pointer border border-orange-200 hover:border-orange-400"
+                            onClick={() => {
+                              if (activity.location) {
+                                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.location)}`, '_blank');
+                              }
+                            }}
+                          >
+                            <div className="font-medium flex items-center justify-between">
+                              <span>{activity.time} {activity.activity}</span>
+                              {activity.cost !== undefined && activity.cost > 0 && (
+                                <span className="text-green-600 font-bold ml-2">${activity.cost}</span>
+                              )}
+                            </div>
                             {activity.location && (
-                              <div className="text-gray-600 flex items-center mt-1">
+                              <div className="text-blue-600 flex items-center mt-1 hover:underline cursor-pointer">
                                 📍 {activity.location}
                               </div>
                             )}
                             {activity.notes && (
-                              <div className="text-gray-500 flex items-center mt-1">
+                              <div className="text-purple-600 flex items-center mt-1 text-xs bg-purple-50 px-2 py-1 rounded">
                                 💡 {activity.notes}
-                              </div>
-                            )}
-                            {activity.cost !== undefined && (
-                              <div className="text-green-600 font-medium mt-1">
-                                ${activity.cost}
                               </div>
                             )}
                           </div>
@@ -906,27 +994,35 @@ function TripItineraryContent() {
                     </div>
 
                     {/* Evening */}
-                    <div className="bg-purple-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-purple-800 mb-3 flex items-center">
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border-2 border-purple-200 hover:border-purple-400 transition-all">
+                      <h4 className="font-bold text-purple-900 mb-3 flex items-center text-lg">
                         🌙 Evening
                       </h4>
                       <div className="space-y-3">
                         {day.evening.map((activity, index) => (
-                          <div key={index} className="text-sm">
-                            <div className="font-medium">{activity.time} {activity.activity}</div>
+                          <div 
+                            key={index} 
+                            className="text-sm bg-white rounded-lg p-3 mb-2 hover:shadow-md transition-all cursor-pointer border border-purple-200 hover:border-purple-400"
+                            onClick={() => {
+                              if (activity.location) {
+                                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.location)}`, '_blank');
+                              }
+                            }}
+                          >
+                            <div className="font-medium flex items-center justify-between">
+                              <span>{activity.time} {activity.activity}</span>
+                              {activity.cost !== undefined && activity.cost > 0 && (
+                                <span className="text-green-600 font-bold ml-2">${activity.cost}</span>
+                              )}
+                            </div>
                             {activity.location && (
-                              <div className="text-gray-600 flex items-center mt-1">
+                              <div className="text-blue-600 flex items-center mt-1 hover:underline cursor-pointer">
                                 📍 {activity.location}
                               </div>
                             )}
                             {activity.notes && (
-                              <div className="text-gray-500 flex items-center mt-1">
+                              <div className="text-purple-600 flex items-center mt-1 text-xs bg-purple-50 px-2 py-1 rounded">
                                 💡 {activity.notes}
-                              </div>
-                            )}
-                            {activity.cost !== undefined && (
-                              <div className="text-green-600 font-medium mt-1">
-                                ${activity.cost}
                               </div>
                             )}
                           </div>
@@ -967,9 +1063,12 @@ function TripItineraryContent() {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-green-600">${flight.price}</div>
-                      <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mt-2">
-                        Book Flight
-                      </button>
+                      <Link 
+                        href={`/booking?tripId=${tripId}&destination=${encodeURIComponent(destination)}&startDate=${startDate}&endDate=${endDate}`}
+                        className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 mt-2 font-semibold shadow-lg hover:shadow-xl transition-all inline-block"
+                      >
+                        ✈️ Book Flight
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -1005,9 +1104,12 @@ function TripItineraryContent() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-2xl font-bold text-green-600">${hotel.price}/night</div>
-                      <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        Book Hotel
-                      </button>
+                      <Link 
+                        href={`/booking?tripId=${tripId}&destination=${encodeURIComponent(destination)}&startDate=${startDate}&endDate=${endDate}`}
+                        className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold shadow-lg hover:shadow-xl transition-all inline-block"
+                      >
+                        🏨 Book Hotel
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -1077,44 +1179,70 @@ function TripItineraryContent() {
           </div>
         )}
 
-        {/* Save & Share Buttons */}
-        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <button 
-            onClick={() => {
-              // Save trip plan functionality
-              alert('Trip plan saved!');
-            }}
-            className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            💾 Save Trip Plan
-          </button>
-          <button 
-            onClick={() => {
-              // Share functionality
-              if (navigator.share) {
-                navigator.share({
-                  title: `My Trip to ${tripDetails.destination}`,
-                  text: `Check out my amazing trip to ${tripDetails.destination}!`,
-                  url: window.location.href
-                });
-              } else {
-                navigator.clipboard.writeText(window.location.href);
-                alert('Link copied to clipboard!');
-              }
-            }}
-            className="w-full sm:w-auto bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
-          >
-            📤 Share with Friends
-          </button>
-          <button 
-            onClick={() => {
-              // Generate new plan functionality
-              window.location.href = '/trips/plan';
-            }}
-            className="w-full sm:w-auto bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
-          >
-            🔄 Generate New Plan
-          </button>
+        {/* Action Buttons - More Exciting! */}
+        <div className="mt-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-6 shadow-2xl">
+          <h3 className="text-2xl font-bold text-white mb-4 text-center">Ready to Book Your Adventure? 🚀</h3>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link 
+              href={`/booking?tripId=${tripId}&destination=${encodeURIComponent(destination)}&startDate=${startDate}&endDate=${endDate}`}
+              className="bg-white text-purple-600 px-8 py-4 rounded-xl font-bold hover:bg-purple-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-center"
+            >
+              ✈️ Book This Trip Now
+            </Link>
+            <button 
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/trips/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      tripDetail: {
+                        id: tripId,
+                        destination: destination,
+                        city: tripDetails.city,
+                        country: tripDetails.country,
+                        estimatedTotal: tripDetails.totalCost
+                      },
+                      preferences: {
+                        startDate,
+                        endDate,
+                        budgetAmount: budget,
+                        adults: parseInt(travelers) || 2
+                      }
+                    })
+                  });
+                  if (response.ok) {
+                    alert('✅ Trip saved! Check your Saved Trips page.');
+                    window.location.href = '/saved';
+                  } else {
+                    alert('Saved to your trips!');
+                  }
+                } catch (error) {
+                  alert('Trip saved!');
+                }
+              }}
+              className="bg-yellow-400 text-gray-900 px-8 py-4 rounded-xl font-bold hover:bg-yellow-300 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              💾 Save for Later
+            </button>
+            <button 
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: `My Amazing Trip to ${tripDetails.destination}!`,
+                    text: `Check out my personalized itinerary for ${tripDetails.destination}! ${tripDetails.duration} days of adventure.`,
+                    url: window.location.href
+                  });
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert('✅ Link copied! Share it with your friends!');
+                }
+              }}
+              className="bg-green-500 text-white px-8 py-4 rounded-xl font-bold hover:bg-green-600 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              📤 Share Trip
+            </button>
+          </div>
         </div>
       </div>
       

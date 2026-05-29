@@ -1,3 +1,4 @@
+import { createBrowserClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 
 // Debug environment variables (only on client side)
@@ -7,7 +8,7 @@ if (typeof window !== 'undefined') {
   console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'EXISTS' : 'MISSING')
 }
 
-// Client-side Supabase client
+// Client-side Supabase client using @supabase/ssr for cookie-based sessions
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -38,7 +39,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
     })
   }
 } else {
-  supabase = createClient(supabaseUrl, supabaseAnonKey)
+  // Use createBrowserClient from @supabase/ssr to store sessions in cookies
+  // This allows server components to read the session
+  supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
 export { supabase }

@@ -5,11 +5,13 @@ Welcome to the comprehensive documentation for the Where Next AI Travel Agent pl
 ## 📋 Documentation Index
 
 ### 🏗️ Architecture & Design
+- **[App Overview & Architecture](./APP_OVERVIEW_AND_ARCHITECTURE.md)** - High-level app overview, architecture, and tech stack
 - **[System Overview](./architecture/system-overview.md)** - Complete system architecture with Mermaid diagrams
 - **[User Flows](./user-flows.md)** - Detailed user journey maps and interaction patterns
 - **[API Documentation](./api-documentation.md)** - Complete API reference with examples
 
 ### 🚀 Getting Started
+- **[Setup & Manual Tasks](./SETUP_AND_MANUAL_TASKS.md)** - Step-by-step manual setup instructions (Supabase, Vercel, etc.)
 - **[Setup Guide](../COMPLETE_SETUP_GUIDE.md)** - Step-by-step installation and configuration
 - **[Environment Setup](../ENV_SETUP_GUIDE.md)** - Environment variables and configuration
 - **[Database Setup](../SUPABASE_SETUP_GUIDE.md)** - Database schema and setup instructions
@@ -29,6 +31,8 @@ Welcome to the comprehensive documentation for the Where Next AI Travel Agent pl
 ### For Developers
 ```bash
 # Start here for technical implementation
+docs/APP_OVERVIEW_AND_ARCHITECTURE.md  # App overview and architecture
+docs/SETUP_AND_MANUAL_TASKS.md         # Manual setup steps
 docs/architecture/system-overview.md    # System design
 docs/api-documentation.md               # API reference
 docs/user-flows.md                      # User experience flows

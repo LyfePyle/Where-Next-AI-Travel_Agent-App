@@ -75,7 +75,7 @@ export default function BlogPage() {
               </div>
               <a
                 href={`/blog/${featuredPost.slug}`}
-                className="tap-lg inline-flex items-center px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors"
+                className="tap-lg inline-flex items-center px-6 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-colors"
               >
                 Read Full Article
                 <ArrowRight className="w-4 h-4 ml-2" />

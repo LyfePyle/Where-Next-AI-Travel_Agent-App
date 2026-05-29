@@ -96,15 +96,15 @@ export default function CheckoutSuccess() {
             </h3>
             <ul className="space-y-2 text-gray-700">
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 You'll receive booking confirmations via email within the next 15 minutes
               </li>
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 Check your dashboard for detailed itinerary and booking references
               </li>
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 Download your travel documents 24 hours before departure
               </li>
             </ul>
@@ -115,7 +115,7 @@ export default function CheckoutSuccess() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href="/dashboard"
-            className="inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-colors"
           >
             View Dashboard
             <ArrowRight className="w-5 h-5 ml-2" />

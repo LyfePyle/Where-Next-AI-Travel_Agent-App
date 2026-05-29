@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -47,10 +47,13 @@
     "setup:env": "node setup-new-supabase.js",
     "login:diagnose": "node scripts/diagnose-login.js",
     "login:fix": "node scripts/fix-login-issues.js",
-    "login:test": "node scripts/test-login-e2e.js"
+    "login:test": "node scripts/test-login-e2e.js",
+    "test:ai-gateway": "tsx scripts/test-ai-gateway.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.2",
     "@axe-core/playwright": "^4.10.2",
+    "@duffel/api": "^4.21.5",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -65,11 +68,14 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.79.0",
     "@tailwindcss/postcss": "^4.1.13",
+    "@types/mapbox-gl": "^3.4.1",
     "@types/uuid": "^10.0.0",
+    "ai": "^6.0.6",
     "amadeus": "^11.0.0",
     "class-variance-authority": "^0.7.1",
     "dotenv": "^17.2.1",
     "lucide-react": "^0.540.0",
+    "mapbox-gl": "^3.20.0",
     "next": "15.4.10",
     "node-fetch": "^3.3.2",
     "openai": "^5.15.0",

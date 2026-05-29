@@ -40,12 +40,30 @@ export default function CartPage() {
     try {
       const response = await fetch('/api/cart');
       if (!response.ok) {
-        throw new Error('Failed to load cart');
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          // User not logged in - show empty cart with login prompt
+          setCart({
+            cart_id: null,
+            items: [],
+            totals: { subtotal: 0, fees: 0, tax: 0, grand: 0, currency: "usd" }
+          });
+          setError('Please log in to view your cart');
+          return;
+        }
+        throw new Error(errorData.error || 'Failed to load cart');
       }
       const data = await response.json();
       setCart(data);
+      setError(null);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to load cart');
+      // Set empty cart on error so page doesn't break
+      setCart({
+        cart_id: null,
+        items: [],
+        totals: { subtotal: 0, fees: 0, tax: 0, grand: 0, currency: "usd" }
+      });
     } finally {
       setLoading(false);
     }
@@ -137,18 +155,26 @@ export default function CartPage() {
     );
   }
 
-  if (error) {
+  if (error && error.includes('log in')) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-xl font-semibold mb-2">Error loading cart</h1>
+        <div className="text-center max-w-md">
+          <h1 className="text-xl font-semibold mb-2">Please Log In</h1>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={loadCart}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Try Again
-          </button>
+          <div className="flex gap-4 justify-center">
+            <a
+              href="/auth/login"
+              className="bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              Log In
+            </a>
+            <button
+              onClick={loadCart}
+              className="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-200"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -167,7 +193,7 @@ export default function CartPage() {
           {process.env.NODE_ENV !== 'production' && (
             <button
               onClick={addDemoItem}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm"
+              className="bg-purple-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm"
             >
               Add Demo Item
             </button>
@@ -181,7 +207,7 @@ export default function CartPage() {
             <p className="text-gray-600 mb-6">Add some items to get started</p>
             <a
               href="/plan-trip"
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+              className="bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg w-48 h-12 inline-flex items-center justify-center"
             >
               Plan Your Trip
             </a>
@@ -268,7 +294,7 @@ export default function CartPage() {
                 
                 <button
                   onClick={checkout}
-                  className="w-full mt-6 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center"
+                  className="w-full mt-6 lg:mt-8 bg-purple-600 text-white py-3 px-4 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center h-12"
                 >
                   <CreditCard className="w-5 h-5 mr-2" />
                   Proceed to Checkout

@@ -1,15 +1,312 @@
-// Affiliate link builder and UTM tracking system
+/**
+ * src/lib/affiliates.ts
+ * Single source of truth for all affiliate partner deep links.
+ * All links pre-filled with destination, dates, traveller count.
+ *
+ * Env vars (.env.local + Vercel):
+ *   NEXT_PUBLIC_EXPEDIA_AFFILIATE_ID=bveRcVH        <- LIVE (you have this)
+ *   NEXT_PUBLIC_BOOKING_AFFILIATE_ID=               <- pending
+ *   NEXT_PUBLIC_VIATOR_AFFILIATE_ID=                <- pending
+ *   NEXT_PUBLIC_GYG_AFFILIATE_ID=                   <- pending
+ *   NEXT_PUBLIC_SKYSCANNER_AFFILIATE_ID=            <- pending
+ *   NEXT_PUBLIC_RENTALCARS_AFFILIATE_ID=            <- pending
+ *   NEXT_PUBLIC_WORLDNOMADS_AFFILIATE_ID=           <- pending
+ */
 
-export interface AffiliateConfig {
-  provider: string;
-  baseUrl: string;
-  affiliateId?: string;
-  trackingParams: Record<string, string>;
-  commission?: {
-    rate: number;
-    type: 'percentage' | 'fixed';
+const IDS = {
+  booking: process.env.NEXT_PUBLIC_BOOKING_AFFILIATE_ID ?? '',
+  viator: process.env.NEXT_PUBLIC_VIATOR_AFFILIATE_ID ?? '',
+  gyg: process.env.NEXT_PUBLIC_GYG_AFFILIATE_ID ?? '',
+  skyscanner: process.env.NEXT_PUBLIC_SKYSCANNER_AFFILIATE_ID ?? '',
+  rentalcars: process.env.NEXT_PUBLIC_RENTALCARS_AFFILIATE_ID ?? '',
+  worldnomads: process.env.NEXT_PUBLIC_WORLDNOMADS_AFFILIATE_ID ?? '',
+};
+
+/**
+ * Expedia is the Travel Creator Program — links must be pre-generated and
+ * tracked via Expedia's dashboard; you can't build deep links with a reusable
+ * ID. So every Expedia fallback points to your one tracked link. It lands on
+ * Expedia (homepage) and credits any booking within the cookie window.
+ * Swap the env var if you generate a new tracked link.
+ */
+const EXPEDIA_TRACKED_URL =
+  process.env.NEXT_PUBLIC_EXPEDIA_AFFILIATE_URL ??
+  'https://expedia.com/affiliates/expedia-home.oTHKuON';
+
+export interface AffiliateLink {
+  partner: string;
+  label: string;
+  url: string;
+  emoji: string;
+  type: AffiliateType;
+  sublabel?: string;
+}
+
+export type AffiliateType =
+  | 'hotels'
+  | 'flights'
+  | 'tours'
+  | 'experiences'
+  | 'cars'
+  | 'insurance';
+
+/** Expedia Creator-Program tracked link, labelled per category. */
+function expediaTracked(
+  type: AffiliateType,
+  label: string,
+  emoji: string
+): AffiliateLink {
+  return {
+    type,
+    partner: 'Expedia',
+    label,
+    sublabel: 'via Expedia',
+    emoji,
+    url: EXPEDIA_TRACKED_URL,
   };
 }
+
+// Hotels
+export function expediaHotelLink(dest: string): AffiliateLink {
+  return expediaTracked('hotels', `Hotels in ${dest}`, '🏨');
+}
+
+export function bookingHotelLink(
+  dest: string,
+  checkIn: string,
+  checkOut: string,
+  adults = 2
+): AffiliateLink {
+  const p = new URLSearchParams({
+    ss: dest,
+    checkin: checkIn,
+    checkout: checkOut,
+    group_adults: String(adults),
+    label: 'where-next',
+  });
+  if (IDS.booking) p.set('aid', IDS.booking);
+  return {
+    type: 'hotels',
+    partner: 'Booking.com',
+    label: `Hotels in ${dest}`,
+    sublabel: 'via Booking.com',
+    emoji: '🏨',
+    url: `https://www.booking.com/search.html?${p}`,
+  };
+}
+
+// Flights
+export function expediaFlightLink(_origin: string, dest: string): AffiliateLink {
+  return expediaTracked('flights', `Flights to ${dest}`, '✈️');
+}
+
+export function skyscannerFlightLink(
+  origin: string,
+  dest: string,
+  departDate: string,
+  returnDate?: string,
+  adults = 1
+): AffiliateLink {
+  const depart = departDate.replace(/-/g, '');
+  const ret = returnDate ? returnDate.replace(/-/g, '') : undefined;
+  const orig = origin.toLowerCase().replace(/\s+/g, '-');
+  const dst = dest.toLowerCase().replace(/\s+/g, '-');
+  const path = ret
+    ? `/transport/flights/${orig}/${dst}/${depart}/${ret}/`
+    : `/transport/flights/${orig}/${dst}/${depart}/`;
+  const p = new URLSearchParams({ adults: String(adults) });
+  if (IDS.skyscanner) p.set('affiliateId', IDS.skyscanner);
+  return {
+    type: 'flights',
+    partner: 'Skyscanner',
+    label: `Flights to ${dest}`,
+    sublabel: `from ${origin} via Skyscanner`,
+    emoji: '✈️',
+    url: `https://www.skyscanner.net${path}?${p}`,
+  };
+}
+
+// Tours
+export function viatorLink(dest: string): AffiliateLink {
+  const slug = dest.toLowerCase().replace(/[\s,]+/g, '-');
+  const p = new URLSearchParams({ mcid: '42383', medium: 'api' });
+  if (IDS.viator) p.set('pid', IDS.viator);
+  return {
+    type: 'tours',
+    partner: 'Viator',
+    label: `Tours in ${dest}`,
+    sublabel: 'via Viator',
+    emoji: '🎭',
+    url: `https://www.viator.com/en-GB/${slug}/d0-ttd?${p}`,
+  };
+}
+
+// Experiences
+export function gygLink(dest: string): AffiliateLink {
+  const slug = dest.toLowerCase().replace(/[\s,]+/g, '-');
+  const p = new URLSearchParams();
+  if (IDS.gyg) p.set('partner_id', IDS.gyg);
+  return {
+    type: 'experiences',
+    partner: 'GetYourGuide',
+    label: `Experiences in ${dest}`,
+    sublabel: 'via GetYourGuide',
+    emoji: '🎟️',
+    url: `https://www.getyourguide.com/${slug}/?${p}`,
+  };
+}
+
+export function expediaActivityLink(dest: string): AffiliateLink {
+  return expediaTracked('experiences', `Things to do in ${dest}`, '🎫');
+}
+
+// Tours fallback (Expedia)
+export function expediaTourLink(dest: string): AffiliateLink {
+  return expediaTracked('tours', `Tours in ${dest}`, '🎭');
+}
+
+// Cars
+export function expediaCarLink(dest: string): AffiliateLink {
+  return expediaTracked('cars', `Car hire in ${dest}`, '🚗');
+}
+
+// Insurance fallback (Expedia)
+export function expediaInsuranceLink(dest: string): AffiliateLink {
+  return expediaTracked('insurance', `Travel insurance for ${dest}`, '🛡️');
+}
+
+export function rentalcarsLink(
+  dest: string,
+  pickupDate: string,
+  dropoffDate: string
+): AffiliateLink {
+  const p = new URLSearchParams({
+    location: dest,
+    puDay: pickupDate,
+    doDay: dropoffDate,
+  });
+  if (IDS.rentalcars) p.set('affiliateCode', IDS.rentalcars);
+  return {
+    type: 'cars',
+    partner: 'RentalCars.com',
+    label: `Car hire in ${dest}`,
+    sublabel: 'via RentalCars.com',
+    emoji: '🚗',
+    url: `https://www.rentalcars.com/en/?${p}`,
+  };
+}
+
+// Insurance
+export function worldNomadsLink(
+  dest: string,
+  startDate: string,
+  endDate: string
+): AffiliateLink {
+  const p = new URLSearchParams({
+    to: dest,
+    departure: startDate,
+    return: endDate,
+  });
+  if (IDS.worldnomads) p.set('affiliate', IDS.worldnomads);
+  return {
+    type: 'insurance',
+    partner: 'World Nomads',
+    label: `Travel insurance for ${dest}`,
+    sublabel: 'via World Nomads',
+    emoji: '🛡️',
+    url: `https://www.worldnomads.com/travel-insurance/?${p}`,
+  };
+}
+
+/**
+ * Preferred partner per category (used by getAffiliateLinks and the redirect
+ * route). Until a partner ID is set, every category falls back to your tracked
+ * Expedia link. Add an ID to .env.local and that category switches to a proper
+ * pre-filled deep link — no code change needed.
+ */
+export function hotelLink(
+  dest: string,
+  checkIn: string,
+  checkOut: string,
+  adults = 2
+): AffiliateLink {
+  return IDS.booking
+    ? bookingHotelLink(dest, checkIn, checkOut, adults)
+    : expediaHotelLink(dest);
+}
+
+export function flightLink(
+  origin: string,
+  dest: string,
+  departDate: string,
+  returnDate?: string,
+  adults = 1
+): AffiliateLink {
+  return IDS.skyscanner
+    ? skyscannerFlightLink(origin, dest, departDate, returnDate, adults)
+    : expediaFlightLink(origin, dest);
+}
+
+export function tourLink(dest: string): AffiliateLink {
+  return IDS.viator ? viatorLink(dest) : expediaTourLink(dest);
+}
+
+export function experienceLink(dest: string): AffiliateLink {
+  return IDS.gyg ? gygLink(dest) : expediaActivityLink(dest);
+}
+
+export function carLink(
+  dest: string,
+  pickupDate: string,
+  dropoffDate: string
+): AffiliateLink {
+  return IDS.rentalcars
+    ? rentalcarsLink(dest, pickupDate, dropoffDate)
+    : expediaCarLink(dest);
+}
+
+export function insuranceLink(
+  dest: string,
+  startDate: string,
+  endDate: string
+): AffiliateLink {
+  return IDS.worldnomads
+    ? worldNomadsLink(dest, startDate, endDate)
+    : expediaInsuranceLink(dest);
+}
+
+/**
+ * getAffiliateLinks
+ * Returns all links for one trip stop.
+ * Prefers approved partners. Falls back to your tracked Expedia link until
+ * each partner is approved.
+ */
+export function getAffiliateLinks(params: {
+  destination: string;
+  startDate: string;
+  endDate: string;
+  adults?: number;
+  origin?: string;
+}): AffiliateLink[] {
+  const {
+    destination: dest,
+    startDate,
+    endDate,
+    adults = 2,
+    origin = 'Vancouver',
+  } = params;
+
+  return [
+    hotelLink(dest, startDate, endDate, adults),
+    flightLink(origin, dest, startDate, endDate, adults),
+    tourLink(dest),
+    experienceLink(dest),
+    carLink(dest, startDate, endDate),
+    insuranceLink(dest, startDate, endDate),
+  ];
+}
+
+// ── Legacy booking UI helpers ───────────────────────────────────────────────
 
 export interface LinkParams {
   provider: string;
@@ -27,304 +324,109 @@ export interface LinkParams {
   customParams?: Record<string, string>;
 }
 
-// Affiliate program configurations
-const AFFILIATE_CONFIGS: Record<string, AffiliateConfig> = {
-  // Flight booking sites
-  expedia: {
-    provider: 'Expedia',
-    baseUrl: 'https://www.expedia.com',
-    affiliateId: process.env.EXPEDIA_AFFILIATE_ID || 'demo_affiliate',
-    trackingParams: {
-      'affiliate': process.env.EXPEDIA_AFFILIATE_ID || 'demo_affiliate',
-      'utm_source': 'where-next-ai',
-      'utm_medium': 'affiliate',
-      'utm_campaign': 'flight_booking'
-    },
-    commission: { rate: 4, type: 'percentage' }
-  },
-  
-  booking: {
-    provider: 'Booking.com',
-    baseUrl: 'https://www.booking.com',
-    affiliateId: process.env.BOOKING_AFFILIATE_ID || 'demo_affiliate',
-    trackingParams: {
-      'aid': process.env.BOOKING_AFFILIATE_ID || 'demo_affiliate',
-      'utm_source': 'where-next-ai',
-      'utm_medium': 'affiliate',
-      'utm_campaign': 'hotel_booking'
-    },
-    commission: { rate: 25, type: 'fixed' }
-  },
-
-  kayak: {
-    provider: 'Kayak',
-    baseUrl: 'https://www.kayak.com',
-    trackingParams: {
-      'utm_source': 'where-next-ai',
-      'utm_medium': 'affiliate',
-      'utm_campaign': 'flight_search'
-    },
-    commission: { rate: 2, type: 'percentage' }
-  },
-
-  skyscanner: {
-    provider: 'Skyscanner',
-    baseUrl: 'https://www.skyscanner.com',
-    trackingParams: {
-      'utm_source': 'where-next-ai',
-      'utm_medium': 'affiliate',
-      'utm_campaign': 'flight_comparison'
-    },
-    commission: { rate: 1.5, type: 'percentage' }
-  },
-
-  agoda: {
-    provider: 'Agoda',
-    baseUrl: 'https://www.agoda.com',
-    affiliateId: process.env.AGODA_AFFILIATE_ID || 'demo_affiliate',
-    trackingParams: {
-      'cid': process.env.AGODA_AFFILIATE_ID || 'demo_affiliate',
-      'utm_source': 'where-next-ai',
-      'utm_medium': 'affiliate'
-    },
-    commission: { rate: 20, type: 'fixed' }
-  },
-
-  rentalcars: {
-    provider: 'RentalCars.com',
-    baseUrl: 'https://www.rentalcars.com',
-    affiliateId: process.env.RENTALCARS_AFFILIATE_ID || 'demo_affiliate',
-    trackingParams: {
-      'affiliateCode': process.env.RENTALCARS_AFFILIATE_ID || 'demo_affiliate',
-      'utm_source': 'where-next-ai',
-      'utm_medium': 'affiliate'
-    },
-    commission: { rate: 15, type: 'fixed' }
-  }
-};
-
-// Check if affiliate links are enabled
-const AFFILIATES_ENABLED = process.env.AFFILIATES_ENABLED === 'true' || process.env.NODE_ENV === 'development';
+const AFFILIATES_ENABLED =
+  process.env.AFFILIATES_ENABLED === 'true' || process.env.NODE_ENV === 'development';
 
 export function buildAffiliateLink(params: LinkParams): string {
   if (!AFFILIATES_ENABLED) {
-    // Return direct booking link without affiliate params
     return buildDirectLink(params);
   }
 
-  const config = AFFILIATE_CONFIGS[params.provider];
-  if (!config) {
-    console.warn(`No affiliate config found for provider: ${params.provider}`);
-    return buildDirectLink(params);
-  }
+  const dest = params.destination ?? '';
+  const depart = params.dates?.departure ?? '';
+  const ret = params.dates?.return;
+  const adults = params.travelers?.adults ?? 2;
+  const origin = params.origin ?? 'Vancouver';
 
-  // Build base URL with path
-  let url = new URL(config.baseUrl);
-  
-  // Add provider-specific paths and parameters
-  switch (params.provider) {
-    case 'expedia':
-      url = buildExpediaLink(url, params, config);
+  let url: string;
+  switch (params.productType) {
+    case 'hotel':
+      url = hotelLink(dest, depart, ret ?? depart, adults).url;
       break;
-    case 'booking':
-      url = buildBookingLink(url, params, config);
+    case 'flight':
+      url = flightLink(origin, dest, depart, ret, adults).url;
       break;
-    case 'kayak':
-      url = buildKayakLink(url, params, config);
+    case 'car':
+      url = carLink(dest, depart, ret ?? depart).url;
       break;
-    case 'skyscanner':
-      url = buildSkyscannerLink(url, params, config);
+    case 'activity':
+      url = experienceLink(dest).url;
       break;
-    case 'agoda':
-      url = buildAgodaLink(url, params, config);
-      break;
-    case 'rentalcars':
-      url = buildRentalCarsLink(url, params, config);
+    case 'insurance':
+      url = insuranceLink(dest, depart, ret ?? depart).url;
       break;
     default:
-      url = buildGenericLink(url, params, config);
+      url = buildDirectLink(params);
   }
 
-  // Add UTM and affiliate tracking parameters
-  Object.entries(config.trackingParams).forEach(([key, value]) => {
-    url.searchParams.set(key, value);
-  });
-
-  // Add custom parameters
   if (params.customParams) {
-    Object.entries(params.customParams).forEach(([key, value]) => {
-      url.searchParams.set(key, value);
-    });
+    const u = new URL(url);
+    Object.entries(params.customParams).forEach(([k, v]) => u.searchParams.set(k, v));
+    return u.toString();
   }
 
-  return url.toString();
-}
-
-function buildExpediaLink(url: URL, params: LinkParams, config: AffiliateConfig): URL {
-  if (params.productType === 'flight') {
-    url.pathname = '/Flights';
-    if (params.origin) url.searchParams.set('flight-type', 'on');
-    if (params.origin) url.searchParams.set('startsearch', 'true');
-    if (params.origin && params.destination) {
-      url.searchParams.set('trip', params.dates?.return ? 'roundtrip' : 'oneway');
-    }
-  } else if (params.productType === 'hotel') {
-    url.pathname = '/Hotels';
-    if (params.destination) url.searchParams.set('destination', params.destination);
-  }
-  return url;
-}
-
-function buildBookingLink(url: URL, params: LinkParams, config: AffiliateConfig): URL {
-  if (params.productType === 'hotel') {
-    url.pathname = '/searchresults.html';
-    if (params.destination) url.searchParams.set('ss', params.destination);
-    if (params.dates?.departure) url.searchParams.set('checkin', params.dates.departure);
-    if (params.dates?.return) url.searchParams.set('checkout', params.dates.return);
-    if (params.travelers?.adults) url.searchParams.set('group_adults', params.travelers.adults.toString());
-  }
-  return url;
-}
-
-function buildKayakLink(url: URL, params: LinkParams, config: AffiliateConfig): URL {
-  if (params.productType === 'flight') {
-    url.pathname = '/flights';
-    if (params.origin && params.destination) {
-      const path = `/${params.origin}-${params.destination}`;
-      if (params.dates?.departure) {
-        const departDate = params.dates.departure.replace(/-/g, '');
-        const returnDate = params.dates?.return?.replace(/-/g, '') || '';
-        url.pathname += `${path}/${departDate}${returnDate ? `/${returnDate}` : ''}`;
-      }
-    }
-  }
-  return url;
-}
-
-function buildSkyscannerLink(url: URL, params: LinkParams, config: AffiliateConfig): URL {
-  if (params.productType === 'flight') {
-    url.pathname = '/transport/flights';
-    if (params.origin && params.destination && params.dates?.departure) {
-      const departDate = params.dates.departure.replace(/-/g, '').substring(2); // YYMMDD format
-      const returnDate = params.dates?.return?.replace(/-/g, '').substring(2) || '';
-      url.pathname += `/${params.origin}/${params.destination}/${departDate}${returnDate ? `/${returnDate}` : ''}`;
-    }
-  }
-  return url;
-}
-
-function buildAgodaLink(url: URL, params: LinkParams, config: AffiliateConfig): URL {
-  if (params.productType === 'hotel') {
-    url.pathname = '/search';
-    if (params.destination) url.searchParams.set('city', params.destination);
-    if (params.dates?.departure) url.searchParams.set('checkIn', params.dates.departure);
-    if (params.dates?.return) url.searchParams.set('checkOut', params.dates.return);
-  }
-  return url;
-}
-
-function buildRentalCarsLink(url: URL, params: LinkParams, config: AffiliateConfig): URL {
-  if (params.productType === 'car') {
-    url.pathname = '/SearchResults';
-    if (params.destination) url.searchParams.set('dropLocation', params.destination);
-    if (params.dates?.departure) url.searchParams.set('pickUpDate', params.dates.departure);
-    if (params.dates?.return) url.searchParams.set('dropOffDate', params.dates.return);
-  }
-  return url;
-}
-
-function buildGenericLink(url: URL, params: LinkParams, config: AffiliateConfig): URL {
-  // Fallback for providers without specific implementations
-  if (params.destination) url.searchParams.set('destination', params.destination);
-  if (params.dates?.departure) url.searchParams.set('date', params.dates.departure);
   return url;
 }
 
 function buildDirectLink(params: LinkParams): string {
-  // Non-affiliate fallback links
   const directUrls: Record<string, string> = {
     expedia: 'https://www.expedia.com',
     booking: 'https://www.booking.com',
     kayak: 'https://www.kayak.com',
     skyscanner: 'https://www.skyscanner.com',
     agoda: 'https://www.agoda.com',
-    rentalcars: 'https://www.rentalcars.com'
+    rentalcars: 'https://www.rentalcars.com',
   };
-  
-  return directUrls[params.provider] || 'https://www.google.com/travel';
+  return directUrls[params.provider] ?? 'https://www.google.com/travel';
 }
 
-// Helper function to get available providers for a product type
-export function getProvidersForProduct(productType: LinkParams['productType']): string[] {
+export function getProvidersForProduct(
+  productType: LinkParams['productType']
+): string[] {
   const providers: Record<LinkParams['productType'], string[]> = {
-    flight: ['expedia', 'kayak', 'skyscanner'],
-    hotel: ['booking', 'expedia', 'agoda'],
+    flight: ['expedia', 'skyscanner'],
+    hotel: ['booking', 'expedia'],
     car: ['rentalcars', 'expedia'],
-    activity: ['expedia'],
-    insurance: []
+    activity: ['viator', 'expedia'],
+    insurance: ['worldnomads'],
   };
-  
-  return providers[productType] || [];
+  return providers[productType] ?? [];
 }
 
-// Analytics tracking for affiliate clicks
 export function trackAffiliateClick(params: LinkParams & { userId?: string }): void {
   try {
-    // Log affiliate click for analytics
-    console.log('🔗 Affiliate Click:', {
-      provider: params.provider,
-      productType: params.productType,
-      destination: params.destination,
-      userId: params.userId,
-      timestamp: new Date().toISOString()
-    });
-
-    // Send to analytics service (Mixpanel, GA, etc.)
-    if (typeof window !== 'undefined' && (window as any).mixpanel) {
-      (window as any).mixpanel.track('affiliate_click', {
+    if (typeof window !== 'undefined') {
+      const w = window as Window & {
+        mixpanel?: { track: (e: string, p: object) => void };
+      };
+      w.mixpanel?.track('affiliate_click', {
         provider: params.provider,
         product_type: params.productType,
         destination: params.destination,
-        user_id: params.userId
+        user_id: params.userId,
       });
+
+      const clicks = JSON.parse(localStorage.getItem('affiliateClicks') || '[]');
+      clicks.push({ ...params, timestamp: new Date().toISOString() });
+      if (clicks.length > 100) clicks.splice(0, clicks.length - 100);
+      localStorage.setItem('affiliateClicks', JSON.stringify(clicks));
     }
-
-    // Store for revenue tracking
-    const clicks = JSON.parse(localStorage.getItem('affiliateClicks') || '[]');
-    clicks.push({
-      ...params,
-      timestamp: new Date().toISOString(),
-      sessionId: getSessionId()
-    });
-    
-    // Keep last 100 clicks
-    if (clicks.length > 100) clicks.splice(0, clicks.length - 100);
-    localStorage.setItem('affiliateClicks', JSON.stringify(clicks));
-    
-  } catch (error) {
-    console.error('Error tracking affiliate click:', error);
+  } catch {
+    /* ignore */
   }
 }
 
-function getSessionId(): string {
-  if (typeof window === 'undefined') return 'server';
-  
-  let sessionId = sessionStorage.getItem('sessionId');
-  if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    sessionStorage.setItem('sessionId', sessionId);
-  }
-  return sessionId;
-}
-
-// Revenue estimation
 export function estimateCommission(provider: string, bookingValue: number): number {
-  const config = AFFILIATE_CONFIGS[provider];
-  if (!config?.commission) return 0;
-  
-  if (config.commission.type === 'percentage') {
-    return (bookingValue * config.commission.rate) / 100;
-  } else {
-    return config.commission.rate;
-  }
+  const rates: Record<string, number> = {
+    expedia: 4,
+    booking: 25,
+    skyscanner: 1.5,
+    viator: 8,
+    rentalcars: 15,
+    worldnomads: 10,
+  };
+  const rate = rates[provider] ?? 0;
+  return provider === 'booking' || provider === 'rentalcars'
+    ? rate
+    : (bookingValue * rate) / 100;
 }

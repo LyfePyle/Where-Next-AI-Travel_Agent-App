@@ -13,11 +13,11 @@ export async function POST(req: NextRequest) {
   // Simple throttle per-IP (cookie-based)
   const ip = req.headers.get("x-forwarded-for") ?? "0.0.0.0";
   const key = `pg_${ip.slice(0, 32)}`;
-  const c = cookies();
+  const c = await cookies();
   if (c.get(key)) return NextResponse.json({ error: "Slow down" }, { status: 429 });
   c.set({ name: key, value: "1", httpOnly: true, maxAge: 5, sameSite: "lax", path: "/" });
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

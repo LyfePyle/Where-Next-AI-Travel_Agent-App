@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar, Clock, MapPin, Users, DollarSign, Star, Plus, Edit3, Trash2, Navigation, Camera, Utensils, ShoppingBag, ExternalLink } from 'lucide-react';
+import { useToast, ToastContainer } from '@/hooks/useToast';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface Activity {
   id: string;
@@ -25,6 +27,7 @@ interface Activity {
     end: string;
   };
   isCustom: boolean;
+  isAiGenerated?: boolean;
 }
 
 interface DayItinerary {
@@ -65,18 +68,22 @@ function ItineraryBuilderContent() {
   
   const [itinerary, setItinerary] = useState<TripItinerary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingActivity, setIsGeneratingActivity] = useState(false);
   const [activeDay, setActiveDay] = useState(1);
   const [isEditing, setIsEditing] = useState(false);
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [editingActivity, setEditingActivity] = useState<{activity: Activity, dayNumber: number} | null>(null);
+  const { toasts, addToast, removeToast } = useToast();
 
   // Get preferences from URL params
   const destination = searchParams.get('destination') || 'Tokyo, Japan';
+  const from = searchParams.get('from') || 'Vancouver';
   const startDate = searchParams.get('startDate') || '2024-04-15';
   const endDate = searchParams.get('endDate') || '2024-04-22';
   const tripDuration = parseInt(searchParams.get('tripDuration') || '7');
   const travelers = parseInt(searchParams.get('adults') || '2') + parseInt(searchParams.get('kids') || '0');
   const budget = parseInt(searchParams.get('budgetAmount') || '3000');
+  const budgetStyle = searchParams.get('budgetStyle') || 'comfortable';
   const vibes = searchParams.get('vibes')?.split(',') || [];
 
   useEffect(() => {
@@ -85,15 +92,7 @@ function ItineraryBuilderContent() {
 
   const generateItinerary = async () => {
     setIsLoading(true);
-    
-    // For now, use fallback directly to avoid API issues
-    // TODO: Re-enable API call once OpenAI JSON parsing is fixed
-    console.log('Using fallback itinerary due to API reliability issues');
-    const fallbackItinerary = generateEnhancedFallbackItinerary();
-    setItinerary(fallbackItinerary);
-    setIsLoading(false);
-    return;
-    
+
     try {
       const requestBody = {
         tripId,
@@ -103,6 +102,8 @@ function ItineraryBuilderContent() {
         tripDuration,
         travelers,
         budget,
+        budgetStyle,
+        from,
         preferences: vibes
       };
       
@@ -110,7 +111,7 @@ function ItineraryBuilderContent() {
       
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
       
       const response = await fetch('/api/ai/itinerary-builder', {
         method: 'POST',
@@ -214,17 +215,24 @@ function ItineraryBuilderContent() {
           setItinerary(data.itinerary);
         }
       } else {
+        if (response.status === 429) {
+          const retryAfter = parseInt(response.headers.get('retry-after') || '5', 10);
+          addToast(`Too many requests. Try again in ${retryAfter}s.`, {
+            variant: 'warning',
+            durationMs: Math.min(retryAfter * 1000, 10000),
+          });
+        }
         console.error('Failed to generate itinerary, response status:', response.status);
         const errorText = await response.text();
         console.error('Error response:', errorText);
         throw new Error(`Failed to generate itinerary: ${response.status}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating itinerary:', error);
       console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name
       });
       
       // Generate enhanced fallback itinerary
@@ -669,50 +677,74 @@ function ItineraryBuilderContent() {
 
   const generateAIActivity = async (dayNumber: number) => {
     if (!itinerary) return;
-    
+
     try {
+      setIsGeneratingActivity(true);
       const currentDay = itinerary.days[dayNumber - 1];
-      const existingActivities = currentDay.activities.map(a => a.name).join(', ');
-      
-      // For now, create an enhanced custom activity with AI-like suggestions
-      const aiSuggestions = [
-        'Local Food Tour', 'Photography Walk', 'Cultural Museum Visit', 
-        'Scenic Viewpoint', 'Local Market Experience', 'Hidden Gem Discovery',
-        'Traditional Craft Workshop', 'Local Guide Experience'
-      ];
-      
-      const randomSuggestion = aiSuggestions[Math.floor(Math.random() * aiSuggestions.length)];
-      
-      const newActivity: Activity = {
-        id: `ai-${Date.now()}`,
-        name: randomSuggestion,
-        type: 'experience',
-        duration: 90 + Math.floor(Math.random() * 60), // 90-150 minutes
-        cost: 15 + Math.floor(Math.random() * 35), // $15-50
-        location: {
-          name: 'Local Area',
-          address: `${destination}`,
-          coordinates: { lat: 35.6762 + Math.random() * 0.01, lng: 139.6503 + Math.random() * 0.01 }
-        },
-        description: `AI-recommended ${randomSuggestion.toLowerCase()} experience in ${destination}. Perfect for discovering local culture and creating memorable moments.`,
-        rating: 4.0 + Math.random() * 0.8, // 4.0-4.8 rating
-        tips: ['Recommended by AI', 'Book in advance', 'Bring comfortable shoes'],
-        timeSlot: { start: '14:00', end: '16:00' },
-        isAiGenerated: true
-      };
+          const existingActivities = currentDay.activities.map((a) => a.name);
+
+      const response = await fetch('/api/ai/itinerary-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tripId,
+          destination,
+          startDate,
+          endDate,
+          tripDuration,
+          travelers,
+          budget,
+          budgetStyle,
+          from,
+          preferences: vibes,
+          singleActivity: true,
+          dayNumber,
+          existingActivities,
+        }),
+      });
+
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get('retry-after') || '5', 10);
+        addToast(`Too many requests. Try again in ${retryAfter}s.`, {
+          variant: 'warning',
+          durationMs: Math.min(retryAfter * 1000, 10000),
+        });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`AI activity failed (${response.status})`);
+      }
+
+      const data = await response.json();
+      const newActivity: Activity | undefined = data?.activity;
+      if (!newActivity) {
+        throw new Error('No activity returned');
+      }
+
+      const normalizedExisting = existingActivities.map((name) => name.toLowerCase());
+      const normalizedNew = newActivity.name?.toLowerCase() ?? '';
+      if (normalizedNew && normalizedExisting.some((name) => name.includes(normalizedNew) || normalizedNew.includes(name))) {
+        throw new Error('Duplicate activity returned');
+      }
+
+      newActivity.isAiGenerated = true;
+      newActivity.isCustom = false;
 
       const updatedItinerary = { ...itinerary };
       const dayIndex = dayNumber - 1;
       updatedItinerary.days[dayIndex].activities.push(newActivity);
       updatedItinerary.days[dayIndex].totalCost += newActivity.cost;
       updatedItinerary.days[dayIndex].totalDuration += newActivity.duration;
-      
+
       setItinerary(updatedItinerary);
       alert(`🤖 AI Activity Added!\n\n"${newActivity.name}" has been added to Day ${dayNumber}.\n\nTip: You can edit this activity by clicking on it!`);
     } catch (error) {
       console.error('Error generating AI activity:', error);
       // Fallback to manual activity creation
       addCustomActivity(dayNumber);
+    } finally {
+      setIsGeneratingActivity(false);
     }
   };
 
@@ -834,7 +866,7 @@ function ItineraryBuilderContent() {
                         {currentDay.walkingTour.audioGuide && <span>🎧 Audio guide included</span>}
                       </div>
                     </div>
-                    <button className="mt-2 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
+                    <button className="mt-2 bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700 transition-colors">
                       Start Walking Tour
                     </button>
                   </div>
@@ -869,7 +901,7 @@ function ItineraryBuilderContent() {
                   </button>
                   <button 
                     onClick={viewOnMap}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <Navigation className="w-4 h-4" />
                     View on Map
@@ -881,11 +913,14 @@ function ItineraryBuilderContent() {
                     <Camera className="w-4 h-4" />
                     Share Itinerary
                   </button>
-                  <button 
+                  <button
                     onClick={() => generateAIActivity(activeDay)}
-                    className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center justify-center gap-2"
+                    disabled={isGeneratingActivity}
+                    className={`w-full bg-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                      isGeneratingActivity ? 'opacity-60 cursor-not-allowed' : 'hover:bg-orange-700'
+                    }`}
                   >
-                    🤖 AI Activity
+                    {isGeneratingActivity ? '🤖 Generating...' : '🤖 AI Activity'}
                   </button>
                 </div>
               </div>
@@ -912,6 +947,11 @@ function ItineraryBuilderContent() {
                                 {getActivityIcon(activity.type)}
                                 {activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
                               </span>
+                              {activity.isAiGenerated && (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                  🤖 AI
+                                </span>
+                              )}
                               <span className="text-sm text-gray-600">
                                 {String(activity.timeSlot?.start || '00:00')} - {String(activity.timeSlot?.end || '00:00')}
                               </span>
@@ -1171,11 +1211,14 @@ function ItineraryBuilderContent() {
           </div>
         </div>
       )}
+      <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>
   );
 }
 
 export default function ItineraryBuilderPage() {
+  const [resetKey, setResetKey] = useState(0);
+
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1185,7 +1228,9 @@ export default function ItineraryBuilderPage() {
         </div>
       </div>
     }>
-      <ItineraryBuilderContent />
+      <ErrorBoundary onReset={() => setResetKey((prev) => prev + 1)}>
+        <ItineraryBuilderContent key={resetKey} />
+      </ErrorBoundary>
     </Suspense>
   );
 }

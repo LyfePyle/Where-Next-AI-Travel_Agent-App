@@ -33,7 +33,7 @@ export default function FlightBookingPage() {
             onClick={() => setShowBookingFlow(false)}
             className={`px-4 py-2 rounded-md ${
               !showBookingFlow 
-                ? 'bg-blue-600 text-white' 
+                ? 'bg-purple-600 text-white' 
                 : 'bg-white text-gray-700 border border-gray-300'
             }`}
           >
@@ -43,7 +43,7 @@ export default function FlightBookingPage() {
             onClick={() => setShowBookingFlow(true)}
             className={`px-4 py-2 rounded-md ${
               showBookingFlow 
-                ? 'bg-blue-600 text-white' 
+                ? 'bg-purple-600 text-white' 
                 : 'bg-white text-gray-700 border border-gray-300'
             }`}
           >

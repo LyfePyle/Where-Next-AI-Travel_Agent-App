@@ -36,8 +36,23 @@ export default function PublicBudgetPage() {
   };
 
   const currentBreakdown = budgetBreakdown[budgetStyle];
-  const perDay = Math.round(totalBudget / tripDuration);
+  const safeTripDuration = Math.max(tripDuration, 1);
+  const perDay = Math.round(totalBudget / safeTripDuration);
   const perPerson = Math.round(totalBudget / travelers);
+  const startDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+  const endDate = new Date(startDate.getTime() + safeTripDuration * 24 * 60 * 60 * 1000);
+  const startDateParam = startDate.toISOString().split('T')[0];
+  const endDateParam = endDate.toISOString().split('T')[0];
+  const dailySpendShare = currentBreakdown.food + currentBreakdown.activities + currentBreakdown.misc;
+  const dailySpendPerTraveler = Math.max(
+    20,
+    Math.round((totalBudget * dailySpendShare) / safeTripDuration / Math.max(travelers, 1))
+  );
+  const hotelBudgetPerNight = Math.max(
+    50,
+    Math.round((totalBudget * currentBreakdown.accommodation) / safeTripDuration)
+  );
+  const destinationParam = destination.trim() || 'Madrid, Spain';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -51,7 +66,7 @@ export default function PublicBudgetPage() {
             </div>
             <Link
               href="/auth/login?next=/budget"
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center"
+              className="bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center w-48 h-12 justify-center"
             >
               <Save className="w-4 h-4 mr-2" />
               Save to My Account
@@ -80,7 +95,7 @@ export default function PublicBudgetPage() {
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
                     placeholder="e.g., Tokyo, Paris, New York"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   />
                 </div>
 
@@ -94,7 +109,7 @@ export default function PublicBudgetPage() {
                       type="number"
                       value={totalBudget}
                       onChange={(e) => setTotalBudget(parseInt(e.target.value) || 0)}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
@@ -110,7 +125,7 @@ export default function PublicBudgetPage() {
                       value={tripDuration}
                       onChange={(e) => setTripDuration(parseInt(e.target.value) || 1)}
                       min="1"
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
@@ -126,7 +141,7 @@ export default function PublicBudgetPage() {
                       value={travelers}
                       onChange={(e) => setTravelers(parseInt(e.target.value) || 1)}
                       min="1"
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
@@ -179,6 +194,23 @@ export default function PublicBudgetPage() {
                   <span className="text-lg font-semibold">${perPerson.toLocaleString()}</span>
                 </div>
               </div>
+              <div className="mt-6">
+                <Link
+                  href={`/trip-details/budget-preview?${new URLSearchParams({
+                    destination: destinationParam,
+                    startDate: startDateParam,
+                    endDate: endDateParam,
+                    adults: travelers.toString(),
+                    kids: '0',
+                    budgetDaily: dailySpendPerTraveler.toString(),
+                    budgetHotels: hotelBudgetPerNight.toString()
+                  }).toString()}`}
+                  className="inline-flex items-center justify-center w-full px-4 py-3 rounded-xl bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md"
+                >
+                  View Trip Details
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </div>
             </div>
 
             {/* Category Breakdown */}
@@ -219,7 +251,7 @@ export default function PublicBudgetPage() {
               </p>
               <Link
                 href="/auth/login?next=/budget"
-                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg w-48 h-12 justify-center"
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save to My Account

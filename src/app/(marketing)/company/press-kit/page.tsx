@@ -123,13 +123,13 @@ export default function PressKitPage() {
             </h3>
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-2">
                   <span className="text-white font-bold text-xl">W</span>
                 </div>
                 <p className="text-sm text-gray-600">Where Next Logo</p>
               </div>
               <div className="space-y-2">
-                <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors tap-lg">
+                <button className="w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors tap-lg">
                   <Download className="w-4 h-4 mr-2" />
                   Download Light Version (SVG)
                 </button>
@@ -157,7 +157,7 @@ export default function PressKitPage() {
                 <p><strong>Logo Usage:</strong> Minimum 24px height</p>
                 <p><strong>Clear Space:</strong> 1x logo height on all sides</p>
               </div>
-              <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors tap-lg">
+              <button className="w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors tap-lg">
                 <Download className="w-4 h-4 mr-2" />
                 Download Full Guidelines (PDF)
               </button>
@@ -175,7 +175,7 @@ export default function PressKitPage() {
             </div>
             <div className="p-4">
               <h3 className="font-semibold text-gray-900 mb-2">Homepage</h3>
-              <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm tap-lg">
+              <button className="w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm tap-lg">
                 <Download className="w-4 h-4 mr-2" />
                 Download (PNG, 2400x1600)
               </button>
@@ -188,7 +188,7 @@ export default function PressKitPage() {
             </div>
             <div className="p-4">
               <h3 className="font-semibold text-gray-900 mb-2">Dashboard</h3>
-              <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm tap-lg">
+              <button className="w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm tap-lg">
                 <Download className="w-4 h-4 mr-2" />
                 Download (PNG, 2400x1600)
               </button>
@@ -201,7 +201,7 @@ export default function PressKitPage() {
             </div>
             <div className="p-4">
               <h3 className="font-semibold text-gray-900 mb-2">Mobile App</h3>
-              <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm tap-lg">
+              <button className="w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm tap-lg">
                 <Download className="w-4 h-4 mr-2" />
                 Download (PNG, 1170x2532)
               </button>
@@ -251,7 +251,7 @@ export default function PressKitPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <a
               href="mailto:press@wherenext.com"
-              className="tap-lg inline-flex items-center px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-colors"
+              className="tap-lg inline-flex items-center px-8 py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 transition-colors"
             >
               <Mail className="w-5 h-5 mr-2" />
               press@wherenext.com

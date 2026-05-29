@@ -1,648 +1,649 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { 
-  Plus, 
-  MapPin, 
-  Calendar, 
-  DollarSign, 
-  TrendingUp,
-  Plane,
-  Clock,
-  Star,
-  ChevronRight,
-  BarChart3,
-  Globe,
-  Compass,
-  CheckCircle
-} from 'lucide-react';
-import RecentBookings from '@/components/dashboard/RecentBookings';
+import { useRouter } from 'next/navigation';
+import { useApp } from '@/contexts/AppContext';
+import { tripDestinationSummary, TripStop } from '@/types/trip';
+import { createClient } from '@/utils/supabase/client';
 
-export default function AppDashboardPage() {
-  // Mock data for demo - in production this would come from your database
-  const userName = 'Demo User';
-  const budgetStyle = 'Comfortable';
-  const totalBudget = 8500;
-  const [showAISuggestions, setShowAISuggestions] = useState(false);
+interface Booking {
+  id: string;
+  status: string;
+  totalAmountCents: number;
+  currency: string;
+  stripeSessionId: string | null;
+  createdAt: string;
+  tripId: string | null;
+  destination: string;
+  startDate: string | null;
+  endDate: string | null;
+  stops: TripStop[] | null;
+  adults: number;
+  kids: number;
+  vibe: string | null;
+}
 
-  const quickStats = [
-    {
-      label: 'Planned Trips',
-      value: '3',
-      icon: MapPin,
-      color: 'text-blue-600',
-      trend: '+2 this month'
-    },
-    {
-      label: 'Total Budget',
-      value: `$${totalBudget.toLocaleString()}`,
-      icon: DollarSign,
-      color: 'text-green-600',
-    },
-    {
-      label: 'Travel Style',
-      value: budgetStyle,
-      icon: Star,
-      color: 'text-purple-600',
-    },
-    {
-      label: 'This Month',
-      value: '2 Activities',
-      icon: TrendingUp,
-      color: 'text-orange-600',
-      trend: '+1'
-    }
-  ];
+interface SavedTrip {
+  id: string;
+  destination: string;
+  startDate: string | null;
+  endDate: string | null;
+  stops: TripStop[] | null;
+  adults: number;
+  kids: number;
+  budgetAmount: number | null;
+  vibe: string | null;
+  createdAt: string;
+}
 
-  const recentTrips = [
-    {
-      id: '1',
-      title: 'Tokyo Adventure',
-      city: 'Tokyo',
-      country: 'Japan',
-      start_date: 'Mar 15, 2024',
-      end_date: 'Mar 22, 2024',
-      budget: 3500,
-      status: 'upcoming'
-    },
-    {
-      id: '2',
-      title: 'Barcelona Getaway',
-      city: 'Barcelona',
-      country: 'Spain',
-      start_date: 'May 10, 2024',
-      end_date: 'May 17, 2024',
-      budget: 2800,
-      status: 'planning'
-    },
-    {
-      id: '3',
-      title: 'Iceland Road Trip',
-      city: 'Reykjavik',
-      country: 'Iceland',
-      start_date: 'Aug 5, 2024',
-      end_date: 'Aug 12, 2024',
-      budget: 2200,
-      status: 'draft'
-    }
-  ];
+interface Stats {
+  totalTrips: number;
+  totalSpentCents: number;
+  upcomingCount: number;
+  countriesVisited: number;
+  savedCount: number;
+  pendingCount: number;
+}
 
-  const savedTrips = [
-    {
-      id: '4',
-      title: 'Paris Romance',
-      city: 'Paris',
-      country: 'France',
-      saved_date: 'Dec 20, 2024',
-      estimated_cost: 2400,
-      duration: '5 days'
-    },
-    {
-      id: '5',
-      title: 'Bali Retreat',
-      city: 'Ubud',
-      country: 'Indonesia',
-      saved_date: 'Dec 18, 2024',
-      estimated_cost: 1800,
-      duration: '7 days'
-    },
-    {
-      id: '6',
-      title: 'Swiss Alps Adventure',
-      city: 'Interlaken',
-      country: 'Switzerland',
-      saved_date: 'Dec 15, 2024',
-      estimated_cost: 3200,
-      duration: '6 days'
-    }
-  ];
+interface DashboardData {
+  upcoming: Booking[];
+  past: Booking[];
+  pending: Booking[];
+  saved: SavedTrip[];
+  stats: Stats;
+}
 
-  const budgets = [
-    { id: '1', name: 'Tokyo Trip Budget', planned_amount: 3500, currency: 'USD' },
-    { id: '2', name: 'Barcelona Budget', planned_amount: 2800, currency: 'USD' },
-    { id: '3', name: 'Iceland Budget', planned_amount: 2200, currency: 'USD' }
-  ];
+interface SavedTour {
+  id: string;
+  trip_id: string | null;
+  city: string;
+  country: string | null;
+  title: string | null;
+  created_at: string;
+}
+
+function formatDate(d: string | null) {
+  if (!d) return '—';
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatCurrency(cents: number, currency = 'USD') {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
+
+function destinationLabel(item: { destination: string; stops: TripStop[] | null }) {
+  if (item.stops && item.stops.length > 1) return tripDestinationSummary(item.stops);
+  return item.destination;
+}
+
+function nightsBetween(start: string | null, end: string | null) {
+  if (!start || !end) return null;
+  const diff = new Date(end).getTime() - new Date(start + 'T00:00:00').getTime();
+  return Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; classes: string }> = {
+    confirmed: { label: 'Confirmed', classes: 'bg-emerald-100 text-emerald-700' },
+    pending:   { label: 'Pending',   classes: 'bg-amber-100 text-amber-700' },
+    cancelled: { label: 'Cancelled', classes: 'bg-rose-100 text-rose-600' },
+    saved:     { label: 'Saved',     classes: 'bg-slate-100 text-slate-600' },
+  };
+  const { label, classes } = map[status] ?? { label: status, classes: 'bg-slate-100 text-slate-500' };
+  return (
+    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${classes}`}>
+      {label}
+    </span>
+  );
+}
+
+function VibePill({ vibe }: { vibe: string | null }) {
+  if (!vibe) return null;
+  const vibeEmoji: Record<string, string> = {
+    adventure: '🧗', relaxing: '🏖️', cultural: '🏛️',
+    foodie: '🍜', romantic: '💑', family: '👨‍👩‍👧',
+    budget: '💸', luxury: '✨',
+  };
+  return (
+    <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full capitalize">
+      {vibeEmoji[vibe] ?? ''} {vibe}
+    </span>
+  );
+}
+
+function BookingCard({ booking, type }: { booking: Booking; type: 'upcoming' | 'past' | 'pending' }) {
+  const dest = destinationLabel(booking);
+  const nights = nightsBetween(booking.startDate, booking.endDate);
+  const isMulti = (booking.stops?.length ?? 0) > 1;
+  const accentMap = {
+    upcoming: 'border-t-emerald-400',
+    past:     'border-t-slate-300',
+    pending:  'border-t-amber-400',
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-    <div className="max-w-7xl mx-auto p-4 space-y-4">
-      {/* Trip Overview - Mobile First */}
-      <div className="bg-blue-600 card-spacing rounded-2xl shadow-xl border-2 border-blue-800">
-        {/* Trip Image */}
-        <div className="w-full h-36 md:h-44 bg-blue-500 rounded-2xl mb-4 flex items-center justify-center">
-          <div className="text-6xl">🏯</div>
+    <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-0.5 border-t-4 ${accentMap[type]}`}>
+      <div className="px-5 pt-5 pb-4">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex-1 min-w-0">
+            {isMulti && (
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">
+                {booking.stops!.length}-city trip
+              </span>
+            )}
+            <h3 className="font-bold text-slate-900 text-base leading-snug truncate" title={dest}>
+              {dest}
+            </h3>
+          </div>
+          <StatusBadge status={booking.status} />
         </div>
-        
-        {/* Trip Info - Stacked on mobile */}
-        <div className="space-y-3">
-          <h1 className="text-2xl md:text-4xl font-black text-white">Thailand Adventure</h1>
-          <p className="text-lg md:text-2xl font-bold text-white">12 days until departure</p>
-          <p className="text-sm md:text-lg font-semibold text-white opacity-90">
-            March 15-22, 2024 • Bangkok → Phuket → Chiang Mai
+        <div className="flex items-center gap-1.5 text-sm text-slate-500 mb-3">
+          <svg className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>
+            {formatDate(booking.startDate)} → {formatDate(booking.endDate)}
+            {nights != null && ` · ${nights}n`}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-slate-500 flex items-center gap-1">
+            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {booking.adults} adult{booking.adults !== 1 ? 's' : ''}
+            {booking.kids > 0 ? `, ${booking.kids} child${booking.kids !== 1 ? 'ren' : ''}` : ''}
+          </span>
+          <VibePill vibe={booking.vibe} />
+        </div>
+      </div>
+      <div className="mt-auto border-t border-slate-100 px-5 py-3 flex items-center justify-between bg-slate-50/50">
+        <div>
+          <p className="text-xs text-slate-400">Total paid</p>
+          <p className="text-sm font-bold text-slate-900">
+            {formatCurrency(booking.totalAmountCents, booking.currency)}
           </p>
         </div>
-        
-        {/* Progress Bar */}
-        <div className="mt-6 bg-white rounded-xl p-4">
-          <div className="flex justify-between items-center text-sm font-bold text-gray-900 mb-2">
-            <span>Trip Progress</span>
-            <span>85% Complete</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div className="bg-green-500 h-3 rounded-full" style={{width: '85%'}}></div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <Link
-            href="/trips/itinerary?tripId=thailand-adventure&destination=Bangkok%2C%20Thailand&startDate=2024-03-15&endDate=2024-03-22&budget=2500&travelers=2&departureCity=Vancouver"
-            className="bg-white text-blue-600 px-4 py-3 rounded-xl font-bold hover:bg-blue-50 transition-colors text-center"
-          >
-            📋 View Itinerary
-          </Link>
-          <Link
-            href="/budget?trip=thailand-adventure"
-            className="bg-white text-green-600 px-4 py-3 rounded-xl font-bold hover:bg-green-50 transition-colors text-center"
-          >
-            💰 Budget Breakdown
-          </Link>
-        </div>
-      </div>
-
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome back, {userName}! ✈️
-        </h1>
-        <p className="text-gray-600">
-          Ready to plan your next adventure? Here's your travel overview.
-        </p>
-      </div>
-
-      {/* Quick Stats - Mobile First */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold text-gray-900">Quick Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickStats.map((stat, index) => {
-            const Icon = stat.icon;
-            const iconBgColors = ['bg-blue-100', 'bg-green-100', 'bg-purple-100', 'bg-orange-100'];
-            return (
-              <div key={index} className="bg-white card-spacing rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-gray-600 mb-1 uppercase tracking-wide">{stat.label}</p>
-                    <p className="text-xl md:text-2xl font-black text-gray-900">{stat.value}</p>
-                    {stat.trend && (
-                      <p className="text-xs text-green-600 font-semibold">{stat.trend}</p>
-                    )}
-                  </div>
-                  <div className={`p-3 rounded-xl ${iconBgColors[index]} flex-shrink-0`}>
-                    <Icon className={`w-6 h-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-indigo-50 rounded-2xl shadow-xl p-8 mb-8 border-2 border-indigo-200">
-        <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
-          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center mr-3">
-            <Compass className="w-5 h-5 text-white" />
-          </div>
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link
-            href="/plan-trip"
-            className="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group"
-          >
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-4">
-              <Plus className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">Plan New Trip</h3>
-              <p className="text-sm text-gray-600">AI-powered trip suggestions</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
-          </Link>
-
-          <Link
-            href="/budget"
-            className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
-          >
-            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center mr-4">
-              <DollarSign className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">Manage Budget</h3>
-              <p className="text-sm text-gray-600">Track expenses & savings</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
-          </Link>
-
-          <Link
-            href="/ai-travel-agent"
-            className="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group"
-          >
-            <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center mr-4">
-              <Plane className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">AI Travel Agent</h3>
-              <p className="text-sm text-gray-600">Get personalized recommendations</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
-          </Link>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Trips */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Active Trips</h2>
-            <Link 
-              href="/app/trips"
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+        <div className="flex gap-2">
+          {booking.stripeSessionId && (
+            <Link
+              href={`/booking/confirmation?session_id=${booking.stripeSessionId}&booking_id=${booking.id}`}
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-400 transition-colors"
             >
-              View all
+              View
             </Link>
-          </div>
-
-          <div className="space-y-4">
-            {recentTrips.slice(0, 3).map((trip) => (
-              <div key={trip.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                    <MapPin className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{trip.title}</h3>
-                    <p className="text-sm text-gray-600">
-                      {trip.start_date} - {trip.end_date}
-                    </p>
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${
-                      trip.status === 'upcoming' ? 'bg-green-100 text-green-800' :
-                      trip.status === 'planning' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {trip.status}
-                    </span>
-                  </div>
-                </div>
-                <Link
-                  href={`/trip-details/${trip.id}?destination=${trip.city}%2C%20${trip.country}&startDate=2024-03-15&endDate=2024-03-22&adults=2&kids=0&budgetAmount=${trip.budget}`}
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Saved Trips */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Saved Trips</h2>
-            <Link 
-              href="/saved"
-              className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+          )}
+          {booking.tripId && (
+            <Link
+              href={`/trip-details/${booking.tripId}`}
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-400 transition-colors"
             >
-              View all
+              Details
             </Link>
-          </div>
-
-          <div className="space-y-4">
-            {savedTrips.slice(0, 3).map((trip) => (
-              <div key={trip.id} className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-                    <Star className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{trip.title}</h3>
-                    <p className="text-sm text-gray-600">
-                      {trip.duration} • ${trip.estimated_cost.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-500">Saved {trip.saved_date}</p>
-                  </div>
-                </div>
-                <Link
-                  href={`/trip-details/${trip.id}?destination=${trip.city}%2C%20${trip.country}&startDate=2024-05-10&endDate=2024-05-17&adults=2&kids=0&budgetAmount=${trip.estimated_cost}`}
-                  className="text-purple-600 hover:text-purple-700"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Budget Overview */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Budget Overview</h2>
-            <Link 
-              href="/budget"
-              className="text-green-600 hover:text-green-700 text-sm font-medium"
-            >
-              Manage
-            </Link>
-          </div>
-
-          <div className="space-y-4">
-            {budgets.slice(0, 3).map((budget) => (
-              <div key={budget.id} className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                    <DollarSign className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{budget.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      ${budget.planned_amount?.toLocaleString()} {budget.currency}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-green-600 font-medium">Active</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          )}
         </div>
       </div>
-
-      {/* Upcoming Bookings Section */}
-      <div className="mt-8 bg-green-50 rounded-2xl shadow-xl p-8 border-2 border-green-200">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-black text-gray-900 flex items-center">
-            <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
-              <Plane className="w-5 h-5 text-white" />
-            </div>
-            Upcoming Bookings
-          </h2>
-          <Link 
-            href="/bookings"
-            className="bg-blue-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg"
-          >
-            View All
-          </Link>
-        </div>
-        <div className="space-y-4">
-          {/* Flight Booking */}
-          <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Plane className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">Flight to Bangkok</p>
-                <p className="text-sm text-gray-600">March 15, 2024 • 2:30 PM</p>
-                <p className="text-sm text-gray-600">Air Canada AC1234 • YVR → BKK</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">Confirmed</span>
-              <p className="text-sm text-gray-600 mt-1">Seat 12A</p>
-            </div>
-          </div>
-
-          {/* Hotel Booking */}
-          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <MapPin className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">Bangkok Palace Hotel</p>
-                <p className="text-sm text-gray-600">March 15-18, 2024 • 3 nights</p>
-                <p className="text-sm text-gray-600">Deluxe Room • 2 guests</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">Confirmed</span>
-              <p className="text-sm text-gray-600 mt-1">$180/night</p>
-            </div>
-          </div>
-
-          {/* Pending Booking */}
-          <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <Clock className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">Phuket Resort & Spa</p>
-                <p className="text-sm text-gray-600">March 19-22, 2024 • 3 nights</p>
-                <p className="text-sm text-gray-600">Ocean View Suite • 2 guests</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-medium">Pending</span>
-              <p className="text-sm text-gray-600 mt-1">$320/night</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Activity & Travel Tips */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Activity */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h2>
-          <div className="space-y-4">
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Plus className="w-4 h-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Saved "Paris Romance" trip</p>
-                <p className="text-xs text-gray-500">2 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <DollarSign className="w-4 h-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Updated Tokyo trip budget</p>
-                <p className="text-xs text-gray-500">1 day ago</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Star className="w-4 h-4 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Completed Barcelona trip planning</p>
-                <p className="text-xs text-gray-500">3 days ago</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-4 h-4 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Generated AI suggestions for Iceland</p>
-                <p className="text-xs text-gray-500">1 week ago</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* AI Suggestions Card */}
-        <div className="bg-purple-50 rounded-xl p-6 border border-purple-200">
-          <div className="flex items-start">
-            <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-              <Compass className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">💡 AI Travel Tips</h3>
-              <p className="text-gray-700 mb-4">
-                Based on your Bangkok trip, consider visiting the floating markets early morning for the best experience and prices. Flight prices to Phuket dropped $50 - book soon!
-              </p>
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center text-sm text-gray-600">
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                  Weather: Perfect time to visit - cool and dry season
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                  Budget tip: Street food can save you 60% on dining
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                  Alert: Temple dress code required - pack modest clothing
-                </div>
-              </div>
-              <Link
-                href="/ai-travel-agent"
-                className="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium"
-              >
-                Get More AI Suggestions
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Utilities at a Glance */}
-      <div className="mt-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Travel Utilities</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Weather Card */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-900 flex items-center">
-                <Globe className="h-5 w-5 text-blue-600 mr-2" />
-                Bangkok Weather
-              </h3>
-              <span className="text-xs text-gray-500">Live</span>
-            </div>
-            <div className="text-center">
-              <p className="text-4xl font-bold text-gray-900 mb-2">32°C</p>
-              <p className="text-gray-600 mb-2">Partly cloudy</p>
-              <p className="text-sm text-gray-500">Feels like 35°C • Humidity 68%</p>
-            </div>
-          </div>
-
-          {/* Currency Card */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-900 flex items-center">
-                <DollarSign className="h-5 w-5 text-green-600 mr-2" />
-                Currency
-              </h3>
-              <span className="text-xs text-gray-500">Live</span>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900 mb-2">35.2 THB</p>
-              <p className="text-gray-600 mb-2">1 USD = 35.2 THB</p>
-              <p className="text-sm text-gray-500">Updated 2 min ago</p>
-            </div>
-          </div>
-
-          {/* Daily Phrase Card */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-900 flex items-center">
-                <Globe className="h-5 w-5 text-orange-600 mr-2" />
-                Daily Phrase
-              </h3>
-              <span className="text-xs text-gray-500">Thai</span>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900 mb-2">สวัสดี</p>
-              <p className="text-gray-600 mb-2">"Sawasdee"</p>
-              <p className="text-sm text-gray-500">Hello / Goodbye</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Notifications & Alerts */}
-      <div className="mt-8 bg-yellow-50 rounded-xl p-6 border border-yellow-200">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-          <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center mr-3">
-            <span className="text-white text-xs">!</span>
-          </div>
-          Notifications & Alerts
-        </h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Hotel booking confirmed</p>
-                <p className="text-sm text-gray-600">Bangkok Palace Hotel • March 15-18</p>
-              </div>
-            </div>
-            <span className="text-xs text-gray-500">2 hours ago</span>
-          </div>
-          
-          <div className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                <TrendingUp className="h-4 w-4 text-orange-600" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Budget 70% used</p>
-                <p className="text-sm text-gray-600">$1,750 of $2,500 spent on Thailand trip</p>
-              </div>
-            </div>
-            <span className="text-xs text-gray-500">1 day ago</span>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <Plane className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">AI found 2 new deals</p>
-                <p className="text-sm text-gray-600">Flight prices dropped for Bangkok → Phuket</p>
-              </div>
-            </div>
-            <span className="text-xs text-gray-500">3 hours ago</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Bookings Section */}
-      <RecentBookings />
-    </div>
     </div>
   );
 }
 
+function SavedTripCard({ trip }: { trip: SavedTrip }) {
+  const dest = destinationLabel(trip);
+  const isMulti = (trip.stops?.length ?? 0) > 1;
+  const nights = nightsBetween(trip.startDate, trip.endDate);
+  const parts = trip.destination?.split(',').map(s => s.trim()) ?? [];
+  const tourCity = parts[0] ?? '';
+  const tourCountry = parts[1] ?? '';
+  const tourHref = tourCity
+    ? `/tour?city=${encodeURIComponent(tourCity)}${tourCountry ? `&country=${encodeURIComponent(tourCountry)}` : ''}&trip_id=${encodeURIComponent(trip.id)}`
+    : `/tour?trip_id=${encodeURIComponent(trip.id)}`;
 
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-slate-200 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-0.5">
+      <div className="px-5 pt-5 pb-4">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex-1 min-w-0">
+            {isMulti && (
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">
+                {trip.stops!.length}-city trip
+              </span>
+            )}
+            <h3 className="font-bold text-slate-900 text-base leading-snug truncate" title={dest}>
+              {dest}
+            </h3>
+          </div>
+          <StatusBadge status="saved" />
+        </div>
+        <div className="flex items-center gap-1.5 text-sm text-slate-500 mb-3">
+          <svg className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>
+            {trip.startDate ? `${formatDate(trip.startDate)} → ${formatDate(trip.endDate)}` : 'Dates TBD'}
+            {nights != null && ` · ${nights}n`}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-slate-500 flex items-center gap-1">
+            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {trip.adults} adult{trip.adults !== 1 ? 's' : ''}
+            {trip.kids > 0 ? `, ${trip.kids} child${trip.kids !== 1 ? 'ren' : ''}` : ''}
+          </span>
+          {trip.budgetAmount != null && (
+            <span className="text-xs text-slate-500 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              ${trip.budgetAmount.toLocaleString()} budget
+            </span>
+          )}
+          <VibePill vibe={trip.vibe} />
+        </div>
+      </div>
+      <div className="mt-auto border-t border-slate-100 px-5 py-3 flex items-center justify-between gap-2 bg-slate-50/50">
+        <p className="text-xs text-slate-400">
+          Saved {new Date(trip.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </p>
+        <div className="flex items-center gap-2">
+          <Link
+            href={tourHref}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:border-slate-400 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Tour
+          </Link>
+          <Link
+            href={`/trip-details/${trip.id}`}
+            className="text-xs font-semibold text-white bg-slate-900 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Book now
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ icon, title, body, action }: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4 text-slate-400">
+        {icon}
+      </div>
+      <h3 className="text-base font-semibold text-slate-700 mb-1">{title}</h3>
+      <p className="text-sm text-slate-400 max-w-xs mb-5">{body}</p>
+      {action}
+    </div>
+  );
+}
+
+function StatCard({ label, value, sub, icon }: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4 flex items-center gap-4">
+      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-600">
+        {icon}
+      </div>
+      <div>
+        <p className="text-2xl font-bold text-slate-900 leading-none">{value}</p>
+        <p className="text-xs text-slate-500 mt-1">{label}</p>
+        {sub && <p className="text-xs text-slate-400">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+function TabBar({
+  tabs,
+  active,
+  onChange,
+}: {
+  tabs: { id: string; label: string; count: number }[];
+  active: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            active === tab.id
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {tab.label}
+          {tab.count > 0 && (
+            <span className={`text-xs rounded-full px-1.5 py-0.5 font-semibold min-w-[20px] text-center ${
+              active === tab.id ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'
+            }`}>
+              {tab.count}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const { user } = useApp();
+
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [savedTours, setSavedTours] = useState<SavedTour[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'saved'>('upcoming');
+
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!user) return;
+    if (!supabaseRef.current) supabaseRef.current = createClient();
+    const supabase = supabaseRef.current;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        router.push('/auth/login');
+        return;
+      }
+      const res = await fetch('/api/bookings', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (res.status === 401) {
+        router.push('/auth/login');
+        return;
+      }
+      if (!res.ok) throw new Error('Failed to load dashboard');
+      const json = await res.json();
+      setData(json);
+      if (json.upcoming?.length > 0) setActiveTab('upcoming');
+      else if (json.saved?.length > 0) setActiveTab('saved');
+      else setActiveTab('past');
+
+      const toursRes = await fetch('/api/tours', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (toursRes.ok) {
+        const toursJson = await toursRes.json();
+        setSavedTours(Array.isArray(toursJson) ? toursJson : []);
+      } else {
+        setSavedTours([]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/auth/login?redirect=/dashboard');
+      return;
+    }
+    fetchData();
+  }, [user, fetchData]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-slate-200 h-20 animate-pulse" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-slate-200 h-48 animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 max-w-sm w-full text-center">
+          <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="font-bold text-slate-900 mb-2">Couldn&apos;t load dashboard</h2>
+          <p className="text-sm text-slate-500 mb-5">{error}</p>
+          <button
+            onClick={fetchData}
+            className="w-full bg-slate-900 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const { upcoming = [], past = [], pending = [], saved = [], stats } = data ?? {};
+
+  const tabs = [
+    { id: 'upcoming', label: 'Upcoming', count: upcoming.length },
+    { id: 'past',     label: 'Past',     count: past.length },
+    { id: 'saved',    label: 'Saved',    count: saved.length },
+  ] as const;
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My trips</h1>
+            <p className="text-slate-500 text-sm mt-0.5">
+              {(user as { email?: string })?.email ?? 'Your travel history and upcoming adventures'}
+            </p>
+          </div>
+          <Link
+            href="/plan-trip"
+            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors shadow-lg shadow-slate-900/20"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Plan a trip
+          </Link>
+        </div>
+
+        {stats && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <StatCard
+              label="Confirmed trips"
+              value={stats.totalTrips}
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+              }
+            />
+            <StatCard
+              label="Total spent"
+              value={stats.totalSpentCents > 0 ? formatCurrency(stats.totalSpentCents) : '$0'}
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              }
+            />
+            <StatCard
+              label="Upcoming trips"
+              value={stats.upcomingCount}
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              }
+            />
+            <StatCard
+              label="Countries visited"
+              value={stats.countriesVisited}
+              sub="from confirmed trips"
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+          </div>
+        )}
+
+        {pending.length > 0 && (
+          <div className="mb-6 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+            <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-amber-800 flex-1">
+              You have {pending.length} booking{pending.length !== 1 ? 's' : ''} awaiting payment.
+            </p>
+            <Link
+              href="/booking/checkout"
+              className="text-xs font-bold text-amber-700 hover:text-amber-900 underline"
+            >
+              Complete payment
+            </Link>
+          </div>
+        )}
+
+        {savedTours.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-sm font-semibold text-slate-700 mb-3">Saved walking tours</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {savedTours.map((tour) => (
+                <div
+                  key={tour.id}
+                  className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4 flex flex-col gap-3"
+                >
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm truncate">
+                      {tour.title || `${tour.city}${tour.country ? `, ${tour.country}` : ''}`}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {tour.city}
+                      {tour.country ? `, ${tour.country}` : ''}
+                      {' · '}
+                      {new Date(tour.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/tour?load=${encodeURIComponent(tour.id)}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition-colors w-fit"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Resume
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <TabBar
+            tabs={tabs as { id: string; label: string; count: number }[]}
+            active={activeTab}
+            onChange={(id) => setActiveTab(id as typeof activeTab)}
+          />
+          {activeTab === 'saved' && saved.length > 0 && (
+            <p className="text-xs text-slate-400">
+              {saved.length} trip{saved.length !== 1 ? 's' : ''} ready to book
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+          {activeTab === 'upcoming' && (
+            upcoming.length > 0 ? (
+              upcoming.map((b) => <BookingCard key={b.id} booking={b} type="upcoming" />)
+            ) : (
+              <EmptyState
+                icon={<svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+                title="No upcoming trips"
+                body="You don't have any confirmed trips coming up. Time to start planning."
+                action={
+                  <Link href="/plan-trip" className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors">
+                    Plan a trip
+                  </Link>
+                }
+              />
+            )
+          )}
+
+          {activeTab === 'past' && (
+            past.length > 0 ? (
+              past.map((b) => <BookingCard key={b.id} booking={b} type="past" />)
+            ) : (
+              <EmptyState
+                icon={<svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                title="No past trips yet"
+                body="Your completed trips will show up here once you've travelled."
+              />
+            )
+          )}
+
+          {activeTab === 'saved' && (
+            saved.length > 0 ? (
+              saved.map((t) => <SavedTripCard key={t.id} trip={t} />)
+            ) : (
+              <EmptyState
+                icon={<svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>}
+                title="No saved trips"
+                body="Save a trip from the trip details page and it'll appear here."
+                action={
+                  <Link href="/search" className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors">
+                    Explore destinations
+                  </Link>
+                }
+              />
+            )
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}

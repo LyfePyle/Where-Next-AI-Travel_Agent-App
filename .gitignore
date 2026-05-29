@@ -16,3 +16,6 @@ out/
 .env.*.local
 *.log
 .vercel
+
+# Archives / handoff bundles
+*.zip

@@ -80,6 +80,8 @@ INSERT INTO public.addon_templates (template_id, item_type, title_template, desc
 ('meal_budget_daily', 'meal', 'Daily Meal Plan (Budget)', 'Simple, filling meals at local spots near your stay in {city}', 2500, '{}', '{"cost_of_living_multiplier": true}'),
 ('meal_street_food', 'meal', 'Street Food Explorer', 'Curated local street food spots and market vendors in {city}', 3500, '{}', '{"cost_of_living_multiplier": true}'),
 ('meal_foodie', 'meal', 'Foodie Experience', 'Signature dishes and top-rated restaurants in {city}', 6000, '{}', '{"cost_of_living_multiplier": true, "tourism_multiplier": 1.2}'),
+('meal_fine_dining', 'meal', 'Fine Dining Experience', 'Elegant multi-course dinner at a renowned restaurant in {city} with wine pairing', 12000, '{}', '{"cost_of_living_multiplier": true, "tourism_multiplier": 1.3, "premium": true}'),
+('meal_premium', 'meal', 'Premium Dining Experience', 'Upscale restaurant experience featuring local and international cuisine in {city}', 8000, '{}', '{"cost_of_living_multiplier": true, "tourism_multiplier": 1.2, "premium": true}'),
 
 -- Activity Templates  
 ('activity_highlights', 'activity', 'City Highlights Tour', 'Must-see landmarks and neighborhoods in {city} in one comprehensive tour', 4500, '{"urban", "historic", "cultural"}', '{"cost_of_living_multiplier": true}'),

@@ -1,199 +1,603 @@
 'use client';
 
+/**
+ * Plan trip — origin (home city) vs destination (where to go) are separate.
+ * Origin → `from` param for flights. Destination → `stops` / `destination` for AI.
+ */
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import TripPlannerForm from '@/components/forms/TripPlannerForm';
-import { type TripPlannerFormData } from '@/lib/validations/trip';
+
+const VIBES = [
+  { value: 'adventure', label: '🏔 Adventure' },
+  { value: 'relaxing', label: '🌊 Relaxing' },
+  { value: 'cultural', label: '🏛 Cultural' },
+  { value: 'foodie', label: '🍜 Foodie' },
+  { value: 'romantic', label: '💕 Romantic' },
+  { value: 'family', label: '👨‍👩‍👧 Family' },
+  { value: 'budget', label: '💰 Budget' },
+  { value: 'luxury', label: '✨ Luxury' },
+];
 
 export default function PlanTripPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleTripSubmit = async (data: TripPlannerFormData) => {
-    setIsLoading(true);
-    
-    try {
-      // Calculate trip duration and total budget from breakdown
-      const tripDuration = Math.ceil((new Date(data.dateRange.endDate).getTime() - new Date(data.dateRange.startDate).getTime()) / (1000 * 60 * 60 * 24));
-      const totalBudgetPerPerson = (data.budgetDaily * tripDuration) + (data.budgetHotels * tripDuration) + data.budgetFlights;
-      
-      // Call the suggestions API to generate trip suggestions
-      const response = await fetch('/api/ai/suggestions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: data.originAirport,
-          startDate: data.dateRange.startDate,
-          endDate: data.dateRange.endDate,
-          budgetAmount: totalBudgetPerPerson,
-          budgetDaily: data.budgetDaily,
-          budgetFlights: data.budgetFlights,
-          budgetHotels: data.budgetHotels,
-          tripDuration: tripDuration,
-          budgetStyle: data.budgetStyle,
-          vibes: data.vibes,
-          adults: data.partySize.adults,
-          kids: data.partySize.kids,
-          maxFlightTime: data.maxFlightTime,
-          additionalDetails: data.additionalDetails,
-        }),
-      });
+  const [origin, setOrigin] = useState('');
+  const [destination, setDestination] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [adults, setAdults] = useState(2);
+  const [kids, setKids] = useState(0);
+  const [budget, setBudget] = useState(3000);
+  const [vibe, setVibe] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [originError, setOriginError] = useState('');
 
-      if (response.ok) {
-        // Store the trip data and navigate to suggestions
-        const suggestions = await response.json();
-        
-        // Calculate trip duration
-        const startDateObj = new Date(data.dateRange.startDate);
-        const endDateObj = new Date(data.dateRange.endDate);
-        const tripDurationDays = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24));
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
 
-        // Navigate to suggestions with the generated data
-        const params = new URLSearchParams({
-          from: data.originAirport,
-          startDate: data.dateRange.startDate,
-          endDate: data.dateRange.endDate,
-          budgetAmount: totalBudgetPerPerson.toString(),
-          budgetDaily: data.budgetDaily.toString(),
-          budgetFlights: data.budgetFlights.toString(),
-          budgetHotels: data.budgetHotels.toString(),
-          tripDuration: tripDuration.toString(),
-          budgetStyle: data.budgetStyle,
-          vibes: data.vibes.join(','),
-          adults: data.partySize.adults.toString(),
-          kids: data.partySize.kids.toString(),
-          ...(data.maxFlightTime && { maxFlightTime: data.maxFlightTime.toString() }),
-          ...(data.additionalDetails && { additionalDetails: data.additionalDetails }),
-        });
-
-        router.push(`/suggestions?${params.toString()}`);
-      } else {
-        throw new Error('Failed to generate suggestions');
-      }
-    } catch (error) {
-      console.error('Error generating trip suggestions:', error);
-      // Calculate trip duration and total budget for fallback
-      const tripDurationDays = Math.ceil((new Date(data.dateRange.endDate).getTime() - new Date(data.dateRange.startDate).getTime()) / (1000 * 60 * 60 * 24));
-      const totalBudgetPerPersonFallback = (data.budgetDaily * tripDurationDays) + (data.budgetHotels * tripDurationDays) + data.budgetFlights;
-
-      // For now, still navigate but with a fallback mode
-      const params = new URLSearchParams({
-        from: data.originAirport,
-        startDate: data.dateRange.startDate,
-        endDate: data.dateRange.endDate,
-        budgetAmount: totalBudgetPerPersonFallback.toString(),
-        budgetDaily: data.budgetDaily.toString(),
-        budgetFlights: data.budgetFlights.toString(),
-        budgetHotels: data.budgetHotels.toString(),
-        tripDuration: tripDurationDays.toString(),
-        budgetStyle: data.budgetStyle,
-        vibes: data.vibes.join(','),
-        adults: data.partySize.adults.toString(),
-        kids: data.partySize.kids.toString(),
-        fallback: 'true',
-      });
-
-      router.push(`/suggestions?${params.toString()}`);
-    } finally {
-      setIsLoading(false);
+    if (!origin.trim()) {
+      setOriginError('Please enter your home city so we can calculate flights.');
+      return;
     }
-  };
+    setOriginError('');
+    setSubmitting(true);
+
+    const params = new URLSearchParams();
+    params.set('from', origin.trim());
+
+    if (destination.trim()) {
+      params.set(
+        'stops',
+        JSON.stringify([
+          {
+            id: 'stop-main',
+            destination: destination.trim(),
+            startDate: startDate || '',
+            endDate: endDate || '',
+          },
+        ])
+      );
+      params.set('destination', destination.trim());
+    }
+
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    if (vibe) params.set('vibe', vibe);
+
+    params.set('adults', String(adults));
+    params.set('kids', String(kids));
+    params.set('budgetAmount', String(budget));
+
+    router.push(`/suggestions?${params.toString()}`);
+  }
+
+  const tripNights =
+    startDate && endDate
+      ? Math.max(
+          0,
+          Math.round(
+            (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000
+          )
+        )
+      : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="text-purple-600 hover:text-purple-700 font-medium">
-                ← Back to Home
-              </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Plan Your Perfect Trip</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/cart" className="text-gray-600 hover:text-purple-600 flex items-center">
-                🛒 Cart
-              </Link>
-              <Link href="/tours" className="text-gray-600 hover:text-purple-600">
-                🚶 Walking Tours
-              </Link>
-              <Link href="/saved" className="text-gray-600 hover:text-purple-600">
-                Saved Trips
-              </Link>
-              <Link href="/budget" className="text-gray-600 hover:text-purple-600">
-                Budget
-              </Link>
-            </div>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#F8F7F4',
+        fontFamily: "Georgia, 'Times New Roman', serif",
+      }}
+    >
+      <div
+        style={{
+          background: '#1C1917',
+          color: '#fff',
+          padding: '3rem 1.5rem 2.5rem',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ maxWidth: 560, margin: '0 auto' }}>
+          <div
+            style={{
+              fontFamily: 'monospace',
+              fontSize: 11,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              color: 'rgba(255,255,255,0.4)',
+              marginBottom: 12,
+            }}
+          >
+            AI-powered travel planning
           </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Let AI Plan Your Next Adventure ✨
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Tell us what you're looking for, and our AI will suggest personalized destinations 
-            with real flight prices, hotel options, and local experiences.
+          <h1
+            style={{
+              fontSize: 'clamp(2rem,5vw,2.75rem)',
+              fontWeight: 400,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.15,
+              marginBottom: 12,
+            }}
+          >
+            Where do you want to go?
+          </h1>
+          <p
+            style={{
+              fontSize: 15,
+              color: 'rgba(255,255,255,0.5)',
+              lineHeight: 1.6,
+              maxWidth: 400,
+              margin: '0 auto',
+            }}
+          >
+            Tell us where you&apos;re based and we&apos;ll find the best trips for you — or name a
+            destination and we&apos;ll plan the perfect itinerary.
           </p>
         </div>
+      </div>
 
-        {/* Trip Planner Form */}
-        <div className="bg-white rounded-xl shadow-sm border p-8">
-          <TripPlannerForm onSubmit={handleTripSubmit} isLoading={isLoading} />
-        </div>
+      <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem 1.25rem 4rem' }}>
+        <form onSubmit={handleSubmit} noValidate>
+          <FormSection
+            step={1}
+            title="Where are you based?"
+            subtitle="Your home city — we use this to find flights"
+          >
+            <div>
+              <input
+                type="text"
+                placeholder="e.g. Vancouver, London, Sydney…"
+                value={origin}
+                onChange={(e) => {
+                  setOrigin(e.target.value);
+                  setOriginError('');
+                }}
+                style={{
+                  ...inputStyle,
+                  borderColor: originError ? '#DC2626' : '#E2DDD6',
+                }}
+              />
+              {originError && (
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: '#DC2626',
+                    marginTop: 6,
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  {originError}
+                </p>
+              )}
+            </div>
+          </FormSection>
 
-        {/* Features Preview */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center p-6">
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">🤖</span>
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Suggestions</h3>
-            <p className="text-sm text-gray-600">
-              Get personalized destination recommendations based on your preferences and budget
-            </p>
-          </div>
-          <div className="text-center p-6">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">✈️</span>
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Real-Time Pricing</h3>
-            <p className="text-sm text-gray-600">
-              See live flight and hotel prices from trusted providers like Amadeus
-            </p>
-          </div>
-          <div className="text-center p-6">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">💰</span>
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Budget Management</h3>
-            <p className="text-sm text-gray-600">
-              Track your expenses and get budget-friendly recommendations
-            </p>
-          </div>
-        </div>
+          <FormSection
+            step={2}
+            title="Where do you want to go?"
+            subtitle="Leave blank and our AI will suggest the best destinations for you"
+            optional
+          >
+            <input
+              type="text"
+              placeholder="e.g. Thailand, Japan, New York… or leave blank"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              style={inputStyle}
+            />
+            {destination.trim() ? (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: '#0F766E',
+                  fontFamily: 'monospace',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span>✓</span> AI will show 4 trip options within {destination.trim()}
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: '#78716C',
+                  fontFamily: 'monospace',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span>✦</span> AI will suggest the best destinations from{' '}
+                {origin.trim() || 'your city'}
+              </div>
+            )}
+          </FormSection>
 
-        {/* Testimonial or Social Proof */}
-        <div className="mt-12 bg-purple-50 rounded-xl p-6 text-center">
-          <div className="text-purple-600 mb-2">
-            <span className="text-2xl">🌟</span>
-          </div>
-          <p className="text-gray-700 font-medium mb-2">
-            "Found my perfect weekend getaway in under 5 minutes!"
+          <FormSection
+            step={3}
+            title="When are you travelling?"
+            optional
+            subtitle="Helps the AI check seasonality and pricing"
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Departure</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Return</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate || new Date().toISOString().split('T')[0]}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+            {tripNights !== null && tripNights > 0 && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: '#78716C',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {tripNights} night{tripNights !== 1 ? 's' : ''} away
+              </div>
+            )}
+          </FormSection>
+
+          <FormSection step={4} title="Who's travelling?">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Counter
+                label="Adults"
+                sub="Age 18+"
+                value={adults}
+                min={1}
+                max={9}
+                onChange={setAdults}
+              />
+              <Counter
+                label="Children"
+                sub="Under 18"
+                value={kids}
+                min={0}
+                max={8}
+                onChange={setKids}
+              />
+            </div>
+          </FormSection>
+
+          <FormSection step={5} title="What's your budget?">
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: 12,
+                }}
+              >
+                <span style={{ fontSize: 13, color: '#78716C' }}>
+                  Total budget (USD) for all travellers
+                </span>
+                <span
+                  style={{
+                    fontSize: 22,
+                    fontWeight: 700,
+                    fontFamily: 'monospace',
+                    color: '#1C1917',
+                  }}
+                >
+                  ${budget.toLocaleString()}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={500}
+                max={20000}
+                step={250}
+                value={budget}
+                onChange={(e) => setBudget(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#1C1917', height: 4, cursor: 'pointer' }}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginTop: 6,
+                  fontSize: 11,
+                  color: '#9CA3AF',
+                  fontFamily: 'monospace',
+                }}
+              >
+                <span>$500</span>
+                <span>$20,000</span>
+              </div>
+              {adults + kids > 0 && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: '#78716C',
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  ≈ ${Math.round(budget / (adults + kids)).toLocaleString()} per person
+                </div>
+              )}
+            </div>
+          </FormSection>
+
+          <FormSection
+            step={6}
+            title="What's your vibe?"
+            optional
+            subtitle="Pick one to help the AI match your style"
+          >
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {VIBES.map((v) => (
+                <button
+                  key={v.value}
+                  type="button"
+                  onClick={() => setVibe(vibe === v.value ? '' : v.value)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 100,
+                    fontSize: 13,
+                    border: `1.5px solid ${vibe === v.value ? '#1C1917' : '#E2DDD6'}`,
+                    background: vibe === v.value ? '#1C1917' : '#fff',
+                    color: vibe === v.value ? '#fff' : '#44403C',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          </FormSection>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              width: '100%',
+              padding: '16px 24px',
+              background: submitting ? '#6B7280' : '#1C1917',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 12,
+              fontSize: 15,
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              boxShadow: '0 4px 12px rgba(28,25,23,0.25)',
+            }}
+          >
+            {submitting ? (
+              'Getting AI suggestions…'
+            ) : (
+              <>
+                <span>✦</span>
+                {destination.trim()
+                  ? `Plan my trip to ${destination.trim()}`
+                  : 'Find me the perfect trip'}
+              </>
+            )}
+          </button>
+
+          <p
+            style={{
+              textAlign: 'center',
+              fontSize: 12,
+              color: '#9CA3AF',
+              marginTop: 12,
+              fontFamily: 'monospace',
+            }}
+          >
+            Takes 10–15 seconds • Powered by GPT-4
           </p>
-          <p className="text-sm text-gray-600">
-            - Sarah K., frequent traveler
-          </p>
-        </div>
-      </main>
+        </form>
+      </div>
     </div>
   );
 }
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '12px 14px',
+  border: '1.5px solid #E2DDD6',
+  borderRadius: 10,
+  fontSize: 14,
+  fontFamily: "Georgia, 'Times New Roman', serif",
+  background: '#fff',
+  color: '#1C1917',
+  outline: 'none',
+  boxSizing: 'border-box',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 11,
+  fontFamily: 'monospace',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: '#78716C',
+  marginBottom: 6,
+};
+
+function FormSection({
+  step,
+  title,
+  subtitle,
+  optional,
+  children,
+}: {
+  step: number;
+  title: string;
+  subtitle?: string;
+  optional?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1px solid #E2DDD6',
+        borderRadius: 14,
+        padding: '1.5rem',
+        marginBottom: 16,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      }}
+    >
+      <div style={{ marginBottom: 16 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: subtitle ? 4 : 0,
+          }}
+        >
+          <span
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              background: '#1C1917',
+              color: '#fff',
+              fontFamily: 'monospace',
+              fontSize: 11,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {step}
+          </span>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1C1917', margin: 0 }}>
+            {title}
+            {optional && (
+              <span
+                style={{
+                  fontWeight: 400,
+                  fontSize: 12,
+                  color: '#9CA3AF',
+                  marginLeft: 6,
+                  fontFamily: 'monospace',
+                }}
+              >
+                optional
+              </span>
+            )}
+          </h2>
+        </div>
+        {subtitle && (
+          <p style={{ fontSize: 12, color: '#78716C', margin: '0 0 0 34px', lineHeight: 1.5 }}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Counter({
+  label,
+  sub,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  sub: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 14px',
+        border: '1.5px solid #E2DDD6',
+        borderRadius: 10,
+        background: '#FAFAF9',
+      }}
+    >
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: '#1C1917' }}>{label}</div>
+        <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace' }}>{sub}</div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - 1))}
+          disabled={value <= min}
+          style={counterBtnStyle(value <= min)}
+        >
+          −
+        </button>
+        <span
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            minWidth: 20,
+            textAlign: 'center',
+            fontFamily: 'monospace',
+          }}
+        >
+          {value}
+        </span>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, value + 1))}
+          disabled={value >= max}
+          style={counterBtnStyle(value >= max)}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const counterBtnStyle = (disabled: boolean): React.CSSProperties => ({
+  width: 30,
+  height: 30,
+  borderRadius: '50%',
+  border: '1.5px solid #E2DDD6',
+  background: disabled ? '#F3F4F6' : '#fff',
+  color: disabled ? '#D1D5DB' : '#1C1917',
+  fontSize: 16,
+  lineHeight: 1,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: disabled ? 'not-allowed' : 'pointer',
+});

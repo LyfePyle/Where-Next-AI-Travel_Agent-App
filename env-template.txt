@@ -1,0 +1,44 @@
+# ============================================================
+# WHERE NEXT — Environment Variables
+# Copy this to .env.local and fill in your values
+# Get free Amadeus keys at: https://developers.amadeus.com
+# ============================================================
+
+# Supabase (required)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# OpenAI (required for AI suggestions)
+OPENAI_API_KEY=sk-your-openai-api-key
+ENABLE_AI_SUGGESTIONS=true
+
+# ─── Duffel (flight search – preferred) ───────────────────────────────────────
+# Get token at https://app.duffel.com → Access tokens. Use duffel_test_... for test, duffel_live_... for production.
+# Flight search uses Duffel when this is set; otherwise falls back to Amadeus or static data.
+DUFFEL_API_KEY=duffel_test_your_token_here
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─── Amadeus (legacy; used for flights only if Duffel not configured) ──────────
+# Sign up free at https://developers.amadeus.com
+AMADEUS_CLIENT_ID=your_amadeus_client_id
+AMADEUS_CLIENT_SECRET=your_amadeus_client_secret
+AMADEUS_ENVIRONMENT=test
+# ─────────────────────────────────────────────────────────────────────────────
+
+# OpenWeather (for real weather data on suggestions)
+# Free at: https://openweathermap.org/api
+OPENWEATHER_API_KEY=your_openweather_api_key
+
+# Currency Exchange (for real exchange rates)
+# Free at: https://exchangeratesapi.io OR https://openexchangerates.org
+EXCHANGE_RATES_API_KEY=your_exchange_rates_api_key
+
+# Stripe (for payments - optional until ready)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_key
+STRIPE_SECRET_KEY=sk_test_your_stripe_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+
+# App config
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_DEMO_MODE=false

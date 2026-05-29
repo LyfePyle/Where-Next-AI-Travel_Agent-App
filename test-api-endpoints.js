@@ -1,56 +1,132 @@
 const fetch = require('node-fetch');
+require('dotenv').config({ path: '.env.local' });
 
-async function testAPIEndpoints() {
-  console.log('🧪 Testing API Endpoints...\n');
+async function testApiEndpoints() {
+  console.log('🌐 Testing API Endpoints...\n');
 
-  const baseUrl = 'http://localhost:3000/api';
-
+  const baseUrl = 'http://localhost:3000';
+  
   // Test 1: Weather API
-  console.log('1. Testing Weather API...');
+  console.log('1️⃣ Testing Weather API...');
   try {
-    const weatherResponse = await fetch(`${baseUrl}/utils/weather?city=London`);
-    const weatherData = await weatherResponse.json();
-    console.log('   ✅ Weather API:', weatherData.ok ? 'Working' : 'Error');
+    const response = await fetch(`${baseUrl}/api/utils/weather?city=Paris&country=France`);
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`  ✅ Weather API: Working (${response.status})`);
+      console.log(`  📊 Response: ${JSON.stringify(data).substring(0, 100)}...`);
+    } else {
+      console.log(`  ❌ Weather API: Failed (${response.status})`);
+    }
   } catch (error) {
-    console.log('   ❌ Weather API: Failed to connect');
+    console.log(`  ❌ Weather API: Error - ${error.message}`);
   }
 
   // Test 2: Currency API
-  console.log('\n2. Testing Currency API...');
+  console.log('\n2️⃣ Testing Currency API...');
   try {
-    const currencyResponse = await fetch(`${baseUrl}/utils/currency?base=USD`);
-    const currencyData = await currencyResponse.json();
-    console.log('   ✅ Currency API:', currencyData.ok ? 'Working' : 'Error');
+    const response = await fetch(`${baseUrl}/api/utils/currency`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'USD', to: 'EUR', amount: 100 })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`  ✅ Currency API: Working (${response.status})`);
+      console.log(`  📊 Response: ${JSON.stringify(data).substring(0, 100)}...`);
+    } else {
+      console.log(`  ❌ Currency API: Failed (${response.status})`);
+    }
   } catch (error) {
-    console.log('   ❌ Currency API: Failed to connect');
+    console.log(`  ❌ Currency API: Error - ${error.message}`);
   }
 
-  // Test 3: Phrases API
-  console.log('\n3. Testing Phrases API...');
+  // Test 3: AI Suggestions API
+  console.log('\n3️⃣ Testing AI Suggestions API...');
   try {
-    const phrasesResponse = await fetch(`${baseUrl}/utils/phrases?language=es`);
-    const phrasesData = await phrasesResponse.json();
-    console.log('   ✅ Phrases API:', phrasesData.ok ? 'Working' : 'Error');
+    const response = await fetch(`${baseUrl}/api/ai/suggestions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'Vancouver (YVR) - Canada',
+        startDate: '2025-01-01',
+        endDate: '2025-01-07',
+        budgetAmount: 2000,
+        budgetDaily: 100,
+        budgetFlights: 500,
+        budgetHotels: 150,
+        tripDuration: 7,
+        budgetStyle: 'comfortable',
+        vibes: [],
+        adults: 2,
+        kids: 0,
+        additionalDetails: ''
+      })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`  ✅ AI Suggestions API: Working (${response.status})`);
+      console.log(`  📊 Response: ${JSON.stringify(data).substring(0, 100)}...`);
+    } else {
+      console.log(`  ❌ AI Suggestions API: Failed (${response.status})`);
+    }
   } catch (error) {
-    console.log('   ❌ Phrases API: Failed to connect');
+    console.log(`  ❌ AI Suggestions API: Error - ${error.message}`);
   }
 
-  // Test 4: Database Health Check
-  console.log('\n4. Testing Database Health...');
+  // Test 4: Trips API
+  console.log('\n4️⃣ Testing Trips API...');
   try {
-    const dbResponse = await fetch(`${baseUrl}/db-health`);
-    const dbData = await dbResponse.json();
-    console.log('   ✅ Database Health:', dbData.ok ? 'Working' : 'Error');
+    const response = await fetch(`${baseUrl}/api/trips`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Test Trip',
+        destination: 'Paris',
+        startDate: '2025-01-01',
+        endDate: '2025-01-07',
+        budgetCents: 200000,
+        currency: 'usd',
+        preferences: {},
+        itinerary: {}
+      })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`  ✅ Trips API: Working (${response.status})`);
+      console.log(`  📊 Response: ${JSON.stringify(data).substring(0, 100)}...`);
+    } else {
+      console.log(`  ❌ Trips API: Failed (${response.status})`);
+    }
   } catch (error) {
-    console.log('   ❌ Database Health: Failed to connect');
+    console.log(`  ❌ Trips API: Error - ${error.message}`);
   }
 
-  console.log('\n🎉 API Endpoint Testing Complete!');
-  console.log('\n📋 Next Steps:');
-  console.log('1. Visit: http://localhost:3000');
-  console.log('2. Test the frontend features');
-  console.log('3. Create a trip and add expenses');
-  console.log('4. Test the walking tour generation');
+  // Test 5: Budgets API
+  console.log('\n5️⃣ Testing Budgets API...');
+  try {
+    const response = await fetch(`${baseUrl}/api/budgets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Test Budget',
+        description: 'Test',
+        plannedAmount: 1000,
+        currency: 'USD',
+        status: 'active'
+      })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`  ✅ Budgets API: Working (${response.status})`);
+      console.log(`  📊 Response: ${JSON.stringify(data).substring(0, 100)}...`);
+    } else {
+      console.log(`  ❌ Budgets API: Failed (${response.status})`);
+    }
+  } catch (error) {
+    console.log(`  ❌ Budgets API: Error - ${error.message}`);
+  }
+
+  console.log('\n🎉 API endpoint testing completed!');
 }
 
-testAPIEndpoints();
+testApiEndpoints();

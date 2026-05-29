@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createServerClient } from "@supabase/ssr";
 
 export async function PATCH(_: Request, { params }: { params: { id: string } }) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -52,7 +52,7 @@ export async function PATCH(_: Request, { params }: { params: { id: string } }) 
 }
 
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -1,377 +1,197 @@
+#!/usr/bin/env tsx
+
 import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config({ path: '.env.local' });
-
+// Import environment variables directly
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Missing Supabase environment variables');
-  process.exit(1);
-}
+/**
+ * Database Seeding Script
+ * 
+ * This script populates the database with sample data for development and testing.
+ * It creates demo users, trips, and other sample data.
+ */
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
+async function seedDatabase() {
+  console.log('🌱 Seeding database with sample data...\n');
 
-async function seed() {
-  console.log('🌱 Starting seed process...');
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    // Create a demo user (in a real app, users would sign up)
-    console.log('Creating demo user...');
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: 'demo@wherenext.com',
-      password: 'demo123456',
-      email_confirm: true,
-      user_metadata: {
-        name: 'Demo User',
-        budget_range: 'comfortable',
-        travel_preferences: ['culture', 'food', 'nature'],
-        travel_status: 'planning',
-        home_location: 'Los Angeles, CA',
-        onboarding_completed: true
-      }
-    });
+    // Check if we already have data
+    const { data: existingTrips } = await supabase
+      .from('saved_trips')
+      .select('id')
+      .limit(1);
 
-    if (authError && !authError.message.includes('already exists')) {
-      throw authError;
+    if (existingTrips && existingTrips.length > 0) {
+      console.log('⚠️  Database already contains data. Skipping seed.');
+      console.log('   To reset and reseed, run: npm run db:reset && npm run db:seed');
+      return;
     }
 
-    const userId = authUser?.user?.id || 'demo-user-id';
-    console.log(`✅ User created/exists: ${userId}`);
-
-    // Create sample budgets
-    console.log('Creating sample budgets...');
-    const budgets = [
+    // Create demo user profile (this will be created automatically when user signs up)
+    console.log('👤 Creating demo user profile...');
+    
+    // Note: In a real scenario, you'd create the user through Supabase Auth
+    // For seeding, we'll just ensure the profile table is ready
+    
+    // Create sample trips
+    console.log('✈️  Creating sample trips...');
+    
+    const sampleTrips = [
       {
-        user_id: userId,
-        name: 'European Adventure',
-        description: 'Two-week trip through Europe',
-        planned_amount: 4500,
-        currency: 'USD',
-        status: 'active'
+        user_id: '00000000-0000-0000-0000-000000000000', // Placeholder - will be replaced with real user ID
+        title: 'Weekend in Austin',
+        destination: 'Austin, Texas',
+        start_date: '2024-12-15',
+        end_date: '2024-12-17',
+        budget_cents: 150000, // $1,500
+        currency: 'usd',
+        preferences: {
+          travel_style: ['urban', 'cultural'],
+          budget_style: 'comfortable',
+          interests: ['music', 'food', 'nightlife']
+        },
+        itinerary: {
+          days: [
+            {
+              date: '2024-12-15',
+              activities: [
+                { time: '10:00', activity: 'Arrive at Austin-Bergstrom Airport', type: 'transport' },
+                { time: '11:00', activity: 'Check into hotel downtown', type: 'accommodation' },
+                { time: '12:00', activity: 'Lunch at Franklin Barbecue', type: 'meal' },
+                { time: '14:00', activity: 'Explore South by Southwest venues', type: 'activity' },
+                { time: '19:00', activity: 'Dinner at Uchi', type: 'meal' },
+                { time: '21:00', activity: 'Live music on Sixth Street', type: 'activity' }
+              ]
+            },
+            {
+              date: '2024-12-16',
+              activities: [
+                { time: '09:00', activity: 'Breakfast at Veracruz All Natural', type: 'meal' },
+                { time: '10:00', activity: 'Kayaking on Lady Bird Lake', type: 'activity' },
+                { time: '13:00', activity: 'Lunch at food truck park', type: 'meal' },
+                { time: '15:00', activity: 'Visit Texas State Capitol', type: 'activity' },
+                { time: '18:00', activity: 'Dinner at La Barbecue', type: 'meal' },
+                { time: '20:00', activity: 'Austin City Limits Music Festival', type: 'activity' }
+              ]
+            },
+            {
+              date: '2024-12-17',
+              activities: [
+                { time: '09:00', activity: 'Breakfast at Torchy\'s Tacos', type: 'meal' },
+                { time: '10:00', activity: 'Explore Zilker Park', type: 'activity' },
+                { time: '12:00', activity: 'Lunch at Salt Traders Coastal Cooking', type: 'meal' },
+                { time: '14:00', activity: 'Depart from Austin-Bergstrom Airport', type: 'transport' }
+              ]
+            }
+          ]
+        },
+        is_favorite: true
       },
       {
-        user_id: userId,
-        name: 'Weekend Getaway',
-        description: 'Quick trip to nearby city',
-        planned_amount: 800,
-        currency: 'USD',
-        status: 'active'
-      },
-      {
-        user_id: userId,
-        name: 'Annual Travel Fund',
-        description: 'Saving for next year\'s big trip',
-        planned_amount: 8000,
-        currency: 'USD',
-        status: 'active'
+        user_id: '00000000-0000-0000-0000-000000000000',
+        title: 'Cultural Tour of Paris',
+        destination: 'Paris, France',
+        start_date: '2025-03-20',
+        end_date: '2025-03-27',
+        budget_cents: 350000, // $3,500
+        currency: 'usd',
+        preferences: {
+          travel_style: ['historic', 'cultural'],
+          budget_style: 'luxury',
+          interests: ['art', 'history', 'cuisine']
+        },
+        itinerary: {
+          days: [
+            {
+              date: '2025-03-20',
+              activities: [
+                { time: '08:00', activity: 'Arrive at Charles de Gaulle Airport', type: 'transport' },
+                { time: '10:00', activity: 'Check into hotel near Champs-Élysées', type: 'accommodation' },
+                { time: '12:00', activity: 'Lunch at Café de Flore', type: 'meal' },
+                { time: '14:00', activity: 'Visit the Louvre Museum', type: 'activity' },
+                { time: '18:00', activity: 'Dinner at L\'Ambroisie', type: 'meal' },
+                { time: '20:00', activity: 'Evening walk along the Seine', type: 'activity' }
+              ]
+            }
+          ]
+        },
+        is_favorite: false
       }
     ];
+
+    const { error: tripsError } = await supabase
+      .from('saved_trips')
+      .insert(sampleTrips);
+
+    if (tripsError) {
+      console.error('❌ Error creating sample trips:', tripsError);
+    } else {
+      console.log('   ✅ Sample trips created');
+    }
+
+    // Create sample budget
+    console.log('💰 Creating sample budget...');
+    
+    const sampleBudget = {
+      user_id: '00000000-0000-0000-0000-000000000000',
+      name: 'Austin Weekend Budget',
+      description: 'Budget for Austin weekend trip',
+      planned_amount: 1500.00,
+      currency: 'USD',
+      status: 'active'
+    };
 
     const { data: budgetData, error: budgetError } = await supabase
       .from('budgets')
-      .upsert(budgets, { onConflict: 'user_id,name' })
-      .select();
+      .insert(sampleBudget)
+      .select()
+      .single();
 
     if (budgetError) {
-      console.warn('Budget creation warning:', budgetError);
+      console.error('❌ Error creating sample budget:', budgetError);
     } else {
-      console.log(`✅ Created ${budgetData?.length} budgets`);
-    }
-
-    // Create sample trips
-    console.log('Creating sample trips...');
-    const trips = [
-      {
-        user_id: userId,
-        title: 'Paris Adventure',
-        city: 'Paris',
-        country: 'France',
-        start_date: '2025-06-15',
-        end_date: '2025-06-22',
-        status: 'planned',
-        budget_total: 2800,
-        currency: 'USD',
-        meta: {
-          ai_generated: true,
-          vibes: ['culture', 'food', 'romance'],
-          budget_style: 'comfortable'
-        }
-      },
-      {
-        user_id: userId,
-        title: 'Tokyo Discovery',
-        city: 'Tokyo',
-        country: 'Japan',
-        start_date: '2025-09-10',
-        end_date: '2025-09-20',
-        status: 'draft',
-        budget_total: 4200,
-        currency: 'USD',
-        meta: {
-          ai_generated: true,
-          vibes: ['culture', 'food', 'technology'],
-          budget_style: 'comfortable'
-        }
-      },
-      {
-        user_id: userId,
-        title: 'Costa Rica Nature Trip',
-        city: 'San José',
-        country: 'Costa Rica',
-        start_date: '2025-03-05',
-        end_date: '2025-03-12',
-        status: 'completed',
-        budget_total: 1800,
-        currency: 'USD',
-        meta: {
-          ai_generated: true,
-          vibes: ['nature', 'adventure', 'wildlife'],
-          budget_style: 'budget'
-        }
-      }
-    ];
-
-    const { data: tripData, error: tripError } = await supabase
-      .from('trips')
-      .upsert(trips, { onConflict: 'user_id,title' })
-      .select();
-
-    if (tripError) {
-      console.warn('Trip creation warning:', tripError);
-    } else {
-      console.log(`✅ Created ${tripData?.length} trips`);
-    }
-
-    // Create sample trip items for the first trip
-    if (tripData && tripData.length > 0) {
-      console.log('Creating sample trip items...');
-      const parisTrip = tripData.find(t => t.city === 'Paris');
+      console.log('   ✅ Sample budget created');
       
-      if (parisTrip) {
-        const tripItems = [
-          {
-            trip_id: parisTrip.id,
-            type: 'flight',
-            title: 'LAX to CDG',
-            description: 'Round-trip flight Los Angeles to Paris',
-            data: {
-              airline: 'Air France',
-              departure: '2025-06-15T14:30:00Z',
-              arrival: '2025-06-16T09:15:00Z',
-              return_departure: '2025-06-22T11:00:00Z',
-              return_arrival: '2025-06-22T15:45:00Z',
-              class: 'Economy',
-              stops: 0
-            },
-            price: 850,
-            currency: 'USD',
-            booked: true,
-            booking_reference: 'AF123456'
-          },
-          {
-            trip_id: parisTrip.id,
-            type: 'hotel',
-            title: 'Hotel des Grands Boulevards',
-            description: 'Boutique hotel in the 2nd arrondissement',
-            data: {
-              address: '17 Boulevard Poissonnière, 75002 Paris',
-              check_in: '2025-06-16',
-              check_out: '2025-06-22',
-              room_type: 'Deluxe Double Room',
-              amenities: ['Free WiFi', 'Breakfast', 'Gym', 'Restaurant'],
-              rating: 4.2
-            },
-            price: 180,
-            currency: 'USD',
-            booked: false
-          },
-          {
-            trip_id: parisTrip.id,
-            type: 'tour',
-            title: 'Louvre Museum Skip-the-Line Tour',
-            description: 'Guided tour of the world\'s largest art museum',
-            data: {
-              duration: '3 hours',
-              group_size: 'Small group (12 max)',
-              includes: ['Skip-the-line tickets', 'Professional guide', 'Headsets'],
-              meeting_point: 'Louvre Museum main entrance',
-              date: '2025-06-17',
-              time: '10:00'
-            },
-            price: 65,
-            currency: 'USD',
-            booked: false
-          }
-        ];
+      // Create budget categories
+      const categories = [
+        { budget_id: budgetData.id, name: 'Accommodation', planned_amount: 400.00, color: '#3B82F6' },
+        { budget_id: budgetData.id, name: 'Food & Dining', planned_amount: 300.00, color: '#10B981' },
+        { budget_id: budgetData.id, name: 'Activities', planned_amount: 200.00, color: '#F59E0B' },
+        { budget_id: budgetData.id, name: 'Transportation', planned_amount: 150.00, color: '#8B5CF6' },
+        { budget_id: budgetData.id, name: 'Miscellaneous', planned_amount: 50.00, color: '#6B7280' }
+      ];
 
-        const { error: itemError } = await supabase
-          .from('trip_items')
-          .upsert(tripItems, { onConflict: 'trip_id,title' });
+      const { error: categoriesError } = await supabase
+        .from('budget_categories')
+        .insert(categories);
 
-        if (itemError) {
-          console.warn('Trip items creation warning:', itemError);
-        } else {
-          console.log(`✅ Created ${tripItems.length} trip items`);
-        }
+      if (categoriesError) {
+        console.error('❌ Error creating budget categories:', categoriesError);
+      } else {
+        console.log('   ✅ Budget categories created');
       }
     }
 
-    // Create sample budget categories and expenses
-    if (budgetData && budgetData.length > 0) {
-      console.log('Creating sample budget categories...');
-      const europeBudget = budgetData.find(b => b.name === 'European Adventure');
-      
-      if (europeBudget) {
-        const categories = [
-          {
-            budget_id: europeBudget.id,
-            name: 'Flights',
-            description: 'Airfare and airport transfers',
-            planned_amount: 1200,
-            color: '#3B82F6'
-          },
-          {
-            budget_id: europeBudget.id,
-            name: 'Accommodation',
-            description: 'Hotels and lodging',
-            planned_amount: 1800,
-            color: '#10B981'
-          },
-          {
-            budget_id: europeBudget.id,
-            name: 'Food & Dining',
-            description: 'Restaurants and local cuisine',
-            planned_amount: 800,
-            color: '#F59E0B'
-          },
-          {
-            budget_id: europeBudget.id,
-            name: 'Activities & Tours',
-            description: 'Sightseeing and experiences',
-            planned_amount: 500,
-            color: '#8B5CF6'
-          },
-          {
-            budget_id: europeBudget.id,
-            name: 'Transport',
-            description: 'Local transportation',
-            planned_amount: 200,
-            color: '#EF4444'
-          }
-        ];
-
-        const { data: categoryData, error: categoryError } = await supabase
-          .from('categories')
-          .upsert(categories, { onConflict: 'budget_id,name' })
-          .select();
-
-        if (categoryError) {
-          console.warn('Categories creation warning:', categoryError);
-        } else {
-          console.log(`✅ Created ${categoryData?.length} categories`);
-        }
-
-        // Create sample expenses
-        if (categoryData && categoryData.length > 0) {
-          console.log('Creating sample expenses...');
-          const flightCategory = categoryData.find(c => c.name === 'Flights');
-          const foodCategory = categoryData.find(c => c.name === 'Food & Dining');
-          
-          const expenses = [
-            {
-              budget_id: europeBudget.id,
-              category_id: flightCategory?.id,
-              amount: 850,
-              currency: 'USD',
-              description: 'Round-trip flight to Paris',
-              merchant: 'Air France',
-              payment_method: 'Credit Card',
-              paid_at: new Date().toISOString(),
-              tags: ['flight', 'international']
-            },
-            {
-              budget_id: europeBudget.id,
-              category_id: foodCategory?.id,
-              amount: 45,
-              currency: 'USD',
-              description: 'Dinner at local bistro',
-              merchant: 'Le Petit Bistro',
-              location: 'Paris, France',
-              payment_method: 'Cash',
-              paid_at: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-              tags: ['dinner', 'local-cuisine']
-            }
-          ];
-
-          const { error: expenseError } = await supabase
-            .from('expenses')
-            .upsert(expenses, { onConflict: 'budget_id,description,paid_at' });
-
-          if (expenseError) {
-            console.warn('Expenses creation warning:', expenseError);
-          } else {
-            console.log(`✅ Created ${expenses.length} expenses`);
-          }
-        }
-      }
-    }
-
-    // Create sample cached prompts
-    console.log('Creating sample cached prompts...');
-    const cachedPrompts = [
-      {
-        key: 'trip_suggestions_paris_comfortable_culture_food',
-        prompt_hash: 'abc123',
-        value: {
-          suggestions: [
-            {
-              id: 'cached_1',
-              destination: 'Paris, France',
-              city: 'Paris',
-              country: 'France',
-              description: 'City of Light with world-class museums and cuisine',
-              estimatedTotal: 2800,
-              highlights: ['Eiffel Tower', 'Louvre Museum', 'Notre-Dame', 'Seine River Cruise']
-            }
-          ],
-          generated_at: new Date().toISOString()
-        },
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-        access_count: 5
-      }
-    ];
-
-    const { error: cacheError } = await supabase
-      .from('cached_prompts')
-      .upsert(cachedPrompts, { onConflict: 'key' });
-
-    if (cacheError) {
-      console.warn('Cached prompts creation warning:', cacheError);
-    } else {
-      console.log(`✅ Created ${cachedPrompts.length} cached prompts`);
-    }
-
-    console.log('🎉 Seed process completed successfully!');
-    console.log('');
-    console.log('Demo user credentials:');
-    console.log('Email: demo@wherenext.com');
-    console.log('Password: demo123456');
-    console.log('');
-    console.log('You can now log in and see sample data in the app.');
+    console.log('\n🎉 Database seeding completed successfully!');
+    console.log('\n📋 Sample data includes:');
+    console.log('   - 2 sample trips (Austin weekend, Paris cultural tour)');
+    console.log('   - 1 sample budget with 5 categories');
+    console.log('   - City profiles and add-ons (from migration)');
+    console.log('   - Add-on templates for AI generation');
 
   } catch (error) {
-    console.error('❌ Seed process failed:', error);
+    console.error('❌ Seeding failed:', error);
     process.exit(1);
   }
 }
 
-// Run the seed function
-seed();
+// Add package.json script
+console.log('📦 Add this to your package.json scripts:');
+console.log('   "db:seed": "tsx scripts/seed.ts"');
+console.log('');
+
+seedDatabase();

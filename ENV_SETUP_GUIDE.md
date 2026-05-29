@@ -30,9 +30,9 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 
 ### 4. Stripe (Required for payments)
 ```bash
-STRIPE_SECRET_KEY=your_stripe_secret_key_here
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key_here
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret_here
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
+STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret_here
 ```
 - Get your keys from: https://dashboard.stripe.com/apikeys
 - Used for: Payment processing, booking confirmations
@@ -40,10 +40,21 @@ STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret_here
 ### 5. Optional APIs
 ```bash
 # Weather API (for weather features)
-WEATHER_API_KEY=your_weather_api_key_here
+OPENWEATHER_API_KEY=your_openweather_api_key_here
 
 # Currency API (for currency conversion)
-CURRENCY_API_KEY=your_currency_api_key_here
+EXCHANGE_RATE_API_KEY=your_exchange_rate_api_key_here
+```
+
+### 6. App Configuration
+```bash
+# URLs & flags
+NEXT_PUBLIC_URL=http://localhost:3000
+NEXT_PUBLIC_DEMO_MODE=false
+NEXT_PUBLIC_PREVIEW_HINT=true
+
+# Enable guest preview login locally
+PREVIEW_GUEST_ENABLED=true
 ```
 
 ## Quick Setup Commands
@@ -97,6 +108,11 @@ The app works in demo mode without API keys, but with limited functionality:
 - No real flight/hotel prices
 - No payment processing
 - No AI-generated content
+
+
+
+
+
 
 
 

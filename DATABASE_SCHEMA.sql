@@ -1,8 +1,9 @@
 -- Where Next AI Travel Agent - Database Schema
 -- Run this in Supabase Dashboard > SQL Editor
 
--- Enable UUID extension
+-- Enable UUID extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Profiles table (extends Supabase auth)
 CREATE TABLE IF NOT EXISTS profiles (

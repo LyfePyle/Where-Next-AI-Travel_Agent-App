@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Calendar, Users, DollarSign, MapPin, Plane, Clock } from 'lucide-react';
 import { tripPlannerSchema, type TripPlannerFormData, vibeOptions } from '@/lib/validations/trip';
 import AirportAutocomplete from '@/components/AirportAutocomplete';
+import PillSlider from '@/components/ui/PillSlider';
 
 interface TripPlannerFormProps {
   onSubmit?: (data: TripPlannerFormData) => void;
@@ -43,6 +44,8 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
       maxFlightTime: undefined,
       visaRequired: false,
       additionalDetails: '',
+      tripType: 'single' as const,
+      numberOfStops: 3,
     },
     mode: 'onChange',
   });
@@ -85,6 +88,8 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
         vibes: data.vibes.join(','),
         adults: data.partySize.adults.toString(),
         kids: data.partySize.kids.toString(),
+        tripType: (data.tripType ?? 'single'),
+        ...(data.tripType && data.tripType !== 'single' && data.numberOfStops != null && { numberOfStops: String(data.numberOfStops) }),
         ...(data.maxFlightTime && { maxFlightTime: data.maxFlightTime.toString() }),
         ...(data.additionalDetails && { details: data.additionalDetails }),
       });
@@ -101,13 +106,23 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
     : 0;
 
   return (
-    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-8">
-      {/* Origin Airport */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">
-          <MapPin className="inline w-4 h-4 mr-1" />
-          Where are you traveling from?
-        </label>
+    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
+      {/* Section 1: Origin Airport */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold text-sm">
+              1
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900">
+              Where are you starting your journey?
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 ml-10">
+            Let's begin with your departure location. This helps us find the best flight options for you.
+          </p>
+        </div>
+        <div className="space-y-2">
         <Controller
           name="originAirport"
           control={control}
@@ -123,10 +138,25 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
         {errors.originAirport && (
           <p className="text-sm text-red-600">{errors.originAirport.message}</p>
         )}
-      </div>
+        </div>
+      </section>
 
-      {/* Date Range */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Section 2: Date Range */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold text-sm">
+              2
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900">
+              When would you like to travel?
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 ml-10">
+            Choose your travel dates. We'll calculate the trip duration and adjust recommendations accordingly.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
             <Calendar className="inline w-4 h-4 mr-1" />
@@ -176,52 +206,123 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
             <p className="text-sm text-gray-600">{tripDuration} day{tripDuration !== 1 ? 's' : ''}</p>
           )}
         </div>
-      </div>
+        </div>
+      </section>
 
-      {/* Budget Breakdown */}
-      <div className="space-y-6 bg-gray-50 p-6 rounded-lg">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            <DollarSign className="inline w-5 h-5 mr-2" />
-            Budget Breakdown (Per Person)
-          </h3>
-          <p className="text-sm text-gray-600">
-            Set realistic budgets for each part of your trip to get better suggestions
+      {/* Section 3: Trip type — single vs multi-destination */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold text-sm">
+              3
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900">
+              What kind of trip?
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 ml-10">
+            One place, or several cities and countries? We can suggest single destinations or full itineraries.
           </p>
         </div>
+        <div className="space-y-4 ml-10">
+          <div className="flex flex-wrap gap-3">
+            {[
+              { value: 'single', label: 'Single destination', desc: 'One city or region' },
+              { value: 'multi-city', label: 'Multiple cities', desc: 'Several places in one country' },
+              { value: 'multi-country', label: 'Multiple countries', desc: 'e.g. Europe or Southeast Asia' },
+            ].map((opt) => (
+              <label
+                key={opt.value}
+                className={`flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  watch('tripType') === opt.value
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-purple-200'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="tripType"
+                  value={opt.value}
+                  checked={watch('tripType') === opt.value}
+                  onChange={() => setValue('tripType', opt.value as 'single' | 'multi-city' | 'multi-country')}
+                  className="sr-only"
+                />
+                <span className="font-medium text-gray-900">{opt.label}</span>
+                <span className="text-sm text-gray-600">{opt.desc}</span>
+              </label>
+            ))}
+          </div>
+          {watch('tripType') !== 'single' && (
+            <div className="pt-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Number of stops</label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 2, label: '2 stops' },
+                  { value: 3, label: '3 stops' },
+                  { value: 4, label: '4 stops' },
+                  { value: 5, label: '5 stops' },
+                  { value: 7, label: '6–9 stops' },
+                  { value: 10, label: '10+ stops' },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setValue('numberOfStops', value)}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm ${
+                      watch('numberOfStops') === value
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
-        {/* Daily Spending Budget */}
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-gray-700">
-            Daily Spending (Food, Activities, Local Transport)
-          </label>
+      {/* Section 4: Budget Breakdown */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold text-sm">
+              4
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+              <DollarSign className="w-5 h-5 mr-2 text-purple-600" />
+              Let's Talk Budget
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 ml-10">
+            We understand budget is important. Set realistic budgets for each part of your trip so we can find options that match your comfort level and financial goals.
+          </p>
+        </div>
+        <div className="space-y-6 bg-gray-50 p-6 rounded-lg">
+
+        {/* Daily Spending Budget - Enhanced with Pill Slider */}
+        <div className="space-y-4 lg:space-y-6">
           <Controller
             name="budgetDaily"
             control={control}
             render={({ field }) => (
-              <div className="space-y-3">
-                <input
-                  type="range"
-                  min="30"
-                  max="500"
-                  step="10"
-                  value={field.value}
-                  onChange={(e) => field.onChange(parseInt(e.target.value))}
-                  className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>$30/day</span>
-                  <span className="font-semibold text-blue-600">
-                    ${field.value}/day
-                  </span>
-                  <span>$500/day</span>
-                </div>
-                <div className="text-xs text-gray-500">
-                  {field.value <= 50 && "Budget traveler: Street food, free activities, walking"}
-                  {field.value > 50 && field.value <= 150 && "Comfortable: Local restaurants, paid attractions, some taxis"}
-                  {field.value > 150 && "Premium: Fine dining, premium experiences, private transport"}
-                </div>
-              </div>
+              <PillSlider
+                min={30}
+                max={500}
+                step={10}
+                value={field.value}
+                onChange={field.onChange}
+                formatValue={(v) => `$${v}/day`}
+                label="Daily Spending (Food, Activities, Local Transport)"
+                description={
+                  field.value <= 50 
+                    ? "Budget traveler: Street food, free activities, walking"
+                    : field.value > 50 && field.value <= 150 
+                    ? "Comfortable: Local restaurants, paid attractions, some taxis"
+                    : "Premium: Fine dining, premium experiences, private transport"
+                }
+              />
             )}
           />
           {errors.budgetDaily && (
@@ -229,37 +330,30 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
           )}
         </div>
 
-        {/* Flight Budget */}
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-gray-700">
-            Flight Budget (Round Trip)
-          </label>
+        {/* Flight Budget - Enhanced with Pill Slider */}
+        <div className="space-y-4 lg:space-y-6">
           <Controller
             name="budgetFlights"
             control={control}
             render={({ field }) => (
-              <div className="space-y-3">
-                <input
-                  type="range"
-                  min="100"
-                  max="3000"
-                  step="50"
-                  value={field.value}
-                  onChange={(e) => field.onChange(parseInt(e.target.value))}
-                  className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>$100</span>
-                  <span className="font-semibold text-green-600">${field.value.toLocaleString()}</span>
-                  <span>$3,000+</span>
-                </div>
-                <div className="text-xs text-gray-500">
-                  {field.value <= 300 && "Domestic/nearby destinations, budget airlines"}
-                  {field.value > 300 && field.value <= 800 && "Regional flights, economy class"}
-                  {field.value > 800 && field.value <= 1500 && "International economy, premium economy"}
-                  {field.value > 1500 && "Business class, long-haul premium flights"}
-                </div>
-              </div>
+              <PillSlider
+                min={100}
+                max={3000}
+                step={50}
+                value={field.value}
+                onChange={field.onChange}
+                formatValue={(v) => `$${v.toLocaleString()}`}
+                label="Flight Budget (Round Trip)"
+                description={
+                  field.value <= 300 
+                    ? "Domestic/nearby destinations, budget airlines"
+                    : field.value > 300 && field.value <= 800 
+                    ? "Regional flights, economy class"
+                    : field.value > 800 && field.value <= 1500 
+                    ? "International economy, premium economy"
+                    : "Business class, long-haul premium flights"
+                }
+              />
             )}
           />
           {errors.budgetFlights && (
@@ -267,38 +361,28 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
           )}
         </div>
 
-        {/* Hotel Budget */}
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-gray-700">
-            Accommodation Budget (Per Night)
-          </label>
+        {/* Hotel Budget - Enhanced with Pill Slider */}
+        <div className="space-y-4 lg:space-y-6">
           <Controller
             name="budgetHotels"
             control={control}
             render={({ field }) => (
-              <div className="space-y-3">
-                <input
-                  type="range"
-                  min="40"
-                  max="500"
-                  step="20"
-                  value={field.value}
-                  onChange={(e) => field.onChange(parseInt(e.target.value))}
-                  className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>$40/night</span>
-                  <span className="font-semibold text-purple-600">
-                    ${field.value}/night
-                  </span>
-                  <span>$500+/night</span>
-                </div>
-                <div className="text-xs text-gray-500">
-                  {field.value <= 80 && "Hostels, budget motels, shared accommodations"}
-                  {field.value > 80 && field.value <= 200 && "Mid-range hotels, good Airbnbs, 3-star properties"}
-                  {field.value > 200 && "Luxury hotels, premium locations, 4-5 star properties"}
-                </div>
-              </div>
+              <PillSlider
+                min={40}
+                max={500}
+                step={20}
+                value={field.value}
+                onChange={field.onChange}
+                formatValue={(v) => `$${v}/night`}
+                label="Accommodation Budget (Per Night)"
+                description={
+                  field.value <= 80 
+                    ? "Hostels, budget motels, shared accommodations"
+                    : field.value > 80 && field.value <= 200 
+                    ? "Mid-range hotels, good Airbnbs, 3-star properties"
+                    : "Luxury hotels, premium locations, 4-5 star properties"
+                }
+              />
             )}
           />
           {errors.budgetHotels && (
@@ -317,6 +401,10 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
             <div className="flex justify-between">
               <span>Accommodation:</span>
               <span>${watch('budgetHotels')}/night</span>
+            </div>
+            <div className="flex justify-between font-medium text-purple-700">
+              <span>Daily total (spending + accommodation):</span>
+              <span>${(watch('budgetDaily') + watch('budgetHotels')).toLocaleString()}/day</span>
             </div>
             <div className="flex justify-between">
               <span>Flights (round trip):</span>
@@ -351,16 +439,25 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
             )}
           </div>
         </div>
-      </div>
+        </div>
+      </section>
 
-      {/* Budget Style */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700">
-          Trip Style
-        </label>
-        <p className="text-xs text-gray-600">
-          Choose your preferred spending level for accommodation, dining, and activities
-        </p>
+      {/* Section 5: Budget Style */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold text-sm">
+              5
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900">
+              What's Your Travel Style?
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 ml-10">
+            This helps us understand your preferred comfort level. Don't worry—you can adjust individual budgets above if needed.
+          </p>
+        </div>
+        <div className="space-y-3">
         <Controller
           name="budgetStyle"
           control={control}
@@ -411,16 +508,25 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
         {errors.budgetStyle && (
           <p className="text-sm text-red-600">{errors.budgetStyle.message}</p>
         )}
-      </div>
+        </div>
+      </section>
 
-      {/* Vibes */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700">
-          What kind of trip vibe are you looking for? <span className="text-gray-500 font-normal">(Optional)</span>
-        </label>
-        <p className="text-xs text-gray-600">
-          Select any interests to help personalize your trip, or skip to get general suggestions
-        </p>
+      {/* Section 6: Vibes */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold text-sm">
+              6
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900">
+              What Kind of Experience Are You Looking For?
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 ml-10">
+            Help us understand your interests and preferences. Select all that apply, or skip this step—we'll still find great options for you.
+          </p>
+        </div>
+        <div className="space-y-3">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {vibeOptions.map((vibe) => (
             <button
@@ -441,14 +547,26 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
         {errors.vibes && (
           <p className="text-sm text-red-600">{errors.vibes.message}</p>
         )}
-      </div>
+        </div>
+      </section>
 
-      {/* Party Size */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700">
-          <Users className="inline w-4 h-4 mr-1" />
-          Who's traveling?
-        </label>
+      {/* Section 7: Party Size */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold text-sm">
+              7
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+              <Users className="w-5 h-5 mr-2 text-purple-600" />
+              Who's Coming Along?
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 ml-10">
+            Tell us about your travel party. This helps us calculate total costs and find accommodations that fit your group.
+          </p>
+        </div>
+        <div className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-gray-600 mb-1">Adults</label>
@@ -495,16 +613,30 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
             )}
           </div>
         </div>
-      </div>
+        </div>
+      </section>
 
-      {/* Advanced Options */}
-      <div className="border-t pt-6">
+      {/* Section 8: Advanced Options */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold text-sm">
+              8
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900">
+              Additional Preferences
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 ml-10">
+            Have specific requirements? We've got you covered. These options help us fine-tune your recommendations.
+          </p>
+        </div>
         <button
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center text-sm text-gray-600 hover:text-purple-600 transition-colors"
+          className="flex items-center text-sm text-gray-600 hover:text-purple-600 transition-colors mb-4"
         >
-          <span>{showAdvanced ? 'Hide' : 'Show'} Advanced Options</span>
+          <span>{showAdvanced ? 'Hide' : 'Show'} Additional Preferences</span>
           <span className="ml-1">{showAdvanced ? '▲' : '▼'}</span>
         </button>
 
@@ -557,40 +689,34 @@ export default function TripPlannerForm({ onSubmit, isLoading = false }: TripPla
             </div>
           </div>
         )}
-      </div>
+      </section>
 
       {/* Submit Button */}
-      <div className="flex justify-center pt-6">
+      <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl shadow-lg p-8 text-center">
+        <div className="mb-4">
+          <h3 className="text-2xl font-bold text-white mb-2">
+            Ready to Discover Your Perfect Trip?
+          </h3>
+          <p className="text-purple-100">
+            We'll analyze your preferences and create personalized suggestions just for you.
+          </p>
+        </div>
+        <div className="flex justify-center">
         <button
           type="submit"
           disabled={!isValid || isLoading}
-          className="w-full sm:w-auto px-8 py-4 min-h-[44px] text-lg rounded-lg font-semibold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-          style={{
-            backgroundColor: !isValid || isLoading ? '#9ca3af' : '#7c3aed',
-            color: 'white',
-            border: 'none',
-            cursor: !isValid || isLoading ? 'not-allowed' : 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            if (!(!isValid || isLoading)) {
-              e.target.style.backgroundColor = '#6d28d9';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!(!isValid || isLoading)) {
-              e.target.style.backgroundColor = '#7c3aed';
-            }
-          }}
+          className="px-12 py-4 min-h-[52px] text-lg rounded-lg font-semibold bg-white text-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
           {isLoading ? (
             <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Generating AI Suggestions...
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mr-3"></div>
+              Crafting Your Perfect Trip...
             </div>
           ) : (
-            'Get AI Trip Suggestions ✨'
+            'Get My Personalized Trip Suggestions ✨'
           )}
         </button>
+        </div>
       </div>
     </form>
   );

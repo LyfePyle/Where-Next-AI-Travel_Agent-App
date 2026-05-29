@@ -96,7 +96,7 @@ export default function AIAgentPage() {
             <div className="space-y-6">
               {/* User Message */}
               <div className="flex justify-end">
-                <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-6 py-4 max-w-sm">
+                <div className="bg-purple-600 text-white rounded-2xl rounded-br-md px-6 py-4 max-w-sm">
                   <p>"It's raining in Paris today. What can I do indoors near the Louvre?"</p>
                 </div>
               </div>
@@ -116,7 +116,7 @@ export default function AIAgentPage() {
               
               {/* User Message */}
               <div className="flex justify-end">
-                <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-6 py-4 max-w-sm">
+                <div className="bg-purple-600 text-white rounded-2xl rounded-br-md px-6 py-4 max-w-sm">
                   <p>"What about food? Something warm and budget-friendly?"</p>
                 </div>
               </div>

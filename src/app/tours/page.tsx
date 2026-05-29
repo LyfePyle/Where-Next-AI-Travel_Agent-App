@@ -73,7 +73,7 @@ export default function ToursPage() {
       name: 'Cultural & Historical', 
       icon: '🏛️', 
       description: 'Museums, monuments, and historical sites',
-      color: 'bg-blue-600',
+      color: 'bg-purple-600',
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-700'
     },
@@ -338,7 +338,7 @@ export default function ToursPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="relative bg-blue-600 text-white overflow-hidden">
+      <div className="relative bg-purple-600 text-white overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <div className="flex items-center justify-center mb-8">
@@ -518,7 +518,7 @@ export default function ToursPage() {
           <div className="space-y-12">
             {/* Tour Header */}
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-blue-200">
-              <div className="relative h-80 bg-blue-600">
+              <div className="relative h-80 bg-purple-600">
                 <div className="relative p-12 h-full flex items-end">
                   <div className="text-white">
                     <div className="flex items-center mb-4">
@@ -586,7 +586,7 @@ export default function ToursPage() {
                 <button
                     onClick={handleShareTour}
                     disabled={isSharing}
-                    className="bg-blue-500 text-white py-4 px-6 rounded-2xl font-black hover:bg-blue-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-blue-500/50 hover:scale-105"
+                    className="bg-blue-500 text-white py-4 px-6 rounded-2xl font-black hover:bg-purple-600 transition-all duration-300 flex items-center justify-center shadow-xl hover:shadow-blue-500/50 hover:scale-105"
                 >
                     <Share2 className="h-6 w-6 mr-2" />
                     {isSharing ? 'SHARING...' : 'SHARE'}

@@ -160,7 +160,7 @@ export default function BudgetTrackerPage() {
           </p>
           <a
             href="/auth/signup"
-            className="tap-lg inline-flex items-center px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-colors"
+            className="tap-lg inline-flex items-center px-8 py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 transition-colors"
           >
             Start Tracking for Free
           </a>

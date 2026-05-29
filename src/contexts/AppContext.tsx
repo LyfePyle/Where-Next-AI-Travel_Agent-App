@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../utils/supabase/client';
+import { createClient } from '../utils/supabase/client';
 import { User } from '@supabase/supabase-js';
 import type { WalkingTour } from '../types/walkingTourSimple';
 
@@ -132,6 +132,7 @@ interface AppContextType {
   handleSignOut: () => void;
   handleSignIn: (email: string, password: string) => Promise<void>;
   handleSignUp: (email: string, password: string, name: string) => Promise<void>;
+  handleSignInWithOAuth: (provider: 'google' | 'facebook' | 'apple') => Promise<void>;
 
   // Navigation
   currentScreen: Screen;
@@ -292,6 +293,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       console.log('Signing out user...');
       localStorage.removeItem('demo_mode');
+      const supabase = createClient();
       await supabase.auth.signOut();
       setUser(null);
       setUserPreferences(null);
@@ -340,6 +342,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
       
+      const supabase = createClient();
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -347,16 +350,39 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       if (error) {
         console.error('Sign in error:', error);
-        return;
+        // Throw the error so the login page can display it
+        throw new Error(error.message || 'Invalid email or password. Please try again.');
       }
       
-      if (data.user) {
-        console.log('Sign in successful, navigating to home...');
+      if (data.user && data.session) {
+        console.log('Sign in successful!', { 
+          user: data.user.email, 
+          session: !!data.session,
+          expiresAt: data.session.expires_at 
+        });
+        
+        // Set user in context
         setUser(data.user);
-        setCurrentScreen('home');
+        
+        // Wait a moment for session to be persisted
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Verify session was saved
+        const { data: { session: verifySession } } = await createClient().auth.getSession();
+        if (!verifySession) {
+          console.warn('Session not persisted, but continuing...');
+        }
+        
+        console.log('Login complete, redirecting...');
+        // Don't set currentScreen here - let the router handle navigation
+        // The login page will handle the redirect
+      } else {
+        throw new Error('Sign in failed. Please try again.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in error:', error);
+      // Re-throw the error so the login page can display it
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -366,6 +392,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       console.log('Attempting sign up...', { email, name });
+      
+      // Check if Supabase is properly configured
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      if (!supabaseUrl) {
+        throw new Error('Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL in your environment variables.');
+      }
+      
+      const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -378,7 +412,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       if (error) {
         console.error('Sign up error:', error);
-        return;
+        throw new Error(error.message || 'Failed to create account. Please try again.');
       }
       
       if (data.user) {
@@ -386,8 +420,54 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setUser(data.user);
         setCurrentScreen('home');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign up error:', error);
+      
+      // Provide user-friendly error messages
+      if (error.message?.includes('fetch')) {
+        throw new Error('Unable to connect to authentication service. Please check your internet connection and try again.');
+      } else if (error.message?.includes('Supabase is not configured')) {
+        throw new Error('Authentication service is not properly configured. Please contact support.');
+      } else {
+        throw error;
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignInWithOAuth = async (provider: 'google' | 'facebook' | 'apple') => {
+    try {
+      setLoading(true);
+      console.log(`Attempting ${provider} OAuth sign in...`);
+      
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) {
+        console.error(`${provider} OAuth error:`, error);
+        throw new Error(error.message || `Failed to sign in with ${provider}. Please try again.`);
+      }
+
+      // OAuth redirects to the provider, so we don't need to handle the response here
+      // The callback route will handle the redirect back
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      console.error(`${provider} OAuth sign in error:`, error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -584,6 +664,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
         
         console.log('Checking for existing session...');
+        const supabase = createClient();
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -631,19 +712,42 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       initializeAuth();
     }, 100);
 
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (error: any) {
+      console.error('Failed to create Supabase client:', error);
+      if (mounted) {
+        setCurrentScreen('auth');
+        setIsInitialized(true);
+      }
+      return;
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
-      console.log('Auth state change:', event, session?.user?.email);
+      
+      try {
+        console.log('Auth state change:', event, session?.user?.email);
 
-      if (session?.user) {
-        setUser(session.user);
-        if (isInitialized) {
-          setCurrentScreen('home');
+        if (session?.user) {
+          setUser(session.user);
+          if (isInitialized) {
+            setCurrentScreen('home');
+          }
+        } else {
+          setUser(null);
+          if (isInitialized && event !== 'TOKEN_REFRESHED') {
+            // Don't redirect on TOKEN_REFRESHED events as they're internal
+            setCurrentScreen('auth');
+          }
         }
-      } else {
-        setUser(null);
-        if (isInitialized) {
-          setCurrentScreen('auth');
+      } catch (error: any) {
+        console.error('Error in auth state change handler:', error);
+        // If token refresh fails, clear the session and redirect to auth
+        if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
+          console.warn('Network error during auth state change. This might be a connection issue.');
+          // Don't clear the user immediately - wait to see if it's a transient error
         }
       }
     });
@@ -736,6 +840,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     handleSignOut,
     handleSignIn,
     handleSignUp,
+    handleSignInWithOAuth,
 
     // Navigation
     currentScreen,

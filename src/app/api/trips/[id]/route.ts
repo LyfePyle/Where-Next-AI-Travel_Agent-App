@@ -1,70 +1,126 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+
+/** Normalized shape returned to the booking page (and any client). */
+export type NormalizedTrip = {
+  id: string;
+  title: string;
+  destination: string;
+  start_date: string | null;
+  end_date: string | null;
+  travelers: { adults: number; kids: number };
+  budget_amount: number | null;
+  /** Multi-stop array when present (from trips.stops JSONB). */
+  stops?: Array<{ id: string; destination: string; startDate: string; endDate: string }>;
+  adults?: number;
+  kids?: number;
+  vibe?: string | null;
+};
+
+async function supabaseServer() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (n) => cookieStore.get(n)?.value,
+        set: (n, v, o) => cookieStore.set({ name: n, value: v, ...o }),
+        remove: (n, o) => cookieStore.set({ name: n, value: "", ...o }),
+      },
+    }
+  );
+}
+
+function normalizeFromTrips(row: any): NormalizedTrip {
+  const adults = typeof row.adults === "number" ? row.adults : 2;
+  const kids = typeof row.kids === "number" ? row.kids : typeof row.children === "number" ? row.children : 0;
+  return {
+    id: row.id,
+    title: row.title ?? row.destination ?? "Trip",
+    destination: row.destination ?? "",
+    start_date: row.start_date ?? null,
+    end_date: row.end_date ?? null,
+    travelers: { adults, kids },
+    budget_amount:
+      typeof row.budget_amount === "number"
+        ? row.budget_amount
+        : row.budget_amount != null
+          ? Number(row.budget_amount)
+          : null,
+    stops: Array.isArray(row.stops) && row.stops.length > 0 ? row.stops : undefined,
+    adults,
+    kids,
+    vibe: row.vibe ?? null,
+  };
+}
+
+function normalizeFromSavedTrips(row: any): NormalizedTrip {
+  const prefs = row.preferences ?? {};
+  const travelers = prefs.travelers ?? {};
+  const adults =
+    typeof travelers.adults === "number"
+      ? travelers.adults
+      : typeof row.travelers === "number"
+        ? row.travelers
+        : 2;
+  const kids =
+    typeof travelers.children === "number"
+      ? travelers.children
+      : typeof travelers.kids === "number"
+        ? travelers.kids
+        : 0;
+
+  return {
+    id: row.id,
+    title: row.title ?? row.destination ?? "Trip",
+    destination: row.destination ?? "",
+    start_date: row.start_date ?? null,
+    end_date: row.end_date ?? null,
+    travelers: { adults, kids },
+    budget_amount:
+      typeof row.budget_cents === "number"
+        ? row.budget_cents / 100
+        : row.budget_cents != null
+          ? Number(row.budget_cents) / 100
+          : null,
+    adults,
+    kids,
+  };
+}
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _: Request,
+  { params }: { params: { id: string } }
 ) {
-  try {
-    const { id: tripId } = await params;
+  const id = params.id;
+  const supabase = await supabaseServer();
 
-    // In a real app, you would fetch the trip from a database
-    // For now, we'll return a mock trip based on the ID
-    
-    // Try to get destination from query params
-    const destination = request.nextUrl.searchParams.get('destination') || 'Lisbon, Portugal';
-    const [city, country] = destination.includes(',') 
-      ? [destination.split(',')[0].trim(), destination.split(',')[1].trim()]
-      : [destination, 'Unknown Country'];
-    
-    const mockTrip = {
-      id: tripId,
-      suggestion: {
-        id: tripId,
-        destination: destination,
-        country: country,
-        city: city,
-        fitScore: 92,
-        description: `Explore the amazing destination of ${city} with our curated recommendations`,
-        weather: { temp: 22, condition: 'Sunny', icon: '☀️' },
-        crowdLevel: 'Medium',
-        seasonality: 'Perfect weather, moderate crowds',
-        estimatedTotal: 1350,
-        flightBand: { min: 650, max: 780 },
-        hotelBand: { min: 90, max: 130, style: 'Comfortable', area: 'City Center' },
-        highlights: ['Local attractions', 'Cultural experiences', 'Great food', 'Beautiful sights'],
-        whyItFits: `Perfect destination for your travel preferences and budget in ${city}`,
-        dailyItinerary: [
-          {
-            day: 1,
-            title: `Arrival & First Impressions`,
-            activities: ['Airport transfer', 'Check-in at hotel', `Explore ${city} center`, 'Local dinner'],
-            estimatedCost: 120,
-            tips: ['Book airport transfer in advance', 'Wear comfortable walking shoes']
-          },
-          {
-            day: 2,
-            title: `${city} Discovery`,
-            activities: [`${city} highlights tour`, 'Visit local attractions', 'Cultural experience', 'Traditional lunch'],
-            estimatedCost: 85,
-            tips: ['Visit attractions early to avoid crowds', 'Bring water and comfortable shoes']
-          }
-        ],
-        bestTimeToVisit: 'Year-round destination',
-        localCurrency: 'Local currency',
-        language: 'Local language',
-        timezone: 'Local timezone'
-      },
-      selections: [],
-      createdAt: new Date().toISOString(),
-      status: 'draft'
-    };
+  // Prefer `trips` (POST /api/trips/save) then legacy `saved_trips`
+  const { data: tripData, error: tripError } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-    return NextResponse.json(mockTrip);
-  } catch (error) {
-    console.error('Error fetching trip:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch trip' },
-      { status: 500 }
-    );
+  if (!tripError && tripData) {
+    return NextResponse.json({
+      trip: normalizeFromTrips(tripData),
+    });
   }
+
+  const { data: savedData, error: savedError } = await supabase
+    .from("saved_trips")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (savedError || !savedData) {
+    return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    trip: normalizeFromSavedTrips(savedData),
+  });
 }

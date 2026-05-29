@@ -1,599 +1,495 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, CreditCard, Shield, User, Calendar, Plane, Hotel } from 'lucide-react';
+import { Plane, Hotel, UtensilsCrossed, MapPin, Calendar, Users, DollarSign, Shield } from 'lucide-react';
 
-interface BookingDetails {
-  type: 'flight' | 'hotel' | 'complete-trip';
-  item: any;
-  price: number;
-  from?: string;
-  to?: string;
-  dates?: {
-    checkin?: string;
-    checkout?: string;
-    departure?: string;
-    return?: string;
-  };
-}
-
-interface TravelerInfo {
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  passportNumber: string;
-  email: string;
-  phone: string;
-}
-
-function CheckoutPageContent() {
+function CheckoutPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
-  const [travelers, setTravelers] = useState<TravelerInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // Get booking details from URL params
-    const type = searchParams.get('type') as 'flight' | 'hotel' | 'complete-trip';
-    const itemData = searchParams.get('item');
-    const price = parseFloat(searchParams.get('price') || '0');
-    const from = searchParams.get('from');
-    const to = searchParams.get('to');
-    const destination = searchParams.get('destination');
-    const duration = searchParams.get('duration');
-    const travelers = searchParams.get('travelers');
-    
-    // For subscription type, we need different parameters
-    const plan = searchParams.get('plan');
-    const name = searchParams.get('name');
-    const description = searchParams.get('description');
-    
-    if (type && itemData && price) {
-      try {
-        const item = JSON.parse(decodeURIComponent(itemData));
-        setBookingDetails({
-          type,
-          item,
-          price,
-          from: from || undefined,
-          to: to || undefined,
-          dates: {
-            checkin: searchParams.get('checkin') || undefined,
-            checkout: searchParams.get('checkout') || undefined,
-            departure: searchParams.get('departure') || undefined,
-            return: searchParams.get('return') || undefined
-          }
-        });
+  // Common params
+  const tripId = searchParams.get('tripId') || '';
+  const destination = searchParams.get('destination') || '';
+  const startDate = searchParams.get('startDate') || '';
+  const endDate = searchParams.get('endDate') || '';
+  const fullName = searchParams.get('fullName') || '';
+  const email = searchParams.get('email') || '';
+  const phone = searchParams.get('phone') || '';
+  const budgetAmount = searchParams.get('budgetAmount') || '';
 
-        // Initialize travelers based on actual count from URL params
-        const travelerCount = parseInt(travelers || '1');
-        const initialTravelers = Array.from({ length: travelerCount }, () => ({
-          firstName: '', 
-          lastName: '', 
-          dateOfBirth: '', 
-          passportNumber: '', 
-          email: '', 
-          phone: '' 
-        }));
-        setTravelers(initialTravelers);
-      } catch (error) {
-        console.error('Error parsing booking details:', error);
-      }
-    }
-  }, [searchParams]);
+  // Complete-trip params
+  const type = searchParams.get('type') || '';
+  const itemRaw = searchParams.get('item');
+  const travelers = searchParams.get('travelers') || '';
+  const price = searchParams.get('price') || '';
 
-  const updateTraveler = (index: number, field: keyof TravelerInfo, value: string) => {
-    const updated = [...travelers];
-    updated[index] = { ...updated[index], [field]: value };
-    setTravelers(updated);
-  };
-
-  const handlePriceConfirmation = async () => {
-    if (!bookingDetails) return;
-
-    setIsLoading(true);
+  // Try to parse complete-trip payload if present
+  const tripPackage = useMemo(() => {
+    if (type !== 'complete-trip' || !itemRaw) return null;
     try {
-      if (bookingDetails.type === 'flight') {
-        const response = await fetch('/api/flights/price', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ offer: bookingDetails.item })
-        });
+      return JSON.parse(itemRaw);
+    } catch (e) {
+      console.error('Failed to parse tripPackage from item param', e);
+      return null;
+    }
+  }, [type, itemRaw]);
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Price confirmed:', data);
-          setCurrentStep(2);
-        }
-      } else {
-        // For hotels, just proceed to payment
-        setCurrentStep(2);
-      }
-    } catch (error) {
-      console.error('Price confirmation failed:', error);
-      alert('Unable to confirm current pricing. Please try again.');
-    } finally {
-      setIsLoading(false);
+  const totalAmount =
+    tripPackage?.totalAmount ??
+    (budgetAmount ? Number(budgetAmount) : price ? Number(price) : 0);
+
+  // Calculate number of nights
+  const nights = useMemo(() => {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }, [startDate, endDate]);
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'TBD';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+    } catch {
+      return dateString;
     }
   };
 
-  const handlePayment = async () => {
-    if (!bookingDetails) return;
+  // Parse travelers
+  const travelersData = useMemo(() => {
+    if (tripPackage?.travelers) {
+      return tripPackage.travelers;
+    }
+    if (travelers) {
+      const num = parseInt(travelers);
+      return { adults: num, kids: 0 };
+    }
+    return { adults: 1, kids: 0 };
+  }, [tripPackage, travelers]);
 
-    setIsLoading(true);
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handlePay = async () => {
+    if (totalAmount <= 0) {
+      alert('Please confirm your trip total before paying.');
+      return;
+    }
+    setLoading(true);
     try {
-      // Create Stripe checkout session
-      const response = await fetch('/api/payments/create-checkout-session', {
+      const amount_cents = Math.round(totalAmount * 100);
+      const res = await fetch('/api/checkout/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bookingType: bookingDetails.type,
-          item: bookingDetails.item,
-          travelers: travelers,
-          totalAmount: Math.round(bookingDetails.price * 100), // Convert to cents
-          metadata: {
-            from: bookingDetails.from,
-            to: bookingDetails.to,
-            dates: bookingDetails.dates
-          }
-        })
+          tripId: tripId || undefined,
+          amount_cents,
+          currency: 'USD',
+        }),
       });
+      const data = await res.json().catch(() => ({}));
 
-      if (response.ok) {
-        const { sessionId } = await response.json();
-        
-        // Redirect to Stripe Checkout
-        const stripe = (window as any).Stripe?.(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-        if (stripe && !sessionId.includes('demo')) {
-          await stripe.redirectToCheckout({ sessionId });
-        } else {
-          // Demo mode or Stripe not available - simulate payment process
-          setCurrentStep(3); // Move to payment step
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate payment processing
-          // Fallback: simulate successful booking
-          const destination = searchParams.get('destination') || bookingDetails.item?.destination || 'Unknown';
-          const startDate = searchParams.get('startDate') || bookingDetails.dates?.departure || '2025-01-15';
-          const endDate = searchParams.get('endDate') || bookingDetails.dates?.return || '2025-01-22';
-          const travelers = searchParams.get('travelers') || '2';
-          
-          router.push(`/booking/confirmation?type=${bookingDetails.type}&amount=${bookingDetails.price}&reference=WN${Date.now()}&destination=${encodeURIComponent(destination)}&startDate=${startDate}&endDate=${endDate}&travelers=${travelers}`);
-        }
+      if (res.status === 401) {
+        router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        return;
       }
-    } catch (error) {
-      console.error('Payment processing failed:', error);
-      // For demo purposes, simulate successful booking with proper destination
-      const destination = searchParams.get('destination') || bookingDetails.item?.destination || 'Unknown';
-      const startDate = searchParams.get('startDate') || bookingDetails.dates?.departure || '2025-01-15';
-      const endDate = searchParams.get('endDate') || bookingDetails.dates?.return || '2025-01-22';
-      const travelers = searchParams.get('travelers') || '2';
-      
-      router.push(`/booking/confirmation?type=${bookingDetails.type}&amount=${bookingDetails.price}&reference=WN${Date.now()}&destination=${encodeURIComponent(destination)}&startDate=${startDate}&endDate=${endDate}&travelers=${travelers}`);
+      if (!res.ok) {
+        alert(data.error || 'Payment setup failed. Please try again.');
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      alert('Payment setup failed. No checkout URL returned.');
+    } catch (err) {
+      console.error(err);
+      alert('Payment failed. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  if (!bookingDetails) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">😕</div>
-          <h2 className="text-xl font-semibold mb-2">Booking Details Not Found</h2>
-          <p className="text-gray-600 mb-4">Please return to the booking page and try again.</p>
-          <Link href="/booking/flights" className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors">
-            Back to Booking
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const showPackageSummary = !!tripPackage;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <Link href="/" className="text-2xl font-bold text-purple-600">
-              Where Next
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Shield className="w-5 h-5 text-green-600" />
-              <span className="text-sm text-gray-600">Secure Checkout</span>
+    <main className="mx-auto max-w-3xl px-4 py-10">
+      <h1 className="mb-6 text-2xl font-bold">Payment</h1>
+
+      {/* Detailed Trip Breakdown */}
+      <section className="mb-6 space-y-4">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Trip Breakdown</h2>
+
+        {/* Flight Details */}
+        {tripPackage?.selectedFlight && (
+          <div className="rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-blue-600 rounded-lg">
+                <Plane className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Flight</h3>
             </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back Button */}
-        <Link 
-          href={bookingDetails.type === 'flight' ? '/booking/flights' : 
-                bookingDetails.type === 'hotel' ? '/booking/hotels' : '/suggestions'}
-          className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to {bookingDetails.type === 'flight' ? 'Flights' : 
-                   bookingDetails.type === 'hotel' ? 'Hotels' : 'Trip Suggestions'}
-        </Link>
-
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center space-x-8">
-            {[
-              { number: 1, label: 'Review & Confirm', active: currentStep >= 1 },
-              { number: 2, label: 'Traveler Details', active: currentStep >= 2 },
-              { number: 3, label: 'Payment', active: currentStep >= 3 }
-            ].map((step) => (
-              <div key={step.number} className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                  step.active ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {step.number}
-                </div>
-                <span className={`ml-2 font-medium ${step.active ? 'text-purple-600' : 'text-gray-400'}`}>
-                  {step.label}
-                </span>
-              </div>
-            ))}
-            </div>
-          </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            {currentStep === 1 && (
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Review Your Booking</h2>
-                
-                {/* Booking Summary */}
-                <div className="border rounded-lg p-4 mb-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="text-3xl">
-                      {bookingDetails.type === 'flight' ? '✈️' : 
-                       bookingDetails.type === 'hotel' ? '🏨' : '🎯'}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {bookingDetails.type === 'flight' 
-                          ? `${bookingDetails.from} → ${bookingDetails.to}`
-                          : bookingDetails.type === 'hotel'
-                          ? bookingDetails.item.name
-                          : `Complete Trip to ${bookingDetails.item.destination}`
-                        }
-                      </h3>
-                      <div className="text-sm text-gray-600 space-y-1">
-                        {bookingDetails.type === 'flight' ? (
-                          <>
-                            <p>Flight: {bookingDetails.item.airline} {bookingDetails.item.id}</p>
-                            <p>Departure: {bookingDetails.item.departure}</p>
-                            <p>Duration: {bookingDetails.item.duration}</p>
-                            <p>Aircraft: {bookingDetails.item.aircraft}</p>
-                          </>
-                        ) : bookingDetails.type === 'hotel' ? (
-                          <>
-                            <p>Hotel: {bookingDetails.item.name}</p>
-                            <p>Check-in: {bookingDetails.dates?.checkin}</p>
-                            <p>Check-out: {bookingDetails.dates?.checkout}</p>
-                            <p>Rating: {bookingDetails.item.rating} stars</p>
-                          </>
-                        ) : (
-                          <>
-                            <p>Duration: {bookingDetails.item.duration} days</p>
-                            <p>Travelers: {bookingDetails.item.travelers?.adults || 0} adults{bookingDetails.item.travelers?.kids > 0 ? `, ${bookingDetails.item.travelers.kids} kids` : ''}</p>
-                            <p>Style: {bookingDetails.item.budgetStyle} budget</p>
-                            <p>Dates: {bookingDetails.item.startDate} to {bookingDetails.item.endDate}</p>
-                            <div className="mt-3">
-                              <p className="font-medium text-gray-800 mb-1">Includes:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {bookingDetails.item.includes?.flights && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">✈️ Flights</span>}
-                                {bookingDetails.item.includes?.accommodation && <span className="bg-cyan-100 text-cyan-800 px-2 py-1 rounded text-xs">🏨 Hotels</span>}
-                                {bookingDetails.item.includes?.meals && <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs">🍽️ Meals</span>}
-                                {bookingDetails.item.includes?.activities && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">🎪 Activities</span>}
-                                {bookingDetails.item.includes?.transport && <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">🚗 Transport</span>}
-                                {bookingDetails.item.includes?.travel_insurance && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">🛡️ Insurance</span>}
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handlePriceConfirmation}
-                  disabled={isLoading}
-                  className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:bg-gray-400"
-                >
-                  {isLoading ? 'Confirming Price...' : 'Confirm Price & Continue'}
-                </button>
-              </div>
-            )}
-
-            {currentStep === 2 && (
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Traveler Information</h2>
-                
-                {travelers.map((traveler, index) => (
-                  <div key={`traveler-${index}`} className="mb-8 p-4 border rounded-lg">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Traveler {index + 1}
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          First Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={traveler.firstName}
-                          onChange={(e) => updateTraveler(index, 'firstName', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                          required
-                        />
-                        </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Last Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={traveler.lastName}
-                          onChange={(e) => updateTraveler(index, 'lastName', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                          required
-                        />
-                        </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Date of Birth *
-                        </label>
-                        <input
-                          type="date"
-                          value={traveler.dateOfBirth}
-                          onChange={(e) => updateTraveler(index, 'dateOfBirth', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                          required
-                        />
-                        </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Passport Number
-                        </label>
-                        <input
-                          type="text"
-                          value={traveler.passportNumber}
-                          onChange={(e) => updateTraveler(index, 'passportNumber', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                        />
-                      </div>
-                      
-                      {index === 0 && (
-                        <>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Email *
-                            </label>
-                            <input
-                              type="email"
-                              value={traveler.email}
-                              onChange={(e) => updateTraveler(index, 'email', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                              required
-                            />
-                          </div>
-                          
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Phone Number *
-                            </label>
-                            <input
-                              type="tel"
-                              value={traveler.phone}
-                              onChange={(e) => updateTraveler(index, 'phone', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                              required
-                            />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                <button
-                  onClick={() => setCurrentStep(3)}
-                  className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-                >
-                  Continue to Payment
-                </button>
-              </div>
-            )}
-
-            {currentStep === 3 && (
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment</h2>
-                
-                <div className="mb-6">
-                  <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
-                    <div className="flex items-center">
-                      <CreditCard className="w-5 h-5 text-purple-600 mr-2" />
-                      <span className="font-medium text-purple-900">Secure Payment</span>
-                    </div>
-                    <div className="text-sm text-purple-700">
-                      Powered by Stripe
-                    </div>
-                  </div>
-              </div>
-
-                {/* Credit Card Form */}
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Card Number *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="1234 5678 9012 3456"
-                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                      maxLength={19}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Expiry Date *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="MM/YY"
-                        className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                        maxLength={5}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        CVV *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="123"
-                        className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                        maxLength={4}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cardholder Name *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="John Doe"
-                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Billing Address *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="123 Main St, City, Country"
-                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={handlePayment}
-                  disabled={isLoading}
-                  className="w-full bg-purple-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400"
-                >
-                  {isLoading ? 'Processing Payment...' : `Complete Booking - $${bookingDetails.price.toLocaleString()}`}
-                </button>
-
-                <p className="text-xs text-gray-500 mt-4 text-center">
-                  🔒 Your payment is secured with 256-bit SSL encryption
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Airline & Flight</p>
+                <p className="font-semibold text-gray-900">
+                  {tripPackage.selectedFlight.airline || 'Airline'} 
+                  {tripPackage.selectedFlight.flightNumber && ` ${tripPackage.selectedFlight.flightNumber}`}
                 </p>
               </div>
-            )}
-              </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
               
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">
-                    {bookingDetails.type === 'flight' ? 'Flight' : 
-                     bookingDetails.type === 'hotel' ? 'Hotel' : 'Complete Trip Package'}
-                  </span>
-                  <span className="font-semibold">
-                    ${bookingDetails.price.toLocaleString()}
-                  </span>
-                </div>
-                
-                {bookingDetails.type === 'complete-trip' && (
-                  <div className="space-y-2 pt-2 border-t">
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div className="flex justify-between">
-                        <span>✈️ Flights (Est.)</span>
-                        <span>${bookingDetails.item.breakdown?.flights?.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>🏨 Hotels (Est.)</span>
-                        <span>${bookingDetails.item.breakdown?.accommodation?.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>🍽️ Meals (Est.)</span>
-                        <span>${bookingDetails.item.breakdown?.food?.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>🎪 Activities (Est.)</span>
-                        <span>${bookingDetails.item.breakdown?.activities?.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Departure</p>
+                <p className="font-semibold text-gray-900">
+                  {tripPackage.selectedFlight.departure || tripPackage.selectedFlight.departureTime || formatDate(startDate)}
+                </p>
+                {tripPackage.selectedFlight.departureTime && (
+                  <p className="text-xs text-gray-500">{tripPackage.selectedFlight.departureTime}</p>
                 )}
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Taxes & Fees</span>
-                  <span className="font-semibold">Included</span>
-                  </div>
-                
-                <hr />
-                
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total</span>
-                  <span className="text-green-600">
-                    ${bookingDetails.price.toLocaleString()}
+              </div>
+              
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Arrival</p>
+                <p className="font-semibold text-gray-900">
+                  {tripPackage.selectedFlight.arrival || tripPackage.selectedFlight.arrivalTime || formatDate(endDate)}
+                </p>
+                {tripPackage.selectedFlight.arrivalTime && (
+                  <p className="text-xs text-gray-500">{tripPackage.selectedFlight.arrivalTime}</p>
+                )}
+              </div>
+              
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Duration</p>
+                <p className="font-semibold text-gray-900">
+                  {tripPackage.selectedFlight.duration || 'TBD'}
+                </p>
+                {tripPackage.selectedFlight.stops !== undefined && (
+                  <p className="text-xs text-gray-500">
+                    {tripPackage.selectedFlight.stops === 0 ? 'Direct' : `${tripPackage.selectedFlight.stops} stop${tripPackage.selectedFlight.stops > 1 ? 's' : ''}`}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            {tripPackage.selectedFlight.price && (
+              <div className="mt-4 pt-4 border-t border-blue-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Flight Cost</span>
+                  <span className="text-lg font-bold text-blue-600">
+                    ${tripPackage.selectedFlight.price.toLocaleString()}
                   </span>
                 </div>
               </div>
+            )}
+          </div>
+        )}
 
-              <div className="mt-6 p-4 bg-green-50 rounded-lg">
-                <div className="flex items-center text-green-800">
-                  <Shield className="w-4 h-4 mr-2" />
-                  <span className="text-sm font-medium">Protected Booking</span>
-                </div>
-                <p className="text-xs text-green-700 mt-1">
-                  Your booking is protected and can be cancelled within 24 hours
+        {/* Hotel Details */}
+        {tripPackage?.selectedHotel && (
+          <div className="rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white p-5 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-purple-600 rounded-lg">
+                <Hotel className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Accommodation</h3>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Hotel Name</p>
+                <p className="font-semibold text-lg text-gray-900">
+                  {tripPackage.selectedHotel.name || 'Hotel'}
                 </p>
               </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Location</p>
+                  <p className="font-semibold text-gray-900">
+                    {tripPackage.selectedHotel.location || destination}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Rating</p>
+                  <p className="font-semibold text-gray-900">
+                    {tripPackage.selectedHotel.rating ? `${tripPackage.selectedHotel.rating}/5` : 'N/A'}
+                    {tripPackage.selectedHotel.rating && ' ⭐'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    Check-in
+                  </p>
+                  <p className="font-semibold text-gray-900">{formatDate(startDate)}</p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    Check-out
+                  </p>
+                  <p className="font-semibold text-gray-900">{formatDate(endDate)}</p>
+                </div>
+              </div>
+              
+              <div className="bg-purple-100 rounded-lg p-3">
+                <p className="text-sm text-purple-900">
+                  <strong>{nights} night{nights !== 1 ? 's' : ''}</strong> accommodation
+                  {tripPackage.selectedHotel.price && ` • $${tripPackage.selectedHotel.price.toLocaleString()} total`}
+                </p>
+              </div>
+              
+              {tripPackage.selectedHotel.amenities && tripPackage.selectedHotel.amenities.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">Amenities</p>
+                  <div className="flex flex-wrap gap-2">
+                    {tripPackage.selectedHotel.amenities.slice(0, 6).map((amenity: string, idx: number) => (
+                      <span key={idx} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">
+                        {amenity}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Trip Summary Card */}
+        <div className="rounded-xl border-2 border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-gray-600 rounded-lg">
+              <MapPin className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Trip Details</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Destination</p>
+              <p className="font-semibold text-gray-900 text-lg">
+                {tripPackage?.destination || destination || 'TBD'}
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+                <Users className="w-4 h-4" />
+                Travelers
+              </p>
+              <p className="font-semibold text-gray-900">
+                {travelersData.adults} adult{travelersData.adults !== 1 ? 's' : ''}
+                {travelersData.kids > 0 && `, ${travelersData.kids} child${travelersData.kids !== 1 ? 'ren' : ''}`}
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                Travel Dates
+              </p>
+              <p className="font-semibold text-gray-900">
+                {formatDate(startDate)} → {formatDate(endDate)}
+              </p>
+              {nights > 0 && (
+                <p className="text-xs text-gray-500 mt-1">{nights} day{nights !== 1 ? 's' : ''} / {nights} night{nights !== 1 ? 's' : ''}</p>
+              )}
+            </div>
+            
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Duration</p>
+              <p className="font-semibold text-gray-900">
+                {tripPackage?.duration || nights || 'TBD'} day{(tripPackage?.duration || nights || 1) !== 1 ? 's' : ''}
+              </p>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+
+        {/* Budget Breakdown */}
+        {tripPackage?.budgetBreakdown && (
+          <div className="rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-white p-5 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-green-600 rounded-lg">
+                <DollarSign className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Cost Breakdown</h3>
+            </div>
+            
+            <div className="space-y-3">
+              {tripPackage.budgetBreakdown.flights !== undefined && (
+                <div className="flex items-center justify-between py-2 border-b border-green-200">
+                  <div className="flex items-center gap-2">
+                    <Plane className="w-4 h-4 text-blue-600" />
+                    <span className="text-gray-700">Flights</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">
+                    ${tripPackage.budgetBreakdown.flights.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              
+              {tripPackage.budgetBreakdown.accommodation !== undefined && (
+                <div className="flex items-center justify-between py-2 border-b border-green-200">
+                  <div className="flex items-center gap-2">
+                    <Hotel className="w-4 h-4 text-purple-600" />
+                    <span className="text-gray-700">Accommodation ({nights} nights)</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">
+                    ${tripPackage.budgetBreakdown.accommodation.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              
+              {tripPackage.budgetBreakdown.food !== undefined && (
+                <div className="flex items-center justify-between py-2 border-b border-green-200">
+                  <div className="flex items-center gap-2">
+                    <UtensilsCrossed className="w-4 h-4 text-orange-600" />
+                    <span className="text-gray-700">Meals & Dining</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">
+                    ${tripPackage.budgetBreakdown.food.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              
+              {tripPackage.budgetBreakdown.activities !== undefined && (
+                <div className="flex items-center justify-between py-2 border-b border-green-200">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-red-600" />
+                    <span className="text-gray-700">Activities & Tours</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">
+                    ${tripPackage.budgetBreakdown.activities.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              
+              {tripPackage.budgetBreakdown.transport !== undefined && (
+                <div className="flex items-center justify-between py-2 border-b border-green-200">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-gray-600" />
+                    <span className="text-gray-700">Local Transportation</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">
+                    ${tripPackage.budgetBreakdown.transport.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              
+              {tripPackage.budgetBreakdown.emergency_buffer !== undefined && (
+                <div className="flex items-center justify-between py-2 border-b border-green-200">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-yellow-600" />
+                    <span className="text-gray-700">Emergency Buffer (15%)</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">
+                    ${tripPackage.budgetBreakdown.emergency_buffer.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              
+              <div className="pt-3 mt-3 border-t-2 border-green-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-bold text-gray-900">Total Amount</span>
+                  <span className="text-2xl font-black text-green-600">
+                    ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                {fullName && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    <strong>Traveller:</strong> {fullName} {email && `(${email})`}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fallback Summary for non-complete-trip packages */}
+        {!showPackageSummary && (
+          <div className="rounded-xl border-2 border-gray-200 bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Trip Summary</h3>
+            <div className="space-y-2 text-sm">
+              <p><strong>Destination:</strong> {destination || 'TBD'}</p>
+              <p><strong>Dates:</strong> {formatDate(startDate)} → {formatDate(endDate)}</p>
+              {totalAmount > 0 && (
+                <p className="mt-3 pt-3 border-t">
+                  <strong className="text-lg">Total Amount:</strong>{' '}
+                  <span className="text-green-600 font-bold text-xl">
+                    ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </p>
+              )}
+              {fullName && (
+                <p className="mt-1 text-gray-700">
+                  <strong>Traveller:</strong> {fullName} {email && `(${email})`}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Payment: Pay now redirects to Stripe Checkout */}
+      <section className="rounded-lg border p-4 space-y-4">
+        <p className="text-sm text-gray-700">
+          You will be redirected to Stripe to complete payment securely. Test card: 4242 4242 4242 4242.
+        </p>
+
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="rounded-lg border px-4 py-2 text-sm hover:bg-gray-50"
+            disabled={loading}
+          >
+            ← Back
+          </button>
+          <button
+            type="button"
+            onClick={handlePay}
+            className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
+            disabled={loading}
+          >
+            {loading ? 'Processing…' : 'Pay now →'}
+          </button>
+        </div>
+      </section>
+    </main>
   );
 }
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading checkout...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading payment details…</p>
+          </div>
         </div>
-      </div>
-    }>
-      <CheckoutPageContent />
+      }
+    >
+      <CheckoutPageInner />
     </Suspense>
   );
 }

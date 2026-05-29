@@ -222,7 +222,7 @@ export default function AddOnsHub() {
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                 >
                   <Search className="w-4 h-4" />
                 </button>
@@ -269,7 +269,7 @@ export default function AddOnsHub() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-lg'
+                    ? 'bg-purple-600 text-white shadow-lg'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -317,7 +317,7 @@ export default function AddOnsHub() {
                       className={`flex items-center px-4 py-2 rounded-xl font-semibold transition-all duration-200 ${
                         inCart
                           ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'bg-purple-600 text-white hover:bg-purple-700'
                       }`}
                     >
                       {inCart ? (
@@ -378,7 +378,7 @@ export default function AddOnsHub() {
                   setIsCustomCityMode(false);
                   setSelectedCity('Austin');
                 }}
-                className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors"
+                className="bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 transition-colors"
               >
                 Try Austin (Sample Data)
               </button>

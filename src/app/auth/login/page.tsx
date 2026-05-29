@@ -6,6 +6,16 @@ import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 
+function getPostLoginPath(search: string) {
+  const params = new URLSearchParams(search);
+  return (
+    params.get('redirectTo') ||
+    params.get('redirect') ||
+    params.get('next') ||
+    '/dashboard'
+  );
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,7 +23,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { handleSignIn } = useApp();
+  const { handleSignIn, handleSignInWithOAuth } = useApp();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,10 +33,12 @@ export default function LoginPage() {
 
     try {
       await handleSignIn(email, password);
-      router.push('/');
-    } catch (error) {
-      setError('Invalid email or password. Please try again.');
-    } finally {
+
+      window.location.href = getPostLoginPath(window.location.search);
+    } catch (error: any) {
+      // Display the actual error message
+      setError(error.message || 'Invalid email or password. Please try again.');
+      console.error('Login error:', error);
       setIsLoading(false);
     }
   };
@@ -36,11 +48,19 @@ export default function LoginPage() {
     setError('');
     
     try {
-      await handleSignIn('demo@example.com', 'password123');
-      router.push('/');
-    } catch (error) {
-      setError('Demo login failed. Please try again.');
-    } finally {
+      // Try new test account first, fallback to legacy demo account
+      try {
+        await handleSignIn('test@wherenext.app', 'TestPassword2024!');
+        window.location.href = getPostLoginPath(window.location.search);
+      } catch (firstError: any) {
+        console.log('First account failed, trying demo account...', firstError.message);
+        // Fallback to legacy demo account
+        await handleSignIn('demo@example.com', 'password123');
+        window.location.href = getPostLoginPath(window.location.search);
+      }
+    } catch (error: any) {
+      setError(error.message || 'Demo login failed. Please try again.');
+      console.error('Demo login error:', error);
       setIsLoading(false);
     }
   };
@@ -63,6 +83,17 @@ export default function LoginPage() {
       }
     } catch (e: any) {
       setError(e.message);
+      setIsLoading(false);
+    }
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
+    setIsLoading(true);
+    setError('');
+    try {
+      await handleSignInWithOAuth(provider);
+    } catch (error: any) {
+      setError(error.message || `Failed to sign in with ${provider}. Please try again.`);
       setIsLoading(false);
     }
   };
@@ -179,6 +210,8 @@ export default function LoginPage() {
               {isLoading ? "Starting preview…" : "Continue as Guest (Preview)"}
             </button>
           </form>
+
+          {/* Social login coming soon */}
 
           {/* Divider */}
           <div className="mt-6">

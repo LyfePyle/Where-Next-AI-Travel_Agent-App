@@ -117,7 +117,7 @@ export default function AssistantPage() {
                 <div
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                     msg.type === 'user'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-purple-600 text-white'
                       : 'bg-gray-100 text-gray-900'
                   }`}
                 >
@@ -157,7 +157,7 @@ export default function AssistantPage() {
               <button
                 onClick={handleSendMessage}
                 disabled={!message.trim()}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Send
               </button>

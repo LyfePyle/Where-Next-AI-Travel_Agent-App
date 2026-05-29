@@ -165,7 +165,7 @@ export default function TripPlanPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4 sm:py-6">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
@@ -412,7 +412,7 @@ export default function TripPlanPage() {
                   <div
                     className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
                       msg.type === 'user'
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-purple-600 text-white'
                         : 'bg-white text-gray-900 border border-gray-200'
                     }`}
                   >
@@ -435,7 +435,7 @@ export default function TripPlanPage() {
               <button
                 onClick={handleChatMessage}
                 disabled={!chatMessage.trim()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm"
+                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm"
               >
                 Send
               </button>
@@ -469,16 +469,16 @@ export default function TripPlanPage() {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3 mb-4">
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
                   🛫 View Flights
                 </button>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
                   🏨 Find Hotels
                 </button>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
                   📋 Full Itinerary
                 </button>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
                   💰 Budget Details
                 </button>
               </div>
@@ -607,13 +607,13 @@ export default function TripPlanPage() {
 
             {/* Save & Share */}
             <div className="flex flex-wrap gap-3">
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              <button className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
                 💾 Save Trip Plan
               </button>
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              <button className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
                 📤 Share with Friends
               </button>
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              <button className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
                 🔄 Generate New Plan
               </button>
             </div>

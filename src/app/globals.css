@@ -623,6 +623,16 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Hide thumb for invisible range inputs (used in custom PillSlider) */
+input[type="range"].opacity-0::-webkit-slider-thumb,
+input[type="range"].opacity-0::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
 input[type="range"]::-moz-range-thumb {
   width: 20px;
   height: 20px;
@@ -752,9 +762,10 @@ nav a {
   background-color: #ffffff;
   border-radius: 1rem;
   box-shadow: 0 10px 30px -5px rgba(124, 58, 237, 0.1), 0 6px 8px -2px rgba(0, 0, 0, 0.05);
-  padding: 2rem;
   border: 2px solid #f3f4f6;
   transition: all 0.3s ease-in-out;
+  animation: slideInUp 0.35s ease-out both;
+  overflow: hidden;
 }
 
 .trip-card:hover {
@@ -841,6 +852,16 @@ nav a {
 }
 
 /* Animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -882,4 +903,37 @@ nav a {
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.trip-card:nth-child(1) { animation-delay: 0ms; }
+.trip-card:nth-child(2) { animation-delay: 80ms; }
+.trip-card:nth-child(3) { animation-delay: 160ms; }
+.trip-card:nth-child(4) { animation-delay: 240ms; }
+
+/* Walking tour map — arbitrary h-[36vh] / md:h-[360px] are not in this manual utility sheet */
+.tour-map-shell {
+  height: 36vh;
+  min-height: 180px;
+  max-height: 300px;
+}
+@media (min-width: 768px) {
+  .tour-map-shell {
+    height: 360px;
+    max-height: none;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 1.25rem;
+  }
 }

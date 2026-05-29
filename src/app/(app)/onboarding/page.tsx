@@ -81,7 +81,13 @@ export default function OnboardingPage() {
           console.error('Error creating initial budget:', budgetError);
         }
 
-        router.push('/app/dashboard');
+        // If opened in popup, close it and refresh parent
+        if (window.opener) {
+          window.opener.location.reload();
+          window.close();
+        } else {
+          router.push('/app/dashboard');
+        }
       }
     } catch (error) {
       console.error('Error completing onboarding:', error);
@@ -104,7 +110,7 @@ export default function OnboardingPage() {
       <div className="max-w-2xl w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-xl">WN</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Where Next!</h1>
@@ -118,14 +124,14 @@ export default function OnboardingPage() {
               <div key={step} className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium text-sm ${
                   currentStep >= step 
-                    ? 'bg-blue-600 text-white' 
+                    ? 'bg-purple-600 text-white' 
                     : 'bg-gray-200 text-gray-600'
                 }`}>
                   {step}
                 </div>
                 {step < 3 && (
                   <div className={`w-8 h-1 mx-2 rounded ${
-                    currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
+                    currentStep > step ? 'bg-purple-600' : 'bg-gray-200'
                   }`} />
                 )}
               </div>
@@ -161,7 +167,7 @@ export default function OnboardingPage() {
                         <p className="text-gray-600 text-sm">{range.description}</p>
                       </div>
                       {budgetRange === range.id && (
-                        <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                        <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
                           <div className="w-2 h-2 bg-white rounded-full" />
                         </div>
                       )}
@@ -224,7 +230,7 @@ export default function OnboardingPage() {
                         <p className="text-gray-600 text-sm">{status.description}</p>
                       </div>
                       {travelStatus === status.id && (
-                        <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                        <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
                           <div className="w-2 h-2 bg-white rounded-full" />
                         </div>
                       )}
@@ -265,7 +271,7 @@ export default function OnboardingPage() {
               <button
                 onClick={() => canProceed() && setCurrentStep(currentStep + 1)}
                 disabled={!canProceed()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 Continue
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -274,7 +280,7 @@ export default function OnboardingPage() {
               <button
                 onClick={handleComplete}
                 disabled={!canProceed() || isLoading}
-                className="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-8 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Setting up...' : 'Get Started!'}
               </button>

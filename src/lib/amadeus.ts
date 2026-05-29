@@ -1,15 +1,14 @@
 import Amadeus from 'amadeus';
 
-// Lazy initialization of Amadeus client
-let amadeus: Amadeus | null = null;
+let amadeus: any = null;
 
-function getAmadeusClient(): Amadeus | null {
+function getAmadeusClient(): any {
   if (!amadeus && checkAmadeusConfig()) {
     try {
       amadeus = new Amadeus({
         clientId: process.env.AMADEUS_CLIENT_ID!,
         clientSecret: process.env.AMADEUS_CLIENT_SECRET!,
-        environment: process.env.AMADEUS_ENVIRONMENT as 'test' | 'production' || 'test'
+        hostname: process.env.AMADEUS_ENVIRONMENT === 'production' ? 'production' : 'test',
       });
     } catch (error) {
       console.error('Failed to initialize Amadeus client:', error);
@@ -19,33 +18,24 @@ function getAmadeusClient(): Amadeus | null {
   return amadeus;
 }
 
-// Rate limiting configuration
-const RATE_LIMIT = {
-  requestsPerSecond: 10, // Amadeus allows 10 requests per second
-  requestsPerMonth: 2000 // Free tier limit
-};
-
+// Simple in-memory rate limiter
 let requestCount = 0;
 let lastResetTime = Date.now();
 
-// Simple rate limiter
 const checkRateLimit = () => {
   const now = Date.now();
-  
-  // Reset counter every second
   if (now - lastResetTime > 1000) {
     requestCount = 0;
     lastResetTime = now;
   }
-  
-  if (requestCount >= RATE_LIMIT.requestsPerSecond) {
+  if (requestCount >= 10) {
     throw new Error('Rate limit exceeded. Please try again in a moment.');
   }
-  
   requestCount++;
 };
 
-// Flight search function
+// ─── FLIGHTS ────────────────────────────────────────────────────────────────
+
 export async function searchFlights(params: {
   originLocationCode: string;
   destinationLocationCode: string;
@@ -56,53 +46,112 @@ export async function searchFlights(params: {
   infants?: number;
   travelClass?: 'ECONOMY' | 'PREMIUM_ECONOMY' | 'BUSINESS' | 'FIRST';
   max?: number;
+  currencyCode?: string;
 }) {
-  try {
-    checkRateLimit();
-    
-    const client = getAmadeusClient();
-    if (!client) {
-      throw new Error('Amadeus client not configured');
-    }
-    
-    console.log('🔍 Searching flights with Amadeus API:', params);
-    
-    const response = await client.shopping.flightOffersSearch.get({
-      originLocationCode: params.originLocationCode,
-      destinationLocationCode: params.destinationLocationCode,
-      departureDate: params.departureDate,
-      returnDate: params.returnDate,
-      adults: params.adults,
-      children: params.children || 0,
-      infants: params.infants || 0,
-      travelClass: params.travelClass || 'ECONOMY',
-      max: params.max || 10
-    });
+  checkRateLimit();
+  const client = getAmadeusClient();
+  if (!client) throw new Error('Amadeus client not configured');
 
-    console.log('✅ Amadeus flight search successful:', response.data.length, 'results');
-    return response.data;
-    
+  console.log('🔍 Searching flights:', params.originLocationCode, '→', params.destinationLocationCode);
+
+  const searchParams: Record<string, any> = {
+    originLocationCode: params.originLocationCode,
+    destinationLocationCode: params.destinationLocationCode,
+    departureDate: params.departureDate,
+    adults: params.adults,
+    travelClass: params.travelClass || 'ECONOMY',
+    max: params.max || 10,
+    currencyCode: params.currencyCode || 'USD',
+  };
+
+  if (params.returnDate) searchParams.returnDate = params.returnDate;
+  if (params.children) searchParams.children = params.children;
+  if (params.infants) searchParams.infants = params.infants;
+
+  try {
+    const response = await (client.shopping.flightOffersSearch as any).get(searchParams);
+    console.log('✅ Amadeus flights:', response.data?.length, 'results');
+    return response.data ?? [];
   } catch (error: any) {
-    console.error('❌ Amadeus flight search error:', error);
-    
-    // Handle specific Amadeus errors
-    if (error.code === 'NetworkError') {
-      throw new Error('Network error connecting to Amadeus API');
-    }
-    
-    if (error.response?.statusCode === 429) {
-      throw new Error('Rate limit exceeded. Please try again later.');
-    }
-    
-    if (error.response?.statusCode === 401) {
-      throw new Error('Invalid Amadeus API credentials');
-    }
-    
-    throw new Error(`Amadeus API error: ${error.message}`);
+    console.error('❌ Amadeus flight error:', error?.response?.result ?? error?.message);
+    if (error?.response?.statusCode === 401) throw new Error('Invalid Amadeus credentials');
+    if (error?.response?.statusCode === 429) throw new Error('Amadeus rate limit exceeded');
+    throw new Error(`Amadeus flight search failed: ${error?.message}`);
   }
 }
 
-// Hotel search function
+// ─── HOTELS (v3 API - replaces deprecated hotelOffers endpoint) ──────────────
+
+/**
+ * Step 1: Get hotel IDs for a city
+ * Uses the Hotel List API (v1) which is available on free tier
+ */
+export async function searchHotelIds(params: {
+  cityCode: string;
+  ratings?: string[];
+  amenities?: string[];
+}) {
+  checkRateLimit();
+  const client = getAmadeusClient();
+  if (!client) throw new Error('Amadeus client not configured');
+
+  console.log('🏨 Getting hotel list for:', params.cityCode);
+
+  try {
+    const searchParams: Record<string, any> = {
+      cityCode: params.cityCode,
+    };
+    if (params.ratings?.length) searchParams.ratings = params.ratings.join(',');
+    if (params.amenities?.length) searchParams.amenities = params.amenities.join(',');
+
+    const response = await (client.referenceData.locations.hotels.byCity as any).get(searchParams);
+    console.log('✅ Hotel list:', response.data?.length, 'hotels found');
+    return (response.data ?? []).slice(0, 20).map((h: any) => h.hotelId);
+  } catch (error: any) {
+    console.error('❌ Hotel list error:', error?.response?.result ?? error?.message);
+    throw new Error(`Hotel list search failed: ${error?.message}`);
+  }
+}
+
+/**
+ * Step 2: Get offers for specific hotel IDs
+ * Uses the Hotel Offers API v3 (current, replaces deprecated endpoint)
+ */
+export async function searchHotelOffers(params: {
+  hotelIds: string[];
+  checkInDate: string;
+  checkOutDate: string;
+  adults: number;
+  rooms?: number;
+  currencyCode?: string;
+}) {
+  checkRateLimit();
+  const client = getAmadeusClient();
+  if (!client) throw new Error('Amadeus client not configured');
+
+  console.log('💰 Getting hotel offers for', params.hotelIds.length, 'hotels');
+
+  try {
+    const response = await (client.shopping.hotelOffersSearch as any).get({
+      hotelIds: params.hotelIds.join(','),
+      checkInDate: params.checkInDate,
+      checkOutDate: params.checkOutDate,
+      adults: params.adults,
+      roomQuantity: params.rooms || 1,
+      currency: params.currencyCode || 'USD',
+      bestRateOnly: true,
+    });
+    console.log('✅ Hotel offers:', response.data?.length, 'results');
+    return response.data ?? [];
+  } catch (error: any) {
+    console.error('❌ Hotel offers error:', error?.response?.result ?? error?.message);
+    throw new Error(`Hotel offers search failed: ${error?.message}`);
+  }
+}
+
+/**
+ * Combined hotel search: city → hotel IDs → offers
+ */
 export async function searchHotels(params: {
   cityCode: string;
   checkInDate: string;
@@ -111,137 +160,117 @@ export async function searchHotels(params: {
   rooms?: number;
   ratings?: string[];
   amenities?: string[];
-  priceRange?: string;
-  hotelSource?: string;
+  currencyCode?: string;
 }) {
-  try {
-    checkRateLimit();
-    
-    const client = getAmadeusClient();
-    if (!client) {
-      throw new Error('Amadeus client not configured');
-    }
-    
-    console.log('🏨 Searching hotels with Amadeus API:', params);
-    
-    const response = await client.shopping.hotelOffers.get({
-      cityCode: params.cityCode,
-      checkInDate: params.checkInDate,
-      checkOutDate: params.checkOutDate,
-      adults: params.adults,
-      rooms: params.rooms || 1,
-      ratings: params.ratings,
-      amenities: params.amenities,
-      priceRange: params.priceRange,
-      hotelSource: params.hotelSource
-    });
+  const hotelIds = await searchHotelIds({
+    cityCode: params.cityCode,
+    ratings: params.ratings,
+    amenities: params.amenities,
+  });
 
-    console.log('✅ Amadeus hotel search successful:', response.data.length, 'results');
-    return response.data;
-    
-  } catch (error: any) {
-    console.error('❌ Amadeus hotel search error:', error);
-    
-    // Handle specific errors
-    if (error.response?.statusCode === 429) {
-      throw new Error('Rate limit exceeded. Please try again later.');
-    }
-    
-    if (error.response?.statusCode === 401) {
-      throw new Error('Invalid Amadeus API credentials');
-    }
-    
-    throw new Error(`Amadeus hotel API error: ${error.message}`);
+  if (!hotelIds.length) {
+    console.warn('No hotels found for city:', params.cityCode);
+    return [];
   }
+
+  const offers = await searchHotelOffers({
+    hotelIds: hotelIds.slice(0, 10),
+    checkInDate: params.checkInDate,
+    checkOutDate: params.checkOutDate,
+    adults: params.adults,
+    rooms: params.rooms,
+    currencyCode: params.currencyCode,
+  });
+
+  return offers;
 }
 
-// Airport/City search for autocomplete
+// ─── LOCATIONS ───────────────────────────────────────────────────────────────
+
 export async function searchLocations(keyword: string) {
-  try {
-    checkRateLimit();
-    
-    const client = getAmadeusClient();
-    if (!client) {
-      throw new Error('Amadeus client not configured');
-    }
-    
-    console.log('📍 Searching locations with Amadeus API:', keyword);
-    
-    const response = await client.referenceData.locations.get({
-      keyword: keyword,
-      subType: 'AIRPORT,CITY'
-    });
+  checkRateLimit();
+  const client = getAmadeusClient();
+  if (!client) throw new Error('Amadeus client not configured');
 
-    console.log('✅ Amadeus location search successful:', response.data.length, 'results');
-    return response.data;
-    
+  try {
+    const response = await (client.referenceData.locations as any).get({
+      keyword,
+      subType: 'AIRPORT,CITY',
+    });
+    return response.data ?? [];
   } catch (error: any) {
-    console.error('❌ Amadeus location search error:', error);
-    throw new Error(`Amadeus location API error: ${error.message}`);
+    console.error('❌ Location search error:', error?.message);
+    throw new Error(`Location search failed: ${error?.message}`);
   }
 }
 
-// Transform Amadeus flight data to our format
+// ─── DATA TRANSFORMERS ───────────────────────────────────────────────────────
+
 export function transformFlightData(amadeusFlights: any[]) {
-  return amadeusFlights.map((offer, index) => {
-    const segment = offer.itineraries[0].segments[0];
-    const price = parseFloat(offer.price.total);
-    
+  return amadeusFlights.map((offer) => {
+    const outbound = offer.itineraries[0];
+    const firstSeg = outbound.segments[0];
+    const lastSeg = outbound.segments[outbound.segments.length - 1];
+    const price = parseFloat(offer.price.grandTotal ?? offer.price.total);
+    const stops = outbound.segments.length - 1;
+
+    const dur = outbound.duration?.replace('PT', '').replace('H', 'h ').replace('M', 'm').trim() ?? '';
+
     return {
       id: `amadeus_${offer.id}`,
-      airline: segment.carrierCode,
+      summary: `${firstSeg.departure.iataCode} → ${lastSeg.arrival.iataCode} (${stops === 0 ? 'nonstop' : `${stops} stop`}) • ${dur}`,
+      airline: firstSeg.carrierCode,
       price: Math.round(price),
-      duration: offer.itineraries[0].duration,
-      departure: segment.departure.at.split('T')[1].substring(0, 5),
-      arrival: segment.arrival.at.split('T')[1].substring(0, 5),
-      stops: offer.itineraries[0].segments.length - 1,
-      aircraft: segment.aircraft?.code || 'Unknown',
-      bookingClass: segment.cabin,
-      validatingAirlineCodes: offer.validatingAirlineCodes,
-      amadeusData: offer // Store original data for booking
+      currency: offer.price.currency ?? 'USD',
+      departure: firstSeg.departure.at,
+      arrival: lastSeg.arrival.at,
+      stops,
+      duration: dur,
+      segments: outbound.segments,
+      partnerUrl: `https://www.google.com/flights#search;f=${firstSeg.departure.iataCode};t=${lastSeg.arrival.iataCode};d=${firstSeg.departure.at.split('T')[0]};tt=r`,
+      amadeusOffer: offer,
     };
   });
 }
 
-// Transform Amadeus hotel data to our format
 export function transformHotelData(amadeusHotels: any[]) {
-  return amadeusHotels.map((hotel) => {
-    const offer = hotel.offers[0];
-    const price = parseFloat(offer.price.total);
-    const nights = offer.checkOutDate && offer.checkInDate 
-      ? Math.ceil((new Date(offer.checkOutDate).getTime() - new Date(offer.checkInDate).getTime()) / (1000 * 60 * 60 * 24))
+  return amadeusHotels.map((item) => {
+    const hotel = item.hotel ?? item;
+    const offer = item.offers?.[0];
+    const price = offer ? parseFloat(offer.price.total ?? offer.price.base ?? '0') : 0;
+
+    const checkIn = offer?.checkInDate ?? '';
+    const checkOut = offer?.checkOutDate ?? '';
+    const nights = checkIn && checkOut
+      ? Math.max(1, Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000))
       : 1;
-    
+
     return {
-      id: `amadeus_${hotel.hotel.hotelId}`,
-      name: hotel.hotel.name,
-      rating: hotel.hotel.rating || 4,
-      pricePerNight: Math.round(price / nights),
+      id: `amadeus_${hotel.hotelId}`,
+      name: hotel.name ?? 'Hotel',
+      rating: hotel.rating ? parseFloat(hotel.rating) : 4.0,
+      stars: hotel.rating ? Math.round(parseFloat(hotel.rating)) : 4,
+      pricePerNight: price ? Math.round(price / nights) : 0,
       totalPrice: Math.round(price),
-      area: hotel.hotel.address?.cityName || 'City Center',
-      amenities: hotel.hotel.amenities || ['Free WiFi'],
-      image: '/images/hotel-placeholder.jpg',
-      description: hotel.hotel.description?.text || `Hotel in ${hotel.hotel.address?.cityName}`,
-      amadeusData: hotel // Store original data for booking
+      currency: offer?.price?.currency ?? 'USD',
+      area: hotel.address?.cityName ?? hotel.cityCode ?? '',
+      address: [hotel.address?.lines?.[0], hotel.address?.cityName].filter(Boolean).join(', '),
+      amenities: hotel.amenities ?? ['Free WiFi'],
+      description: hotel.description?.text ?? `${hotel.name} in ${hotel.address?.cityName ?? ''}`,
+      partnerUrl: `https://www.booking.com/search.html?ss=${encodeURIComponent(hotel.name ?? '')}`,
+      amadeusData: item,
     };
   });
 }
 
-// Configuration check
-export function checkAmadeusConfig() {
-  const hasClientId = !!process.env.AMADEUS_CLIENT_ID;
-  const hasClientSecret = !!process.env.AMADEUS_CLIENT_SECRET;
-  const environment = process.env.AMADEUS_ENVIRONMENT || 'test';
-  
-  console.log('Amadeus Configuration:', {
-    hasClientId,
-    hasClientSecret,
-    environment,
-    clientIdLength: process.env.AMADEUS_CLIENT_ID ? `${process.env.AMADEUS_CLIENT_ID.length} chars` : 'missing'
-  });
-  
-  return hasClientId && hasClientSecret;
+// ─── CONFIG CHECK ─────────────────────────────────────────────────────────────
+
+export function checkAmadeusConfig(): boolean {
+  const ok = !!(process.env.AMADEUS_CLIENT_ID && process.env.AMADEUS_CLIENT_SECRET);
+  if (!ok) {
+    console.log('⚠️  Amadeus not configured — add AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET to .env.local');
+  }
+  return ok;
 }
 
-// Export client getter for external use
 export { getAmadeusClient };

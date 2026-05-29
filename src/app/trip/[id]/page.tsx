@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useParams } from 'next/navigation';
 import Link from 'next/link';
 import FlightPickerModal from '@/components/FlightPickerModal';
+import BookingPanel from '@/components/booking/BookingPanel';
 
 interface TripDetail {
   id: string;
@@ -65,6 +66,8 @@ function TripDetailContent() {
   const kids = parseInt(searchParams.get('kids') || '0');
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
+  const originIata = from.length === 3 ? from.toUpperCase() : undefined;
+  const destinationIata = tripDetail?.city?.length === 3 ? tripDetail.city.toUpperCase() : undefined;
 
   useEffect(() => {
     loadTripDetail();
@@ -208,7 +211,7 @@ function TripDetailContent() {
           <p className="text-gray-600 mb-4">Sorry, we couldn't find the trip you're looking for.</p>
           <Link 
             href="/suggestions"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
           >
             Back to Suggestions
           </Link>
@@ -231,7 +234,7 @@ function TripDetailContent() {
                  <span>Back to Suggestions</span>
                </Link>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3" />
                   </svg>
@@ -393,7 +396,7 @@ function TripDetailContent() {
                     <h2 className="text-xl font-semibold text-black">Flight Options</h2>
                     <button
                       onClick={() => setShowFlightPicker(true)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                      className="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors"
                     >
                       Browse Flights
                     </button>
@@ -412,17 +415,16 @@ function TripDetailContent() {
                     </div>
                   </div>
 
-                  <div className="text-center py-8">
-                    <div className="text-4xl mb-4">✈️</div>
-                    <h3 className="text-lg font-semibold text-black mb-2">Ready to Book Your Flight?</h3>
-                    <p className="text-gray-600 mb-4">Browse available flights and find the best option for your trip.</p>
-                    <button
-                      onClick={() => setShowFlightPicker(true)}
-                      className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Search Flights
-                    </button>
-                  </div>
+                  <BookingPanel
+                    tripId={tripId}
+                    destination={tripDetail.destination}
+                    startDate={startDate}
+                    endDate={endDate}
+                    travelers={adults + kids}
+                    originIata={originIata}
+                    destinationIata={destinationIata}
+                    showHotels={false}
+                  />
                 </div>
               </div>
             )}
@@ -445,14 +447,14 @@ function TripDetailContent() {
                     </div>
                   </div>
 
-                  <div className="text-center py-8">
-                    <div className="text-4xl mb-4">🏨</div>
-                    <h3 className="text-lg font-semibold text-black mb-2">Find Your Perfect Stay</h3>
-                    <p className="text-gray-600 mb-4">Browse hotels in {tripDetail.city} that match your preferences.</p>
-                    <button className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors">
-                      Search Hotels
-                    </button>
-                  </div>
+                  <BookingPanel
+                    tripId={tripId}
+                    destination={tripDetail.destination}
+                    startDate={startDate}
+                    endDate={endDate}
+                    travelers={adults + kids}
+                    showFlights={false}
+                  />
                 </div>
               </div>
             )}
@@ -494,7 +496,7 @@ function TripDetailContent() {
               <div className="space-y-3">
                 <button
                   onClick={() => setShowFlightPicker(true)}
-                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors"
                 >
                   ✈️ Book Flights
                 </button>

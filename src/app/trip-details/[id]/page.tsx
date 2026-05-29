@@ -1,90 +1,150 @@
-'use client';
+/**
+ * Trip details — Supabase trip + URL params. Single-stop → TripDetailsEnhanced preview.
+ */
 
-import { Suspense } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
+import type { Metadata } from 'next';
 import TripDetailsEnhanced from '@/components/TripDetailsEnhanced';
-import { type TripSelection } from '@/hooks/useTripBudget';
+import { stopsFromSearchParams } from '@/types/trip';
+import { TripDetailsMultiStopShell } from './TripDetailsMultiStop';
 
-function TripDetailsContent() {
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const tripId = params.id as string;
+function spGet(
+  searchParams: Record<string, string | string[] | undefined>,
+  key: string
+): string | undefined {
+  const v = searchParams[key];
+  if (v == null) return undefined;
+  return Array.isArray(v) ? v[0] : v;
+}
 
-  const destination = searchParams.get('destination') || 'Madrid, Spain';
-  const startDate = searchParams.get('startDate') || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const endDate = searchParams.get('endDate') || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const adults = parseInt(searchParams.get('adults') || '2');
-  const kids = parseInt(searchParams.get('kids') || '0');
-
-  const handleSaveTrip = async (tripData: TripSelection) => {
-    try {
-      // Call the save trip API
-      const response = await fetch('/api/trips/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tripDetail: {
-            id: tripId,
-            destination,
-            city: destination.split(',')[0].trim(),
-            country: destination.split(',')[1]?.trim() || 'Unknown',
-            estimatedTotal: tripData.totalCost,
-            fitScore: 85 // Default fit score
-          },
-          preferences: {
-            startDate,
-            endDate,
-            adults,
-            kids,
-            budgetAmount: tripData.totalCost,
-            budgetStyle: 'comfortable',
-            vibes: ['travel']
-          }
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Trip saved successfully:', result);
-        alert('✅ Trip saved successfully!');
-        router.push('/saved');
-      } else {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-      
-    } catch (error) {
-      console.error('Error saving trip:', error);
-      alert('❌ Error saving trip. Please try again.');
-    }
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  const dest = spGet(sp, 'destination') ?? 'Your trip';
+  return {
+    title: `${dest} — Where Next`,
+    description: `Plan your trip to ${dest} with AI suggestions and affiliate booking links.`,
   };
+}
+
+export default async function TripDetailsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { id } = await params;
+  const sp = await searchParams;
+
+  const urlParams = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (v == null) continue;
+    urlParams.set(k, Array.isArray(v) ? v[0] : v);
+  }
+  const stops = stopsFromSearchParams(urlParams);
+
+  if (stops.length > 1) {
+    return <TripDetailsMultiStopShell />;
+  }
+
+  let dbTrip: Record<string, unknown> | null = null;
+
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (n) => cookieStore.get(n)?.value,
+          set: () => {},
+          remove: () => {},
+        },
+      }
+    );
+
+    const { data } = await supabase.from('trips').select('*').eq('id', id).maybeSingle();
+    dbTrip = data ?? null;
+  } catch {
+    dbTrip = null;
+  }
+
+  const firstStop = stops[0];
+  const destination =
+    (dbTrip?.destination as string) ??
+    spGet(sp, 'destination') ??
+    firstStop?.destination ??
+    'Your destination';
+  const startDate =
+    (dbTrip?.start_date as string) ?? spGet(sp, 'startDate') ?? firstStop?.startDate ?? '';
+  const endDate =
+    (dbTrip?.end_date as string) ?? spGet(sp, 'endDate') ?? firstStop?.endDate ?? '';
+  const adults = Number(dbTrip?.adults ?? spGet(sp, 'adults') ?? 2);
+  const kids = Number(dbTrip?.kids ?? spGet(sp, 'kids') ?? 0);
+  const budgetRaw = dbTrip?.budget_amount ?? spGet(sp, 'budgetAmount');
+  const budgetAmount =
+    budgetRaw != null && budgetRaw !== '' ? Number(budgetRaw) : undefined;
+  const vibe = (dbTrip?.vibe as string) ?? spGet(sp, 'vibe') ?? undefined;
+
+  const description = spGet(sp, 'description');
+  const whyItFits = spGet(sp, 'whyItFits');
+  const fitScore = spGet(sp, 'fitScore') ? Number(spGet(sp, 'fitScore')) : undefined;
+  const weatherTemp = spGet(sp, 'weatherTemp') ? Number(spGet(sp, 'weatherTemp')) : undefined;
+  const weatherIcon = spGet(sp, 'weatherIcon');
+  const crowdLevel = spGet(sp, 'crowdLevel') as 'Low' | 'Medium' | 'High' | undefined;
+  const seasonality = spGet(sp, 'seasonality');
+
+  const highlights = spGet(sp, 'highlights')
+    ? spGet(sp, 'highlights')!
+        .split(',')
+        .map((h) => h.trim())
+        .filter(Boolean)
+    : undefined;
+
+  const flightBandMin = spGet(sp, 'flightMin') ? Number(spGet(sp, 'flightMin')) : undefined;
+  const flightBandMax = spGet(sp, 'flightMax') ? Number(spGet(sp, 'flightMax')) : undefined;
+  const hotelBandMin = spGet(sp, 'hotelMin') ? Number(spGet(sp, 'hotelMin')) : undefined;
+  const hotelBandMax = spGet(sp, 'hotelMax') ? Number(spGet(sp, 'hotelMax')) : undefined;
 
   return (
     <TripDetailsEnhanced
-      tripId={tripId}
+      tripId={id}
       destination={destination}
       startDate={startDate}
       endDate={endDate}
       travelers={{ adults, kids }}
-      onSaveTrip={handleSaveTrip}
+      budgetAmount={Number.isFinite(budgetAmount) ? budgetAmount : undefined}
+      vibe={vibe}
+      description={description}
+      highlights={highlights}
+      whyItFits={whyItFits}
+      fitScore={fitScore}
+      crowdLevel={crowdLevel}
+      seasonality={seasonality}
+      weatherTemp={weatherTemp}
+      weatherIcon={weatherIcon}
+      flightBand={
+        flightBandMin !== undefined && flightBandMax !== undefined
+          ? { min: flightBandMin, max: flightBandMax }
+          : undefined
+      }
+      hotelBand={
+        hotelBandMin !== undefined && hotelBandMax !== undefined
+          ? {
+              min: hotelBandMin,
+              max: hotelBandMax,
+              style: spGet(sp, 'hotelStyle'),
+              area: spGet(sp, 'hotelArea'),
+            }
+          : undefined
+      }
     />
-  );
-}
-
-export default function TripDetailsPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading trip details...</p>
-        </div>
-      </div>
-    }>
-      <TripDetailsContent />
-    </Suspense>
   );
 }

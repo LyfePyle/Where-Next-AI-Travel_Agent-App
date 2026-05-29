@@ -1,111 +1,117 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Amadeus from 'amadeus';
+import { isDuffelConfigured, searchFlightsDuffel } from '@/lib/duffel';
 
-// Only initialize Amadeus if environment variables are available
+// Amadeus: only if env vars are set (legacy)
 let amadeus: any = null;
 if (process.env.AMADEUS_API_KEY && process.env.AMADEUS_API_SECRET) {
   amadeus = new Amadeus({
     clientId: process.env.AMADEUS_API_KEY,
     clientSecret: process.env.AMADEUS_API_SECRET,
-    hostname: 'test' // Use test environment
+    hostname: 'test',
   });
 }
 
+function fallbackFlights(origin: string, destination: string) {
+  return [
+    {
+      id: 'fallback-1',
+      airline: 'Air Canada',
+      flightNumber: 'AC 123',
+      departure: `${origin} (${origin})`,
+      arrival: `${destination} (${destination})`,
+      duration: '5h 30m',
+      price: 450,
+      stops: 0,
+      departureTime: '08:30',
+      arrivalTime: '13:00',
+      currency: 'CAD',
+    },
+  ];
+}
+
 export async function GET(request: NextRequest) {
+  const origin = request.nextUrl.searchParams.get('origin') || 'YVR';
+  const destination = request.nextUrl.searchParams.get('destination') || 'LAX';
+  const departureDate = request.nextUrl.searchParams.get('departureDate') || new Date().toISOString().split('T')[0];
+  const adults = Math.max(1, parseInt(request.nextUrl.searchParams.get('adults') || '1', 10));
+  const max = Math.min(50, Math.max(1, parseInt(request.nextUrl.searchParams.get('max') || '10', 10)));
+
   try {
-    const { searchParams } = new URL(request.url);
-    
-    const origin = searchParams.get('origin') || 'YVR';
-    const destination = searchParams.get('destination') || 'LAX';
-    const departureDate = searchParams.get('departureDate') || '2024-06-01';
-    const adults = searchParams.get('adults') || '1';
-    const max = searchParams.get('max') || '10';
+    // 1. Prefer Duffel when DUFFEL_API_KEY is set
+    if (isDuffelConfigured()) {
+      const duffelFlights = await searchFlightsDuffel({
+        origin,
+        destination,
+        departureDate,
+        adults,
+        max,
+      });
+      if (duffelFlights && duffelFlights.length > 0) {
+        return NextResponse.json({
+          success: true,
+          message: 'Duffel',
+          flights: duffelFlights,
+          total: duffelFlights.length,
+        });
+      }
+      // Duffel returned empty or failed — fall through to Amadeus or fallback
+    }
 
-    if (!amadeus) {
-      console.log('Amadeus API not configured - using fallback data');
-      // Return fallback data immediately
-      const fallbackFlights = [
-        {
-          id: 'fallback-1',
-          airline: 'Air Canada',
-          flightNumber: 'AC 123',
-          departure: `${origin} (${origin})`,
-          arrival: `${destination} (${destination})`,
-          duration: '5h 30m',
-          price: 450,
-          stops: 0,
-          departureTime: '08:30',
-          arrivalTime: '13:00',
-          currency: 'CAD'
-        }
-      ];
-
+    // 2. Amadeus (legacy) if configured
+    if (amadeus) {
+      const response = await amadeus.shopping.flightOffersSearch.get({
+        originLocationCode: origin,
+        destinationLocationCode: destination,
+        departureDate,
+        adults: String(adults),
+        max: String(max),
+        currencyCode: 'CAD',
+      });
+      const flights = (response.data || []).map((flight: any, index: number) => ({
+        id: flight.id || `flight-${index}`,
+        airline: flight.validatingAirlineCodes?.[0] || 'Unknown',
+        flightNumber:
+          (flight.itineraries?.[0]?.segments?.[0]?.carrierCode ?? '') +
+          ' ' +
+          (flight.itineraries?.[0]?.segments?.[0]?.number ?? ''),
+        departure: `${origin} (${origin})`,
+        arrival: `${destination} (${destination})`,
+        duration: flight.itineraries?.[0]?.duration || '—',
+        price: parseFloat(flight.price?.total) || 0,
+        stops: (flight.itineraries?.[0]?.segments?.length || 1) - 1,
+        departureTime: flight.itineraries?.[0]?.segments?.[0]?.departure?.at?.split('T')[1]?.slice(0, 5) || '—',
+        arrivalTime:
+          flight.itineraries?.[0]?.segments?.[flight.itineraries[0].segments.length - 1]?.arrival?.at
+            ?.split('T')[1]
+            ?.slice(0, 5) || '—',
+        currency: flight.price?.currency || 'CAD',
+      }));
       return NextResponse.json({
         success: true,
-        message: 'Using fallback flight data',
-        flights: fallbackFlights,
-        total: fallbackFlights.length
+        message: 'Amadeus',
+        flights,
+        total: flights.length,
       });
     }
 
-    // Search for flights using Amadeus API
-    const response = await amadeus.shopping.flightOffersSearch.get({
-      originLocationCode: origin,
-      destinationLocationCode: destination,
-      departureDate: departureDate,
-      adults: adults,
-      max: max,
-      currencyCode: 'CAD'
-    });
-
-    // Transform Amadeus response to match our app's format
-    const flights = response.data.map((flight: any, index: number) => ({
-      id: flight.id || `flight-${index}`,
-      airline: flight.validatingAirlineCodes?.[0] || 'Unknown',
-      flightNumber: flight.itineraries?.[0]?.segments?.[0]?.carrierCode + ' ' + 
-                   flight.itineraries?.[0]?.segments?.[0]?.number || 'Unknown',
-      departure: `${origin} (${origin})`,
-      arrival: `${destination} (${destination})`,
-      duration: flight.itineraries?.[0]?.duration || 'Unknown',
-      price: parseFloat(flight.price?.total) || 0,
-      stops: (flight.itineraries?.[0]?.segments?.length || 1) - 1,
-      departureTime: flight.itineraries?.[0]?.segments?.[0]?.departure?.at?.split('T')[1]?.substring(0, 5) || 'Unknown',
-      arrivalTime: flight.itineraries?.[0]?.segments?.[flight.itineraries[0].segments.length - 1]?.arrival?.at?.split('T')[1]?.substring(0, 5) || 'Unknown',
-      currency: flight.price?.currency || 'CAD'
-    }));
-
+    // 3. Fallback
+    const flights = fallbackFlights(origin, destination);
     return NextResponse.json({
       success: true,
-      flights: flights,
-      total: flights.length
+      message: 'Fallback (no Duffel/Amadeus or search returned no results)',
+      flights,
+      total: flights.length,
     });
-
   } catch (error: any) {
-    console.error('Flight Search Error:', error);
-    
-    // Return fallback data if API fails
-    const fallbackFlights = [
-      {
-        id: 'fallback-1',
-        airline: 'Air Canada',
-        flightNumber: 'AC 123',
-        departure: `${origin} (${origin})`,
-        arrival: `${destination} (${destination})`,
-        duration: '5h 30m',
-        price: 450,
-        stops: 0,
-        departureTime: '08:30',
-        arrivalTime: '13:00',
-        currency: 'CAD'
-      }
-    ];
-
+    console.error('Flight search error:', error);
+    const flights = fallbackFlights(origin, destination);
     return NextResponse.json({
       success: false,
-      message: 'Using fallback flight data',
-      flights: fallbackFlights,
-      total: fallbackFlights.length,
-      error: error.message
+      message: 'Using fallback after error',
+      flights,
+      total: flights.length,
+      error: error?.message ?? String(error),
     });
   }
 }

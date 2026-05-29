@@ -22,6 +22,10 @@ export const tripPlannerSchema = z.object({
   budgetFlights: z.number().min(100, 'Flight budget must be at least $100').max(5000, 'Flight budget cannot exceed $5,000'),
   budgetHotels: z.number().min(40, 'Hotel budget must be at least $40/night').max(800, 'Hotel budget cannot exceed $800/night'),
   budgetStyle: z.enum(['budget', 'comfortable', 'luxury']).default('comfortable'),
+  /** single = one destination; multi-city = multiple cities in one country; multi-country = multiple countries/region */
+  tripType: z.enum(['single', 'multi-city', 'multi-country']).default('single'),
+  /** 2–10+ stops; only relevant when tripType is multi-city or multi-country. 7 = "6-9", 10 = "10+" */
+  numberOfStops: z.number().int().min(2).max(15).optional(),
   vibes: z.array(z.string()).optional().default([]),
   partySize: z.object({
     adults: z.number().min(1, 'At least 1 adult required').max(10, 'Maximum 10 adults'),

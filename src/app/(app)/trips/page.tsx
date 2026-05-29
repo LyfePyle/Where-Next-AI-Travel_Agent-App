@@ -142,7 +142,7 @@ export default function TripsPage() {
           </div>
           <Link
             href="/plan-trip"
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition-colors"
           >
             <Plus className="w-5 h-5 mr-2" />
             Plan New Trip
@@ -150,7 +150,7 @@ export default function TripsPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
           <div className="flex items-center space-x-4">
             <Filter className="w-5 h-5 text-gray-400" />
             <div className="flex space-x-2">
@@ -158,7 +158,7 @@ export default function TripsPage() {
                 <button
                   key={status}
                   onClick={() => setFilter(status)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                     filter === status
                       ? 'bg-blue-100 text-blue-700'
                       : 'text-gray-600 hover:bg-gray-100'
@@ -180,7 +180,7 @@ export default function TripsPage() {
         {filteredTrips.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTrips.map((trip) => (
-              <div key={trip.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+              <div key={trip.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
                 {/* Trip Image Placeholder */}
                 <div className="h-48 bg-blue-500 relative">
                   <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
@@ -229,7 +229,7 @@ export default function TripsPage() {
                   <div className="flex space-x-2">
                     <Link
                       href={`/trip/${trip.id}`}
-                      className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors text-center flex items-center justify-center"
+                      className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors text-center flex items-center justify-center"
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       View Details
@@ -237,7 +237,7 @@ export default function TripsPage() {
                     
                     <button
                       onClick={() => deleteTrip(trip.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -262,7 +262,7 @@ export default function TripsPage() {
             </p>
             <Link
               href="/plan-trip"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition-colors"
             >
               <Plus className="w-5 h-5 mr-2" />
               Plan Your First Trip
@@ -272,7 +272,7 @@ export default function TripsPage() {
 
         {/* Trip Stats */}
         {trips.length > 0 && (
-          <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Trip Statistics</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">

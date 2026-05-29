@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 interface SavedTrip {
   id: string;
@@ -13,21 +15,49 @@ interface SavedTrip {
   travelers?: number;
 }
 
-import { createServerSupabaseClient } from '@/lib/supabase';
+async function getSupabaseClient() {
+  const cookieStore = await cookies(); // ✅ FIXED: await required in Next.js 15
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {
+            // Ignore cookie setting errors in middleware
+          }
+        },
+        remove(name: string, options: any) {
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {
+            // Ignore cookie removal errors in middleware
+          }
+        },
+      },
+    }
+  );
+}
 
 export async function GET() {
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = await getSupabaseClient();
     
-    // Try to get user from session
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      console.error('Auth error:', authError);
+    }
     
     if (!user) {
-      // Return empty array for non-authenticated users instead of error
       return NextResponse.json([]);
     }
 
-    // Fetch saved trips from database
     const { data: savedTrips, error } = await supabase
       .from('saved_trips')
       .select('*')
@@ -36,39 +66,49 @@ export async function GET() {
 
     if (error) {
       console.error('Supabase error:', error);
-      // Return fallback empty array instead of throwing error
       return NextResponse.json([]);
     }
 
-    // Transform database format to match frontend expectations
-    const transformedTrips = savedTrips?.map(trip => ({
-      id: trip.id,
-      destination: trip.destination,
-      estimatedCost: trip.estimated_cost,
-      reason: trip.reason,
-      fitScore: trip.fit_score,
-      bestTime: trip.best_time,
-      source: trip.source || 'saved',
-      savedAt: trip.created_at,
-      tripDuration: trip.trip_duration,
-      travelers: trip.travelers
-    })) || [];
+    const transformedTrips = savedTrips?.map((trip) => {
+      const budgetCents = typeof trip.budget_cents === 'number' ? trip.budget_cents : null;
+      const estimatedCost = typeof trip.estimated_cost === 'number'
+        ? trip.estimated_cost
+        : budgetCents !== null
+          ? Math.round(budgetCents / 100)
+          : null;
+
+      const preferences = trip.preferences || {};
+
+      return {
+        id: trip.id,
+        destination: trip.destination,
+        estimatedCost: estimatedCost ?? 0,
+        reason: trip.reason ?? preferences.reason,
+        fitScore: trip.fit_score ?? preferences.fitScore,
+        source: trip.source || preferences.source || 'saved',
+        savedAt: trip.created_at,
+        tripDuration: trip.trip_duration ?? preferences.tripDuration,
+        travelers: trip.travelers ?? preferences.travelers
+      };
+    }) || [];
     
     return NextResponse.json(transformedTrips);
   } catch (error) {
     console.error('Error fetching saved trips:', error);
-    // Return empty array as fallback
     return NextResponse.json([]);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = await getSupabaseClient();
     const body = await request.json();
     
-    // Get user from session
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      console.error('Auth error in POST:', authError);
+    }
     
     if (!user) {
       return NextResponse.json(
@@ -77,13 +117,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Handle different field formats
     const destination = body.destination;
     const estimatedCost = body.estimatedCost || body.budget;
     const source = body.source || 'manual';
-    const { reason, fitScore, bestTime, tripDuration, travelers } = body;
+    const { reason, fitScore, tripDuration, travelers } = body;
 
-    // Validate required fields
     if (!destination || !estimatedCost) {
       return NextResponse.json(
         { error: 'Missing required fields: destination, estimatedCost (or budget)' },
@@ -91,26 +129,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check current saved trips count for free plan limit
+    const MAX_SAVED_TRIPS = 50;
     const { count } = await supabase
-      .from('saved_trips')
+      .from('trips')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
-    if ((count || 0) >= 3) {
+    if ((count || 0) >= MAX_SAVED_TRIPS) {
       return NextResponse.json(
-        { error: 'Free plan limit reached. Upgrade to Pro to save unlimited trips.' },
+        { error: `You can save up to ${MAX_SAVED_TRIPS} trips. Delete an old trip to save a new one.` },
         { status: 429 }
       );
     }
 
-    // Check if destination is already saved
     const { data: existingTrip } = await supabase
-      .from('saved_trips')
+      .from('trips')
       .select('id')
       .eq('user_id', user.id)
       .ilike('destination', destination)
-      .single();
+      .maybeSingle();
 
     if (existingTrip) {
       return NextResponse.json(
@@ -119,19 +156,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new saved trip in database
+    const title = body.title || `${destination.split(',')[0]?.trim() || destination} Trip`;
+    const startDate = body.startDate || null;
+    const endDate = body.endDate || null;
+    const budgetCents = Math.round(Number(estimatedCost) * 100);
+    const adultsCount =
+      typeof body.adults === 'number'
+        ? body.adults
+        : travelers
+          ? Math.max(1, Math.floor(Number(travelers)))
+          : 2;
+    const kidsCount = typeof body.kids === 'number' ? body.kids : 0;
+
+    const stops =
+      startDate && endDate
+        ? [
+            {
+              id: 'stop-0',
+              destination,
+              startDate,
+              endDate,
+            },
+          ]
+        : [];
+
     const { data: newTrip, error } = await supabase
-      .from('saved_trips')
+      .from('trips')
       .insert({
         user_id: user.id,
+        title,
         destination,
-        estimated_cost: Number(estimatedCost),
-        reason,
-        fit_score: fitScore ? Number(fitScore) : null,
-        best_time: bestTime,
-        source,
-        trip_duration: tripDuration ? Number(tripDuration) : null,
-        travelers: travelers ? Number(travelers) : null
+        start_date: startDate,
+        end_date: endDate,
+        budget_amount: Number.isFinite(budgetCents) ? budgetCents / 100 : Number(estimatedCost),
+        adults: adultsCount,
+        kids: kidsCount,
+        travelers: adultsCount + kidsCount,
+        vibe: body.vibe ?? null,
+        stops: stops.length > 0 ? stops : null,
+        status: 'saved',
       })
       .select()
       .single();
@@ -139,23 +202,21 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Supabase error saving trip:', error);
       return NextResponse.json(
-        { error: 'Failed to save trip to database' },
+        { error: `Failed to save trip: ${error.message || 'Database error'}` },
         { status: 500 }
       );
     }
 
-    // Transform to match frontend format
     const transformedTrip = {
       id: newTrip.id,
       destination: newTrip.destination,
-      estimatedCost: newTrip.estimated_cost,
-      reason: newTrip.reason,
-      fitScore: newTrip.fit_score,
-      bestTime: newTrip.best_time,
-      source: newTrip.source,
+      estimatedCost: Number.isFinite(budgetCents) ? Math.round(budgetCents / 100) : 0,
+      reason,
+      fitScore: fitScore ? Number(fitScore) : null,
+      source,
       savedAt: newTrip.created_at,
-      tripDuration: newTrip.trip_duration,
-      travelers: newTrip.travelers
+      tripDuration: tripDuration ? Number(tripDuration) : null,
+      travelers: travelers ? Number(travelers) : null
     };
 
     return NextResponse.json({ 
@@ -164,10 +225,10 @@ export async function POST(request: NextRequest) {
       message: 'Trip saved successfully!'
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving trip:', error);
     return NextResponse.json(
-      { error: 'Failed to save trip' },
+      { error: error?.message || 'Failed to save trip. Please try again.' },
       { status: 500 }
     );
   }

@@ -87,19 +87,19 @@ export default function TermsOfServicePage() {
 
             <ul className="space-y-3 text-gray-700 mb-8">
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 <span>AI-powered trip planning and recommendations</span>
               </li>
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 <span>Budget tracking and expense management tools</span>
               </li>
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 <span>Flight and accommodation booking services</span>
               </li>
               <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 <span>Travel utilities and planning tools</span>
               </li>
             </ul>

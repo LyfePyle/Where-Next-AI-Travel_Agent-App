@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 async function getOrCreateCart(supabase: ReturnType<typeof createServerClient>, userId: string) {
-  // Try to find an open cart
-  const { data: existing, error: selErr } = await supabase
+  // Try to find an open cart - check both 'checked_out' and 'status' fields for compatibility
+  let { data: existing, error: selErr } = await supabase
     .from("carts")
     .select("id")
     .eq("user_id", userId)
@@ -12,14 +12,42 @@ async function getOrCreateCart(supabase: ReturnType<typeof createServerClient>, 
     .limit(1)
     .maybeSingle();
 
-  if (selErr) throw selErr;
+  // If that fails, try with 'status' field instead
+  if (selErr || !existing) {
+    const { data: existingByStatus, error: statusErr } = await supabase
+      .from("carts")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("status", "open")
+      .limit(1)
+      .maybeSingle();
+    
+    if (!statusErr && existingByStatus) {
+      return existingByStatus.id;
+    }
+  }
+
+  if (selErr && selErr.code !== 'PGRST116') throw selErr; // PGRST116 = no rows returned
   if (existing) return existing.id;
 
-  const { data: created, error: insErr } = await supabase
+  // Try to create with checked_out field first
+  let { data: created, error: insErr } = await supabase
     .from("carts")
     .insert({ user_id: userId, checked_out: false })
     .select("id")
     .single();
+
+  // If that fails, try with status field
+  if (insErr) {
+    const { data: createdByStatus, error: statusInsErr } = await supabase
+      .from("carts")
+      .insert({ user_id: userId, status: "open" })
+      .select("id")
+      .single();
+    
+    if (statusInsErr) throw statusInsErr;
+    return createdByStatus.id;
+  }
 
   if (insErr) throw insErr;
   return created.id;
@@ -46,7 +74,7 @@ function normalize(items: any[]) {
 
 export async function GET() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -59,23 +87,42 @@ export async function GET() {
       }
     );
 
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !auth.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const cartId = await getOrCreateCart(supabase, auth.user.id);
-
+    // Fetch cart items directly (no cart_id needed with new schema)
     const { data: items, error } = await supabase
       .from("cart_items")
-      .select("id, sku, name, quantity, unit_amount, currency")
-      .eq("cart_id", cartId);
+      .select("*")
+      .eq("user_id", auth.user.id)
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Cart fetch error:', { user_id: auth.user.id, cart_id: cartId, error: error.message });
+      console.error('Cart fetch error:', { user_id: auth.user.id, error: error.message });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    
-    console.log('Cart fetched successfully:', { user_id: auth.user.id, cart_id: cartId, item_count: items?.length || 0 });
-    return NextResponse.json({ cart_id: cartId, ...normalize(items ?? []) });
+
+    // Calculate totals
+    const subtotal = (items || []).reduce((sum, item) => {
+      return sum + (item.unit_amount_cents || 0) * (item.quantity || 1);
+    }, 0);
+    const fees = Math.round(subtotal * 0.03);
+    const tax = Math.round(subtotal * 0.07);
+    const grand = subtotal + fees + tax;
+
+    return NextResponse.json({ 
+      items: items || [],
+      totals: { 
+        subtotal, 
+        fees, 
+        tax, 
+        grand, 
+        currency: "USD" 
+      }
+    });
   } catch (error: any) {
     console.error('Cart GET error:', { error: error.message });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

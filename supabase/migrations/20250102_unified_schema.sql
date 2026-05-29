@@ -69,11 +69,12 @@ CREATE TABLE IF NOT EXISTS carts (
 CREATE TABLE IF NOT EXISTS cart_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   cart_id uuid NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
-  item_type text NOT NULL,          -- 'flight' | 'hotel' | 'tour'
-  external_id text NOT NULL,        -- provider offer id
+  sku text NOT NULL,                -- item identifier (same as external_id)
+  external_id text,                 -- provider offer id (optional, for backward compatibility)
   name text NOT NULL,
-  price_cents int NOT NULL,
-  currency text NOT NULL,
+  unit_amount int NOT NULL,          -- price in cents (same as price_cents)
+  price_cents int,                   -- backward compatibility
+  currency text NOT NULL DEFAULT 'usd',
   quantity int NOT NULL DEFAULT 1,
   meta jsonb DEFAULT '{}'
 );

@@ -232,24 +232,46 @@ Make prices realistic for the local cost of living. Be specific and authentic to
 
       const aiAddOns = JSON.parse(content);
       
-      return aiAddOns.map((addon: any, index: number) => ({
-        sku: `AI-${cityName.toUpperCase()}-${addon.item_type.toUpperCase()}-${Date.now()}-${index}`,
-        item_type: addon.item_type,
-        title: addon.title,
-        description: addon.description,
-        price_cents: Math.round(addon.base_price_usd * cityProfile.cost_of_living_index * 100),
-        currency: cityProfile.currency,
-        city: cityName,
-        country: cityProfile.country,
-        template_id: `ai_generated_${addon.item_type}`,
-        meta: {
-          category: addon.category,
-          duration: addon.duration,
-          includes: addon.includes,
-          generated_by: 'ai',
-          generated_at: new Date().toISOString()
+      return aiAddOns.map((addon: any, index: number) => {
+        // Calculate base price with cost of living adjustment
+        let priceCents = Math.round(addon.base_price_usd * cityProfile.cost_of_living_index * 100);
+        
+        // Apply minimum price floors for premium experiences
+        const isPremium = addon.title?.toLowerCase().includes('fine dining') || 
+                         addon.title?.toLowerCase().includes('premium') ||
+                         addon.title?.toLowerCase().includes('luxury') ||
+                         addon.category?.toLowerCase().includes('fine dining');
+        
+        if (isPremium) {
+          // Fine dining should never be below $40, even in cheap cities
+          priceCents = Math.max(priceCents, 4000);
+        } else if (addon.item_type === 'meal') {
+          // Regular meals minimum $10
+          priceCents = Math.max(priceCents, 1000);
+        } else if (addon.item_type === 'activity') {
+          // Activities minimum $20
+          priceCents = Math.max(priceCents, 2000);
         }
-      }));
+        
+        return {
+          sku: `AI-${cityName.toUpperCase()}-${addon.item_type.toUpperCase()}-${Date.now()}-${index}`,
+          item_type: addon.item_type,
+          title: addon.title,
+          description: addon.description,
+          price_cents: priceCents,
+          currency: cityProfile.currency,
+          city: cityName,
+          country: cityProfile.country,
+          template_id: `ai_generated_${addon.item_type}`,
+          meta: {
+            category: addon.category,
+            duration: addon.duration,
+            includes: addon.includes,
+            generated_by: 'ai',
+            generated_at: new Date().toISOString()
+          }
+        };
+      });
     } catch (error) {
       console.error('Error generating AI add-ons:', error);
       return [];
@@ -324,7 +346,43 @@ Make prices realistic for the local cost of living. Be specific and authentic to
       price *= factors.tourism_multiplier;
     }
 
+    // Apply minimum price floors for premium experiences
+    const minPrice = this.getMinimumPrice(template.item_type, template.template_id);
+    price = Math.max(price, minPrice);
+
     return Math.round(price);
+  }
+
+  /**
+   * Get minimum price floor based on experience type
+   * Ensures premium experiences don't drop too low even in cheap cities
+   */
+  private getMinimumPrice(itemType: string, templateId?: string): number {
+    // Minimum prices in cents
+    const minPrices: Record<string, number> = {
+      // Fine dining and premium meals should never be below $40
+      'meal_fine_dining': 4000, // $40 minimum
+      'meal_foodie': 3000, // $30 minimum for foodie experiences
+      'meal_premium': 3500, // $35 minimum for premium meals
+      
+      // Premium activities should have minimums
+      'activity_premium': 4000, // $40 minimum
+      'activity_private': 5000, // $50 minimum for private tours
+      'activity_luxury': 6000, // $60 minimum for luxury experiences
+      
+      // Standard minimums
+      'meal': 1000, // $10 minimum for any meal
+      'activity': 2000, // $20 minimum for any activity
+      'transport': 1500, // $15 minimum for transport
+    };
+
+    // Check template-specific minimums first
+    if (templateId && minPrices[templateId]) {
+      return minPrices[templateId];
+    }
+
+    // Fall back to item type minimum
+    return minPrices[itemType] || 1000; // Default $10 minimum
   }
 
   /**

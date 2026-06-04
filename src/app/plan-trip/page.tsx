@@ -17,11 +17,30 @@ const VIBES = [
   { value: 'family', label: '👨‍👩‍👧 Family' },
   { value: 'budget', label: '💰 Budget' },
   { value: 'luxury', label: '✨ Luxury' },
+  { value: 'nightlife', label: '🍸 Nightlife' },
+  { value: 'nature', label: '🌿 Nature' },
+  { value: 'beach', label: '🏖 Beach' },
+  { value: 'city', label: '🌆 City breaks' },
+  { value: 'spiritual', label: '🧘 Spiritual' },
+  { value: 'photography', label: '📷 Photography' },
+  { value: 'hiking', label: '🥾 Hiking' },
+  { value: 'wellness', label: '💆 Wellness' },
+];
+
+const MAX_VIBES = 3;
+
+type TripStyle = 'single' | 'multi' | 'surprise';
+
+const TRIP_STYLES: { value: TripStyle; label: string; sub: string; icon: string }[] = [
+  { value: 'single', label: 'One destination', sub: 'A single place to explore', icon: '📍' },
+  { value: 'multi', label: 'Multi-city', sub: 'Several cities in one trip', icon: '🧭' },
+  { value: 'surprise', label: 'Surprise me', sub: 'Let the AI choose', icon: '✦' },
 ];
 
 export default function PlanTripPage() {
   const router = useRouter();
 
+  const [tripStyle, setTripStyle] = useState<TripStyle>('single');
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -29,9 +48,21 @@ export default function PlanTripPage() {
   const [adults, setAdults] = useState(2);
   const [kids, setKids] = useState(0);
   const [budget, setBudget] = useState(3000);
-  const [vibe, setVibe] = useState('');
+  const [vibes, setVibes] = useState<string[]>([]);
+  const [additionalDetails, setAdditionalDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [originError, setOriginError] = useState('');
+
+  const isSurprise = tripStyle === 'surprise';
+  const isMulti = tripStyle === 'multi';
+
+  function toggleVibe(value: string) {
+    setVibes((prev) => {
+      if (prev.includes(value)) return prev.filter((v) => v !== value);
+      if (prev.length >= MAX_VIBES) return prev;
+      return [...prev, value];
+    });
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,7 +77,16 @@ export default function PlanTripPage() {
     const params = new URLSearchParams();
     params.set('from', origin.trim());
 
-    if (destination.trim()) {
+    // Trip style → backend tripType. "surprise" has no destination, single trip.
+    if (isMulti) {
+      params.set('tripType', 'multi-city');
+      params.set('numberOfStops', '3');
+    } else {
+      params.set('tripType', 'single');
+    }
+
+    // Destination only applies to single + multi (a region is fine for multi).
+    if (!isSurprise && destination.trim()) {
       params.set(
         'stops',
         JSON.stringify([
@@ -63,7 +103,8 @@ export default function PlanTripPage() {
 
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
-    if (vibe) params.set('vibe', vibe);
+    if (vibes.length) params.set('vibes', vibes.join(','));
+    if (additionalDetails.trim()) params.set('additionalDetails', additionalDetails.trim());
 
     params.set('adults', String(adults));
     params.set('kids', String(kids));
@@ -141,6 +182,57 @@ export default function PlanTripPage() {
         <form onSubmit={handleSubmit} noValidate>
           <FormSection
             step={1}
+            title="What kind of trip?"
+            subtitle="Pick a style — you can change it any time"
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 10,
+              }}
+            >
+              {TRIP_STYLES.map((style) => {
+                const active = tripStyle === style.value;
+                return (
+                  <button
+                    key={style.value}
+                    type="button"
+                    onClick={() => setTripStyle(style.value)}
+                    style={{
+                      padding: '16px 10px',
+                      borderRadius: 12,
+                      border: `1.5px solid ${active ? '#1C1917' : '#E2DDD6'}`,
+                      background: active ? '#1C1917' : '#fff',
+                      color: active ? '#fff' : '#44403C',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      textAlign: 'center',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{ fontSize: 22, marginBottom: 6 }}>{style.icon}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+                      {style.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontFamily: 'monospace',
+                        color: active ? 'rgba(255,255,255,0.6)' : '#9CA3AF',
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {style.sub}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </FormSection>
+
+          <FormSection
+            step={2}
             title="Where are you based?"
             subtitle="Your home city — we use this to find flights"
           >
@@ -173,53 +265,67 @@ export default function PlanTripPage() {
             </div>
           </FormSection>
 
-          <FormSection
-            step={2}
-            title="Where do you want to go?"
-            subtitle="Leave blank and our AI will suggest the best destinations for you"
-            optional
-          >
-            <input
-              type="text"
-              placeholder="e.g. Thailand, Japan, New York… or leave blank"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              style={inputStyle}
-            />
-            {destination.trim() ? (
-              <div
-                style={{
-                  marginTop: 8,
-                  fontSize: 12,
-                  color: '#0F766E',
-                  fontFamily: 'monospace',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <span>✓</span> AI will show 4 trip options within {destination.trim()}
-              </div>
-            ) : (
-              <div
-                style={{
-                  marginTop: 8,
-                  fontSize: 12,
-                  color: '#78716C',
-                  fontFamily: 'monospace',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <span>✦</span> AI will suggest the best destinations from{' '}
-                {origin.trim() || 'your city'}
-              </div>
-            )}
-          </FormSection>
+          {!isSurprise && (
+            <FormSection
+              step={3}
+              title={isMulti ? 'Which region or cities?' : 'Where do you want to go?'}
+              subtitle={
+                isMulti
+                  ? 'Name a country or region (e.g. Southeast Asia) — or leave blank for ideas'
+                  : 'Leave blank and our AI will suggest the best destinations for you'
+              }
+              optional
+            >
+              <input
+                type="text"
+                placeholder={
+                  isMulti
+                    ? 'e.g. Southeast Asia, Italy, Japan… or leave blank'
+                    : 'e.g. Thailand, Japan, New York… or leave blank'
+                }
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                style={inputStyle}
+              />
+              {destination.trim() ? (
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: '#0F766E',
+                    fontFamily: 'monospace',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span>✓</span>{' '}
+                  {isMulti
+                    ? `AI will plan multi-city trips around ${destination.trim()}`
+                    : `AI will show trip options within ${destination.trim()}`}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: '#78716C',
+                    fontFamily: 'monospace',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span>✦</span> AI will suggest the best{' '}
+                  {isMulti ? 'multi-city routes' : 'destinations'} from{' '}
+                  {origin.trim() || 'your city'}
+                </div>
+              )}
+            </FormSection>
+          )}
 
           <FormSection
-            step={3}
+            step={4}
             title="When are you travelling?"
             optional
             subtitle="Helps the AI check seasonality and pricing"
@@ -260,7 +366,7 @@ export default function PlanTripPage() {
             )}
           </FormSection>
 
-          <FormSection step={4} title="Who's travelling?">
+          <FormSection step={5} title="Who's travelling?">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <Counter
                 label="Adults"
@@ -281,7 +387,7 @@ export default function PlanTripPage() {
             </div>
           </FormSection>
 
-          <FormSection step={5} title="What's your budget?">
+          <FormSection step={6} title="What's your budget?">
             <div>
               <div
                 style={{
@@ -343,31 +449,82 @@ export default function PlanTripPage() {
           </FormSection>
 
           <FormSection
-            step={6}
+            step={7}
             title="What's your vibe?"
             optional
-            subtitle="Pick one to help the AI match your style"
+            subtitle={`Pick up to ${MAX_VIBES} to help the AI match your style`}
           >
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {VIBES.map((v) => (
-                <button
-                  key={v.value}
-                  type="button"
-                  onClick={() => setVibe(vibe === v.value ? '' : v.value)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 100,
-                    fontSize: 13,
-                    border: `1.5px solid ${vibe === v.value ? '#1C1917' : '#E2DDD6'}`,
-                    background: vibe === v.value ? '#1C1917' : '#fff',
-                    color: vibe === v.value ? '#fff' : '#44403C',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                  }}
-                >
-                  {v.label}
-                </button>
-              ))}
+              {VIBES.map((v) => {
+                const selected = vibes.includes(v.value);
+                const atMax = vibes.length >= MAX_VIBES;
+                const disabled = !selected && atMax;
+                return (
+                  <button
+                    key={v.value}
+                    type="button"
+                    onClick={() => toggleVibe(v.value)}
+                    disabled={disabled}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 100,
+                      fontSize: 13,
+                      border: `1.5px solid ${selected ? '#1C1917' : '#E2DDD6'}`,
+                      background: selected ? '#1C1917' : '#fff',
+                      color: selected ? '#fff' : disabled ? '#C7C2BA' : '#44403C',
+                      cursor: disabled ? 'not-allowed' : 'pointer',
+                      opacity: disabled ? 0.6 : 1,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {v.label}
+                  </button>
+                );
+              })}
+            </div>
+            {vibes.length >= MAX_VIBES && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: '#78716C',
+                  fontFamily: 'monospace',
+                }}
+              >
+                Maximum {MAX_VIBES} selected
+              </div>
+            )}
+          </FormSection>
+
+          <FormSection
+            step={8}
+            title="Anything else we should know?"
+            optional
+            subtitle="Special requests — e.g. no flying, travelling with elderly parents, honeymoon"
+          >
+            <textarea
+              value={additionalDetails}
+              onChange={(e) => setAdditionalDetails(e.target.value)}
+              placeholder="e.g. Train only, no flights • Celebrating our anniversary • Need step-free access"
+              rows={3}
+              maxLength={400}
+              style={{
+                ...inputStyle,
+                resize: 'vertical',
+                lineHeight: 1.5,
+                minHeight: 80,
+              }}
+            />
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 11,
+                color: '#9CA3AF',
+                fontFamily: 'monospace',
+                textAlign: 'right',
+              }}
+            >
+              {additionalDetails.length}/400
             </div>
           </FormSection>
 
@@ -397,9 +554,15 @@ export default function PlanTripPage() {
             ) : (
               <>
                 <span>✦</span>
-                {destination.trim()
-                  ? `Plan my trip to ${destination.trim()}`
-                  : 'Find me the perfect trip'}
+                {isSurprise
+                  ? 'Surprise me — find my perfect trip'
+                  : isMulti
+                    ? destination.trim()
+                      ? `Plan my multi-city trip around ${destination.trim()}`
+                      : 'Find me a multi-city adventure'
+                    : destination.trim()
+                      ? `Plan my trip to ${destination.trim()}`
+                      : 'Find me the perfect trip'}
               </>
             )}
           </button>

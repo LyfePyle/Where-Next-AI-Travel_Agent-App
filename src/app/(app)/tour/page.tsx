@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useWalkingTour } from '@/hooks/useWalkingTour';
@@ -13,7 +13,7 @@ function buildMapsUrl(lat: number, lng: number, label?: string) {
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
 }
 
-export default function TourPage() {
+function TourPageInner() {
   const {
     loading,
     error,
@@ -375,5 +375,19 @@ export default function TourPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function TourPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <TourPageInner />
+    </Suspense>
   );
 }

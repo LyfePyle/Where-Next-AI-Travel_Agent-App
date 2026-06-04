@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -120,7 +120,7 @@ const categories = [
   { id: 'Adventure', name: 'Adventure', icon: Mountain },
 ];
 
-export default function SearchPage() {
+function SearchPageInner() {
   const searchParams = useSearchParams();
   const searchQueryParam = searchParams.get('q') ?? '';
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -321,5 +321,13 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-blue-50" />}>
+      <SearchPageInner />
+    </Suspense>
   );
 }

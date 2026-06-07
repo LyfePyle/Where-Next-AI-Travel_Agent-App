@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { parseDestinationToStops } from '@/lib/stop-parser';
 
 interface SavedTrip {
   id: string;
@@ -168,17 +169,14 @@ export async function POST(request: NextRequest) {
           : 2;
     const kidsCount = typeof body.kids === 'number' ? body.kids : 0;
 
+    // Prefer explicit stops sent by the client (e.g. suggestion.stops for a
+    // multi-city trip). Otherwise split the destination string conservatively
+    // so "Singapore, Bali & Yogyakarta" becomes 3 stops while "Bangkok,
+    // Thailand" stays one.
     const stops =
-      startDate && endDate
-        ? [
-            {
-              id: 'stop-0',
-              destination,
-              startDate,
-              endDate,
-            },
-          ]
-        : [];
+      Array.isArray(body.stops) && body.stops.length > 0
+        ? body.stops
+        : parseDestinationToStops(destination, startDate || '', endDate || '');
 
     const { data: newTrip, error } = await supabase
       .from('trips')

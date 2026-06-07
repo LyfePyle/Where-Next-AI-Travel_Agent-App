@@ -7,6 +7,7 @@ import { useStreamingSuggestions, type TripSuggestion } from '@/hooks/useStreami
 import { useToast, ToastContainer } from '@/hooks/useToast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { stopsFromSearchParams } from '@/types/trip';
+import { distributeStops } from '@/lib/stop-parser';
 
 function SuggestionsContent() {
   const searchParams = useSearchParams();
@@ -517,6 +518,12 @@ function SuggestionsContent() {
                             startDate: startDate || undefined,
                             endDate: endDate || undefined,
                             vibe: vibe || vibes[0] || undefined,
+                            // Multi-city: pass the real ordered city list so the hub
+                            // renders separate stop cards instead of one destination.
+                            stops:
+                              suggestion.stops && suggestion.stops.length > 1
+                                ? distributeStops(suggestion.stops, startDate || '', endDate || '')
+                                : undefined,
                           }),
                         });
 

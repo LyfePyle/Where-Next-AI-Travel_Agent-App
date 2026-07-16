@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
@@ -23,8 +23,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { handleSignIn, handleSignInWithOAuth } = useApp();
+  const { handleSignIn, handleSignInWithOAuth, user, isInitialized } = useApp();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isInitialized || !user) return;
+    router.replace(getPostLoginPath(window.location.search));
+  }, [isInitialized, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

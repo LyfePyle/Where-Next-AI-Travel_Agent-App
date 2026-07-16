@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { ExternalLink, DollarSign, Star, Shield, Zap } from 'lucide-react';
-import { buildAffiliateLink, trackAffiliateClick, getProvidersForProduct, estimateCommission, type LinkParams } from '@/lib/affiliates';
+import { getProvidersForProduct, estimateCommission } from '@/lib/affiliates';
+import { openAffiliateRedirect } from '@/lib/payments';
 
 interface BookingOption {
   provider: string;
@@ -98,28 +99,17 @@ export default function BookingOptionsPanel({
   const availableProviders = getProvidersForProduct(productType);
   const options = availableProviders.map(provider => BOOKING_OPTIONS[provider]).filter(Boolean);
 
-  const handleBookingClick = (provider: string) => {
-    const linkParams: LinkParams = {
-      provider,
-      productType,
-      origin,
+  const handleBookingClick = (_provider: string) => {
+    const affiliateType =
+      productType === 'flight' ? 'flights' : productType === 'hotel' ? 'hotels' : 'cars';
+
+    openAffiliateRedirect(affiliateType, {
       destination,
-      dates,
-      travelers,
-      customParams: {
-        'source': 'where-next-ai',
-        'page': 'trip-details'
-      }
-    };
-
-    // Track the click for analytics
-    trackAffiliateClick(linkParams);
-
-    // Build affiliate link
-    const affiliateLink = buildAffiliateLink(linkParams);
-
-    // Open in new tab
-    window.open(affiliateLink, '_blank', 'noopener,noreferrer');
+      startDate: dates.departure,
+      endDate: dates.return ?? dates.departure,
+      adults: travelers?.adults ?? 2,
+      origin,
+    });
   };
 
   const getProductTypeIcon = () => {

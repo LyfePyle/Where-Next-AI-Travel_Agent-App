@@ -4,10 +4,9 @@ import { useState, useEffect } from 'react';
 import { Star, Clock, Users, ExternalLink, Heart, Shield } from 'lucide-react';
 import { 
   generateExperienceOptions, 
-  buildExperienceAffiliateLink, 
-  trackExperienceClick,
   type ExperienceOption 
 } from '@/lib/affiliates-experiences';
+import { openAffiliateRedirect } from '@/lib/payments';
 
 interface ExperienceBookingPanelProps {
   city: string;
@@ -62,15 +61,8 @@ export default function ExperienceBookingPanel({
     localStorage.setItem('favoriteExperiences', JSON.stringify(newFavorites));
   };
 
-  const handleBookingClick = (experience: ExperienceOption) => {
-    // Track the click
-    trackExperienceClick(experience.affiliate.id, city, theme);
-    
-    // Build affiliate link
-    const affiliateLink = buildExperienceAffiliateLink(experience.affiliate.id, city, theme);
-    
-    // Open in new tab
-    window.open(affiliateLink, '_blank', 'noopener,noreferrer');
+  const handleBookingClick = (_experience: ExperienceOption) => {
+    openAffiliateRedirect('experiences', { destination: city });
   };
 
   if (isLoading) {

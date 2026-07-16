@@ -7,7 +7,8 @@
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { getAffiliateLinks, type AffiliateLink } from '@/lib/affiliates';
+import { getAffiliateLinks, type AffiliateLink as AffiliateLinkData } from '@/lib/affiliates';
+import AffiliateLink from '@/components/AffiliateLink';
 
 export interface TripStop {
   id: string;
@@ -92,25 +93,19 @@ function AffiliateCard({
   stop,
   adults,
 }: {
-  link: AffiliateLink;
+  link: AffiliateLinkData;
   tripId: string;
   stop: TripStop;
   adults: number;
 }) {
-  const href = `/api/affiliate/redirect?${new URLSearchParams({
-    type: link.type,
-    destination: stop.destination,
-    startDate: stop.startDate,
-    endDate: stop.endDate,
-    adults: String(adults),
-    tripId,
-  })}`;
-
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer sponsored"
+    <AffiliateLink
+      type={link.type}
+      destination={stop.destination}
+      startDate={stop.startDate}
+      endDate={stop.endDate}
+      adults={adults}
+      tripId={tripId}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -128,7 +123,7 @@ function AffiliateCard({
       <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>{link.label}</span>
       <span style={{ fontSize: 11, color: '#78716C', fontFamily: 'monospace' }}>{link.partner}</span>
       <span style={{ color: '#78716C', fontSize: 15 }}>→</span>
-    </a>
+    </AffiliateLink>
   );
 }
 

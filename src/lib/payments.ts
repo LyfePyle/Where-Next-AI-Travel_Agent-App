@@ -26,7 +26,8 @@ export interface AffiliateRedirectParams {
 
 /**
  * Build the internal affiliate redirect URL — the same endpoint the Trip Hub
- * Book tab uses, so click tracking stays consistent.
+ * Book tab uses, so click tracking stays consistent (logged server-side in
+ * /api/affiliate/redirect before redirecting to the partner).
  */
 export function buildAffiliateRedirectUrl(
   type: AffiliateType,

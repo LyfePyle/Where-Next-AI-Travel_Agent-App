@@ -16,6 +16,16 @@ function SuggestionsContent() {
   const { toasts, addToast, removeToast } = useToast();
 
   const stops = stopsFromSearchParams(searchParams);
+
+  // Track which prefs came from the URL vs silent defaults used only for the AI API call.
+  const hasFrom = searchParams.has('from');
+  const hasStartDate = searchParams.has('startDate') && !!searchParams.get('startDate');
+  const hasEndDate = searchParams.has('endDate') && !!searchParams.get('endDate');
+  const hasTripDuration = searchParams.has('tripDuration');
+  const hasBudgetAmount = searchParams.has('budgetAmount');
+  const hasAdults = searchParams.has('adults');
+  const hasKids = searchParams.has('kids');
+
   const destination =
     stops.length > 0
       ? stops.map((s) => s.destination.trim()).filter(Boolean).join(' → ')
@@ -286,23 +296,41 @@ function SuggestionsContent() {
                 <p className="font-medium text-black">{destination}</p>
               </div>
             )}
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <span className="text-gray-600 text-xs uppercase tracking-wide">From</span>
-              <p className="font-medium text-black">{from}</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <span className="text-gray-600 text-xs uppercase tracking-wide">Duration</span>
-              <p className="font-medium text-black">{tripDuration} days</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <span className="text-gray-600 text-xs uppercase tracking-wide">Budget</span>
-              <p className="font-medium text-black">${budgetAmount.toLocaleString()}</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <span className="text-gray-600 text-xs uppercase tracking-wide">Travelers</span>
-              <p className="font-medium text-black">{adults + kids} people</p>
-            </div>
+            {hasFrom && (
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <span className="text-gray-600 text-xs uppercase tracking-wide">From</span>
+                <p className="font-medium text-black">{from}</p>
+              </div>
+            )}
+            {(hasTripDuration || (hasStartDate && hasEndDate)) && (
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <span className="text-gray-600 text-xs uppercase tracking-wide">Duration</span>
+                <p className="font-medium text-black">{tripDuration} days</p>
+              </div>
+            )}
+            {hasBudgetAmount && (
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <span className="text-gray-600 text-xs uppercase tracking-wide">Budget</span>
+                <p className="font-medium text-black">${budgetAmount.toLocaleString()}</p>
+              </div>
+            )}
+            {(hasAdults || hasKids) && (
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <span className="text-gray-600 text-xs uppercase tracking-wide">Travelers</span>
+                <p className="font-medium text-black">{adults + kids} people</p>
+              </div>
+            )}
           </div>
+
+          {!hasFrom && !hasBudgetAmount && !hasAdults && !hasTripDuration && !(hasStartDate && hasEndDate) && (
+            <p className="mt-3 text-xs text-gray-500">
+              Only destination was provided — use{' '}
+              <Link href="/plan-trip" className="text-purple-600 underline">
+                Plan Trip
+              </Link>{' '}
+              to set origin, dates, budget, and travelers for more tailored suggestions.
+            </p>
+          )}
           
           {/* Additional Details */}
           {additionalDetails && (
@@ -518,6 +546,7 @@ function SuggestionsContent() {
                             startDate: startDate || undefined,
                             endDate: endDate || undefined,
                             vibe: vibe || vibes[0] || undefined,
+                            suggestion,
                             // Multi-city: pass the real ordered city list so the hub
                             // renders separate stop cards instead of one destination.
                             stops:

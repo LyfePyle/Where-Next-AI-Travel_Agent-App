@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { isPaymentsEnabled } from '@/lib/payments'
 
 // Initialize Stripe inside the function to avoid build-time issues
 function getStripe() {
@@ -19,6 +20,13 @@ function getStripe() {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isPaymentsEnabled()) {
+      return NextResponse.json(
+        { error: 'Payments are disabled. Booking is affiliate-only right now.' },
+        { status: 403 }
+      )
+    }
+
     // Initialize Stripe
     const stripe = getStripe()
     

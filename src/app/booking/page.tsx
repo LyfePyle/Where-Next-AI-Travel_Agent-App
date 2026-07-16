@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
 
 /** Matches normalized shape from GET /api/trips/[id] */
 type Trip = {
@@ -80,6 +81,21 @@ function BookingPageContent() {
 
   const handleProceed = (e: React.FormEvent) => {
     e.preventDefault();
+    // Affiliate-only mode: skip the payment step. Send the user to their trip's
+    // Book tab (all categories) if we have a trip, else a partner hotel search.
+    if (!isPaymentsEnabled()) {
+      if (tripId) {
+        router.push(`/my-trip/${tripId}`);
+      } else if (destination) {
+        openAffiliateRedirect('hotels', {
+          destination,
+          startDate: startDate && startDate !== 'Flexible' ? startDate : undefined,
+          endDate: endDate && endDate !== 'Flexible' ? endDate : undefined,
+          adults,
+        });
+      }
+      return;
+    }
     const params = new URLSearchParams({
       tripId: tripId ?? '',
       destination,

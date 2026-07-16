@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, Star, Wifi, Car, Coffee, Dumbbell, Calendar } from 'lucide-react';
+import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
 
 // Helper functions for hotel data transformation
 const getCityCode = async (destination: string): Promise<string> => {
@@ -192,6 +193,15 @@ function HotelBookingPageContent() {
   }, [destination, checkin, checkout]);
 
   const handleBookHotel = (hotel: HotelOption) => {
+    // Affiliate-only mode: open a pre-filled partner hotel search in a new tab.
+    if (!isPaymentsEnabled()) {
+      openAffiliateRedirect('hotels', {
+        destination,
+        startDate: checkin,
+        endDate: checkout,
+      });
+      return;
+    }
     // Route to checkout page with hotel details
     const checkoutUrl = `/booking/checkout?${new URLSearchParams({
       type: 'hotel',

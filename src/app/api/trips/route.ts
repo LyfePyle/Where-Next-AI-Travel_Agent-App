@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { buildTripPreview, isPreviewEmpty } from '@/lib/trip-preview';
 
 type TripPayload = {
   title?: string;
@@ -8,6 +9,8 @@ type TripPayload = {
   startDate?: string | null;
   endDate?: string | null;
   budgetAmount?: number | null;
+  from?: string;
+  vibe?: string;
   travelers?: {
     adults?: number;
     children?: number;
@@ -87,13 +90,21 @@ export async function POST(req: NextRequest) {
       body.suggestion?.kids ??
       0;
 
-    // Minimal `trips` shape (matches DBs with only: id, user_id, title, destination,
-    // start_date, end_date, travelers, budget_cents). Do not insert columns that aren't in the table.
     const travelersCount = adults + kids;
     const budgetCents =
       budgetAmount != null && Number.isFinite(Number(budgetAmount))
         ? Math.round(Number(budgetAmount) * 100)
         : null;
+    const budgetDollars =
+      budgetAmount != null && Number.isFinite(Number(budgetAmount))
+        ? Number(budgetAmount)
+        : null;
+    const vibe = body.vibe ?? body.suggestion?.vibe ?? null;
+
+    // Persist the AI preview content (description / whyItFits / highlights / cost bands)
+    // into the `suggestions` jsonb column so the trip renders fully when reopened by ID
+    // — not just when arriving fresh from a suggestion click with URL params.
+    const preview = buildTripPreview({ ...(body.suggestion ?? {}), from: body.from });
 
     const { data, error } = await supabase
       .from('trips')
@@ -105,6 +116,12 @@ export async function POST(req: NextRequest) {
         end_date: endDate,
         travelers: travelersCount,
         budget_cents: budgetCents,
+        budget_amount: budgetDollars,
+        adults,
+        kids,
+        vibe,
+        status: 'saved',
+        suggestions: isPreviewEmpty(preview) ? {} : preview,
       })
       .select()
       .single();

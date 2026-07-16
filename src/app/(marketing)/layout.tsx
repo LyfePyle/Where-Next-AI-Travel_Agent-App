@@ -1,5 +1,4 @@
 import { Metadata } from 'next';
-import TopNav from '@/components/marketing/TopNav';
 import Footer from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
@@ -19,7 +18,7 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="min-h-screen bg-white">
-      <TopNav />
+      {/* Nav is rendered globally by the root layout's <GlobalNav />. */}
       <main className="flex-1">
         {children}
       </main>

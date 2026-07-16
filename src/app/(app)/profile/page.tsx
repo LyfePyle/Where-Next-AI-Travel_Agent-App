@@ -63,20 +63,25 @@ export default function ProfilePage() {
           .eq('user_id', user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') { // Not found error
-          console.error('Error loading preferences:', error);
-        } else if (prefsData) {
+        const defaultPrefs: UserPreferences = {
+          budget_style: 'comfortable',
+          travel_preferences: [],
+          home_location: '',
+          preferred_currency: 'USD',
+          notification_settings: { email: true, push: false },
+          privacy_settings: { analytics: true, marketing: false }
+        };
+
+        if (prefsData) {
           setPreferences(prefsData);
         } else {
-          // Create default preferences if none exist
-          const defaultPrefs = {
-            budget_style: 'comfortable' as const,
-            travel_preferences: [],
-            home_location: '',
-            preferred_currency: 'USD',
-            notification_settings: { email: true, push: false },
-            privacy_settings: { analytics: true, marketing: false }
-          };
+          // PGRST116 = no row yet for this user; PGRST205 = table not migrated.
+          // Both are expected states that just mean "fall back to defaults".
+          if (error && error.code !== 'PGRST116' && error.code !== 'PGRST205') {
+            console.error(
+              `Error loading preferences: ${error.message} (code: ${error.code})`
+            );
+          }
           setPreferences(defaultPrefs);
         }
       }

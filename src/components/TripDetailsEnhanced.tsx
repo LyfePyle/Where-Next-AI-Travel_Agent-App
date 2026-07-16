@@ -117,6 +117,16 @@ export default function TripDetailsEnhanced({
           endDate: endDate || undefined,
           vibe: vibe || undefined,
           title: `${destination.split(',')[0]?.trim() || destination} Trip`,
+          // Persist the AI preview content so the saved trip renders fully on reopen.
+          description: description || undefined,
+          highlights: highlights && highlights.length ? highlights : undefined,
+          whyItFits: whyItFits || undefined,
+          crowdLevel: crowdLevel || undefined,
+          seasonality: seasonality || undefined,
+          weatherTemp: weatherTemp ?? undefined,
+          weatherIcon: weatherIcon || undefined,
+          flightBand: flightBand || undefined,
+          hotelBand: hotelBand || undefined,
         }),
       });
 

@@ -13,6 +13,10 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
+# Payments feature flag. 'false' = affiliate-only (Stripe checkout disabled,
+# Book buttons route to partner affiliate links). Set 'true' to enable Stripe.
+NEXT_PUBLIC_ENABLE_PAYMENTS=false
+
 # Stripe (test mode for local/preview)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key

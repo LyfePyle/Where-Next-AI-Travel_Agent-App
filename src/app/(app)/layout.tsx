@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import AppNavigation from '@/components/app/AppNavigation';
 import BottomTabs from '@/components/app/BottomTabs';
 
 interface AppLayoutProps {
@@ -47,7 +46,7 @@ export default async function AppLayout({ children }: AppLayoutProps) {
         </div>
       )}
       
-      <AppNavigation />
+      {/* Nav is rendered globally by the root layout's <GlobalNav />. */}
 
       {/* Main Content */}
       <div className="lg:pt-16">

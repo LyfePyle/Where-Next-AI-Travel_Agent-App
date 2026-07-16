@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
 import { tripDestinationSummary, TripStop } from '@/types/trip';
 import { createClient } from '@/utils/supabase/client';
+import { isPaymentsEnabled } from '@/lib/payments';
 
 interface Booking {
   id: string;
@@ -533,15 +534,32 @@ export default function DashboardPage() {
             <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-sm text-amber-800 flex-1">
-              You have {pending.length} booking{pending.length !== 1 ? 's' : ''} awaiting payment.
-            </p>
-            <Link
-              href="/booking/checkout"
-              className="text-xs font-bold text-amber-700 hover:text-amber-900 underline"
-            >
-              Complete payment
-            </Link>
+            {isPaymentsEnabled() ? (
+              <>
+                <p className="text-sm text-amber-800 flex-1">
+                  You have {pending.length} booking{pending.length !== 1 ? 's' : ''} awaiting payment.
+                </p>
+                <Link
+                  href="/booking/checkout"
+                  className="text-xs font-bold text-amber-700 hover:text-amber-900 underline"
+                >
+                  Complete payment
+                </Link>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-amber-800 flex-1">
+                  You have {pending.length} booking{pending.length !== 1 ? 's' : ''} from before we moved to
+                  affiliate booking. Open the trip to book flights, hotels and tours through our partners.
+                </p>
+                <Link
+                  href="/saved"
+                  className="text-xs font-bold text-amber-700 hover:text-amber-900 underline whitespace-nowrap"
+                >
+                  Affiliate booking coming soon
+                </Link>
+              </>
+            )}
           </div>
         )}
 

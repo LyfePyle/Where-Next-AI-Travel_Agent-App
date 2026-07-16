@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ShoppingCart, Plus, Minus, Trash2, CreditCard } from 'lucide-react';
+import { isPaymentsEnabled } from '@/lib/payments';
 
 interface CartItem {
   id: string;
@@ -127,6 +128,13 @@ export default function CartPage() {
   };
 
   const checkout = async () => {
+    if (!isPaymentsEnabled()) {
+      alert(
+        'Booking is affiliate-only right now. Open a saved trip and use the Book tab to book flights, hotels and tours through our partners.'
+      );
+      window.location.href = '/saved';
+      return;
+    }
     try {
       const response = await fetch('/api/payments/create-checkout-session', {
         method: 'POST',

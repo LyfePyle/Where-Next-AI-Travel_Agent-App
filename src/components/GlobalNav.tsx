@@ -92,7 +92,7 @@ const NAV_LINKS: NavLink[] = [
   { href: '/saved',     label: 'Saved Trips', icon: <IconSaved />,    authRequired: true },
   { href: '/tour',      label: 'Walking Tour', icon: <IconTour />,   authRequired: true },
   { href: '/dashboard', label: 'Dashboard',   icon: <IconDashboard />, authRequired: true },
-  { href: '/account',   label: 'Account',     icon: <IconAccount />,  authRequired: true },
+  { href: '/profile',   label: 'Account',     icon: <IconAccount />,  authRequired: true },
 ];
 
 // ---------------------------------------------------------------------------
@@ -165,7 +165,7 @@ function UserChip({
             </div>
           )}
           <Link
-            href="/account"
+            href="/profile"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
           >

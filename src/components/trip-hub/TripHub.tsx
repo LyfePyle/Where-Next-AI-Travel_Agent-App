@@ -423,27 +423,47 @@ function TripHubContent({ trip, booking }: TripHubProps) {
       )}
 
       <div style={{ background: '#fff', borderBottom: '1px solid #EAE3D5' }}>
-        <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex' }}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '13px 18px',
-                fontSize: 12,
-                fontFamily: 'monospace',
-                border: 'none',
-                borderBottom: `2px solid ${activeTab === tab.id ? '#D97706' : 'transparent'}`,
-                background: 'none',
-                cursor: 'pointer',
-                color: activeTab === tab.id ? '#1C1917' : '#78716C',
-                fontWeight: activeTab === tab.id ? 600 : 400,
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div
+          style={{
+            maxWidth: 760,
+            margin: '0 auto',
+            display: 'flex',
+            gap: 8,
+            padding: '10px 12px',
+            overflowX: 'auto',
+          }}
+        >
+          {TABS.map((tab) => {
+            const isTabActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                aria-current={isTabActive ? 'page' : undefined}
+                style={{
+                  padding: '10px 18px',
+                  fontSize: 14,
+                  border: 'none',
+                  borderRadius: 10,
+                  background: isTabActive ? '#1C1917' : 'transparent',
+                  cursor: 'pointer',
+                  color: isTabActive ? '#fff' : '#78716C',
+                  fontWeight: isTabActive ? 700 : 500,
+                  whiteSpace: 'nowrap',
+                  transition: 'background 0.15s, color 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isTabActive) e.currentTarget.style.background = '#F5F1E8';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isTabActive) e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

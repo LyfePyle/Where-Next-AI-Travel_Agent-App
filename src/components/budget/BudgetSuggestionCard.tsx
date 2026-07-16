@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
 
 interface BudgetBreakdown {
   flights: number;
@@ -104,6 +105,13 @@ export default function BudgetSuggestionCard({
   };
 
   const handleBookCompleteTrip = () => {
+    // Affiliate-only mode: a full-trip bundle has no single partner link, so open
+    // a pre-filled partner hotel search for the destination. (Flights / hotels /
+    // activities each have their own partner buttons below.)
+    if (!isPaymentsEnabled()) {
+      openAffiliateRedirect('hotels', { destination });
+      return;
+    }
     // Create a comprehensive trip package
     const tripPackage = {
       type: 'complete-trip',

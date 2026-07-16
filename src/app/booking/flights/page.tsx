@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plane, Clock, Users, Calendar } from 'lucide-react';
+import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
 
 // Helper functions for data transformation
 const getAirportCode = async (city: string): Promise<string> => {
@@ -222,6 +223,15 @@ function FlightBookingPageContent() {
   }, [from, to, basePrice]);
 
   const handleBookFlight = (flight: FlightOption) => {
+    // Affiliate-only mode: open a pre-filled partner flight search in a new tab.
+    if (!isPaymentsEnabled()) {
+      openAffiliateRedirect('flights', {
+        destination: to,
+        origin: from || undefined,
+        startDate: flight.departure,
+      });
+      return;
+    }
     // Route to checkout page with flight details
     const checkoutUrl = `/booking/checkout?${new URLSearchParams({
       type: 'flight',

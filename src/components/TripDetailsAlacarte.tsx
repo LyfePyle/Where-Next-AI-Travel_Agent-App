@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { analytics } from '@/lib/analytics';
+import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
 
 // Reuse pricing helpers from TripDetailsEnhanced (destination-aware)
 const getDestinationPricing = (destination: string) => {
@@ -264,6 +265,21 @@ export default function TripDetailsAlacarte({
 
   const handleBook = () => {
     if (!hasItems) return;
+    // Affiliate-only mode: send to the trip's Book tab (all categories), or a
+    // partner hotel search as fallback.
+    if (!isPaymentsEnabled()) {
+      if (tripId) {
+        router.push(`/my-trip/${tripId}`);
+      } else if (destination && destination !== 'Your trip') {
+        openAffiliateRedirect('hotels', {
+          destination,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          adults,
+        });
+      }
+      return;
+    }
     router.push(`/booking?${bookingParams.toString()}`);
   };
 

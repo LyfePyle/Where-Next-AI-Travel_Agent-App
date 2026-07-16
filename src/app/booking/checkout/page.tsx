@@ -3,6 +3,7 @@
 import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Plane, Hotel, UtensilsCrossed, MapPin, Calendar, Users, DollarSign, Shield } from 'lucide-react';
+import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
 
 function CheckoutPageInner() {
   const searchParams = useSearchParams();
@@ -82,7 +83,51 @@ function CheckoutPageInner() {
     router.back();
   };
 
+  const paymentsOn = isPaymentsEnabled();
+  const origin = searchParams.get('from') || searchParams.get('origin') || '';
+  const bookingDestination = tripPackage?.destination || destination;
+
+  // Affiliate-only mode: route to the right partner search instead of Stripe.
+  const handleAffiliateBooking = () => {
+    if (type === 'flight' && bookingDestination) {
+      openAffiliateRedirect('flights', {
+        destination: bookingDestination,
+        startDate,
+        endDate,
+        adults: travelersData.adults,
+        origin: origin || undefined,
+        tripId: tripId || undefined,
+      });
+      return;
+    }
+    if (type === 'hotel' && bookingDestination) {
+      openAffiliateRedirect('hotels', {
+        destination: bookingDestination,
+        startDate,
+        endDate,
+        adults: travelersData.adults,
+        tripId: tripId || undefined,
+      });
+      return;
+    }
+    // Bundles / unknown: send to the trip's Book tab (all categories) if we have
+    // a real trip, otherwise fall back to hotels for the destination.
+    if (tripId) {
+      router.push(`/my-trip/${tripId}`);
+      return;
+    }
+    if (bookingDestination) {
+      openAffiliateRedirect('hotels', { destination: bookingDestination, startDate, endDate });
+      return;
+    }
+    alert('Booking is affiliate-only right now — open a saved trip to see booking links.');
+  };
+
   const handlePay = async () => {
+    if (!paymentsOn) {
+      handleAffiliateBooking();
+      return;
+    }
     if (totalAmount <= 0) {
       alert('Please confirm your trip total before paying.');
       return;
@@ -448,10 +493,13 @@ function CheckoutPageInner() {
         )}
       </section>
 
-      {/* Payment: Pay now redirects to Stripe Checkout */}
+      {/* Payment: Pay now redirects to Stripe Checkout (when enabled), otherwise
+          to our partner booking links. */}
       <section className="rounded-lg border p-4 space-y-4">
         <p className="text-sm text-gray-700">
-          You will be redirected to Stripe to complete payment securely. Test card: 4242 4242 4242 4242.
+          {paymentsOn
+            ? 'You will be redirected to Stripe to complete payment securely. Test card: 4242 4242 4242 4242.'
+            : 'We\u2019ll take you to our travel partners to complete your booking in a new tab.'}
         </p>
 
         <div className="flex items-center justify-between gap-3 pt-2">
@@ -469,7 +517,7 @@ function CheckoutPageInner() {
             className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
             disabled={loading}
           >
-            {loading ? 'Processing…' : 'Pay now →'}
+            {loading ? 'Processing…' : paymentsOn ? 'Pay now →' : 'Book with our partners →'}
           </button>
         </div>
       </section>

@@ -11,6 +11,7 @@ import {
   tripToSearchParams,
   TripPlan,
 } from '@/types/trip';
+import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -513,6 +514,21 @@ export default function MultiStopTripDetails({
   }
 
   function handleBook() {
+    // Affiliate-only mode: bundles have no single partner link, so send the user
+    // to the trip's Book tab (all categories), or a partner hotel search as fallback.
+    if (!isPaymentsEnabled()) {
+      if (tripId) {
+        router.push(`/my-trip/${tripId}`);
+      } else if (stops[0]?.destination) {
+        openAffiliateRedirect('hotels', {
+          destination: stops[0].destination,
+          startDate: stops[0].startDate || undefined,
+          endDate: stops[0].endDate || undefined,
+          adults,
+        });
+      }
+      return;
+    }
     const plan: TripPlan = { stops, adults, kids, budgetAmount, vibe };
     const params = tripToSearchParams(plan, tripId);
     router.push(`/booking?${params.toString()}`);

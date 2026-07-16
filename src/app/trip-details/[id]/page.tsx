@@ -7,6 +7,7 @@ import { createServerClient } from '@supabase/ssr';
 import type { Metadata } from 'next';
 import TripDetailsEnhanced from '@/components/TripDetailsEnhanced';
 import { stopsFromSearchParams } from '@/types/trip';
+import { buildTripPreview } from '@/lib/trip-preview';
 import { TripDetailsMultiStopShell } from './TripDetailsMultiStop';
 
 function spGet(
@@ -93,25 +94,51 @@ export default async function TripDetailsPage({
     budgetRaw != null && budgetRaw !== '' ? Number(budgetRaw) : undefined;
   const vibe = (dbTrip?.vibe as string) ?? spGet(sp, 'vibe') ?? undefined;
 
-  const description = spGet(sp, 'description');
-  const whyItFits = spGet(sp, 'whyItFits');
-  const fitScore = spGet(sp, 'fitScore') ? Number(spGet(sp, 'fitScore')) : undefined;
-  const weatherTemp = spGet(sp, 'weatherTemp') ? Number(spGet(sp, 'weatherTemp')) : undefined;
-  const weatherIcon = spGet(sp, 'weatherIcon');
-  const crowdLevel = spGet(sp, 'crowdLevel') as 'Low' | 'Medium' | 'High' | undefined;
-  const seasonality = spGet(sp, 'seasonality');
+  // Rehydrate AI content from the persisted `suggestions` blob so a saved trip renders
+  // fully even when opened by ID without the rich URL params. URL params (fresh from a
+  // suggestion click) always win; the stored preview is the fallback.
+  const preview = buildTripPreview(
+    dbTrip?.suggestions && typeof dbTrip.suggestions === 'object'
+      ? (dbTrip.suggestions as Record<string, unknown>)
+      : null
+  );
+
+  const description = spGet(sp, 'description') ?? preview.description;
+  const whyItFits = spGet(sp, 'whyItFits') ?? preview.whyItFits;
+  const fitScore = spGet(sp, 'fitScore') ? Number(spGet(sp, 'fitScore')) : preview.fitScore;
+  const weatherTemp = spGet(sp, 'weatherTemp')
+    ? Number(spGet(sp, 'weatherTemp'))
+    : preview.weatherTemp;
+  const weatherIcon = spGet(sp, 'weatherIcon') ?? preview.weatherIcon;
+  const crowdLevel =
+    (spGet(sp, 'crowdLevel') as 'Low' | 'Medium' | 'High' | undefined) ?? preview.crowdLevel;
+  const seasonality = spGet(sp, 'seasonality') ?? preview.seasonality;
 
   const highlights = spGet(sp, 'highlights')
     ? spGet(sp, 'highlights')!
         .split(',')
         .map((h) => h.trim())
         .filter(Boolean)
-    : undefined;
+    : preview.highlights;
 
-  const flightBandMin = spGet(sp, 'flightMin') ? Number(spGet(sp, 'flightMin')) : undefined;
-  const flightBandMax = spGet(sp, 'flightMax') ? Number(spGet(sp, 'flightMax')) : undefined;
-  const hotelBandMin = spGet(sp, 'hotelMin') ? Number(spGet(sp, 'hotelMin')) : undefined;
-  const hotelBandMax = spGet(sp, 'hotelMax') ? Number(spGet(sp, 'hotelMax')) : undefined;
+  const urlFlightMin = spGet(sp, 'flightMin') ? Number(spGet(sp, 'flightMin')) : undefined;
+  const urlFlightMax = spGet(sp, 'flightMax') ? Number(spGet(sp, 'flightMax')) : undefined;
+  const flightBand =
+    urlFlightMin !== undefined && urlFlightMax !== undefined
+      ? { min: urlFlightMin, max: urlFlightMax }
+      : preview.flightBand;
+
+  const urlHotelMin = spGet(sp, 'hotelMin') ? Number(spGet(sp, 'hotelMin')) : undefined;
+  const urlHotelMax = spGet(sp, 'hotelMax') ? Number(spGet(sp, 'hotelMax')) : undefined;
+  const hotelBand =
+    urlHotelMin !== undefined && urlHotelMax !== undefined
+      ? {
+          min: urlHotelMin,
+          max: urlHotelMax,
+          style: spGet(sp, 'hotelStyle') ?? preview.hotelBand?.style,
+          area: spGet(sp, 'hotelArea') ?? preview.hotelBand?.area,
+        }
+      : preview.hotelBand;
 
   return (
     <TripDetailsEnhanced
@@ -130,21 +157,8 @@ export default async function TripDetailsPage({
       seasonality={seasonality}
       weatherTemp={weatherTemp}
       weatherIcon={weatherIcon}
-      flightBand={
-        flightBandMin !== undefined && flightBandMax !== undefined
-          ? { min: flightBandMin, max: flightBandMax }
-          : undefined
-      }
-      hotelBand={
-        hotelBandMin !== undefined && hotelBandMax !== undefined
-          ? {
-              min: hotelBandMin,
-              max: hotelBandMax,
-              style: spGet(sp, 'hotelStyle'),
-              area: spGet(sp, 'hotelArea'),
-            }
-          : undefined
-      }
+      flightBand={flightBand}
+      hotelBand={hotelBand}
     />
   );
 }

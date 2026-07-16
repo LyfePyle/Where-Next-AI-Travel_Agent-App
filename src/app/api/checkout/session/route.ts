@@ -2,12 +2,20 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import Stripe from "stripe";
+import { isPaymentsEnabled } from "@/lib/payments";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2024-12-18.acacia",
 });
 
 export async function POST(req: Request) {
+  if (!isPaymentsEnabled()) {
+    return NextResponse.json(
+      { error: "Payments are disabled. Booking is affiliate-only right now." },
+      { status: 403 }
+    );
+  }
+
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

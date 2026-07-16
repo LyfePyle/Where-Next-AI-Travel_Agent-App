@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { parseDestinationToStops } from '@/lib/stop-parser';
+import { buildTripPreview, isPreviewEmpty } from '@/lib/trip-preview';
 
 interface SavedTrip {
   id: string;
@@ -178,6 +179,11 @@ export async function POST(request: NextRequest) {
         ? body.stops
         : parseDestinationToStops(destination, startDate || '', endDate || '');
 
+    // Persist the AI preview content so the trip-details page renders in full when the
+    // trip is later reopened by ID (accepts either a whole `suggestion` object or the
+    // flatter fields sent by the suggestions/trip-details save buttons).
+    const preview = buildTripPreview({ ...(body.suggestion ?? {}), ...body });
+
     const { data: newTrip, error } = await supabase
       .from('trips')
       .insert({
@@ -193,6 +199,7 @@ export async function POST(request: NextRequest) {
         vibe: body.vibe ?? null,
         stops: stops.length > 0 ? stops : null,
         status: 'saved',
+        suggestions: isPreviewEmpty(preview) ? {} : preview,
       })
       .select()
       .single();

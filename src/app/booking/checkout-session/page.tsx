@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { isPaymentsEnabled } from '@/lib/payments'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -65,6 +66,11 @@ function CheckoutSessionContent() {
 
   const handleCheckout = async () => {
     if (!bookingDetails) return
+
+    if (!isPaymentsEnabled()) {
+      setError('Payments are currently disabled — booking is affiliate-only. Please use the Book tab on your trip to book through our partners.')
+      return
+    }
 
     setRedirecting(true)
     setError('')

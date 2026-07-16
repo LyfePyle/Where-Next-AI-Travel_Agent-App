@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, CreditCard, CheckCircle } from 'lucide-react'
+import { isPaymentsEnabled } from '@/lib/payments'
 
 export default function TestPaymentPage() {
   const [loading, setLoading] = useState(false)
@@ -22,6 +23,10 @@ export default function TestPaymentPage() {
   }
 
   const handleTestCheckout = async () => {
+    if (!isPaymentsEnabled()) {
+      setError('Payments are disabled (affiliate-only mode). Set NEXT_PUBLIC_ENABLE_PAYMENTS=true to test Stripe checkout.')
+      return
+    }
     setLoading(true)
     setError('')
     setSuccess(false)

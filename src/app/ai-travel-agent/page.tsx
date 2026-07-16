@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
 import { 
   Plane, 
   Hotel, 
@@ -290,6 +291,13 @@ export default function AITravelAgentPage() {
   };
 
   const handleBookFlight = (flight: FlightInspiration) => {
+    if (!isPaymentsEnabled()) {
+      openAffiliateRedirect('flights', {
+        destination: flight.destination,
+        origin: flight.origin || undefined,
+      });
+      return;
+    }
     const checkoutUrl = `/booking/checkout?${new URLSearchParams({
       type: 'flight',
       item: encodeURIComponent(JSON.stringify({
@@ -340,6 +348,10 @@ export default function AITravelAgentPage() {
   };
 
   const handleBookHotel = (hotel: HotelInspiration) => {
+    if (!isPaymentsEnabled()) {
+      openAffiliateRedirect('hotels', { destination: hotel.location });
+      return;
+    }
     const checkoutUrl = `/booking/checkout?${new URLSearchParams({
       type: 'hotel',
       item: encodeURIComponent(JSON.stringify({

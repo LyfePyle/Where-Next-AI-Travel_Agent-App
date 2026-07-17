@@ -6,8 +6,23 @@ import Link from 'next/link';
 import { useStreamingSuggestions, type TripSuggestion } from '@/hooks/useStreamingSuggestions';
 import { useToast, ToastContainer } from '@/hooks/useToast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { stopsFromSearchParams } from '@/types/trip';
+import { stopsFromSearchParams, type TripStop } from '@/types/trip';
 import { distributeStops } from '@/lib/stop-parser';
+
+function resolveStopsForSave(
+  suggestion: TripSuggestion,
+  urlStops: TripStop[],
+  startDate: string,
+  endDate: string
+): TripStop[] | undefined {
+  const filledUrlStops = urlStops.filter((s) => s.destination.trim());
+  if (filledUrlStops.length > 1) return filledUrlStops;
+  if (suggestion.stops && suggestion.stops.length > 1) {
+    return distributeStops(suggestion.stops, startDate || '', endDate || '');
+  }
+  if (filledUrlStops.length === 1) return filledUrlStops;
+  return undefined;
+}
 
 function SuggestionsContent() {
   const searchParams = useSearchParams();
@@ -479,12 +494,26 @@ function SuggestionsContent() {
                       const previewPath = `/trip-details/new?${params.toString()}`;
 
                       try {
+                        const resolvedStops = resolveStopsForSave(
+                          suggestion,
+                          stops,
+                          startDate || '',
+                          endDate || ''
+                        );
                         const response = await fetch('/api/trips', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
                             suggestion,
                             selections: [],
+                            destination: suggestion.destination,
+                            startDate: startDate || undefined,
+                            endDate: endDate || undefined,
+                            budgetAmount,
+                            from,
+                            vibe: vibe || undefined,
+                            travelers: { adults, kids },
+                            stops: resolvedStops,
                           }),
                         });
 
@@ -529,11 +558,18 @@ function SuggestionsContent() {
                       button.classList.add('opacity-50', 'cursor-not-allowed');
                       
                       try {
+                        const resolvedStops = resolveStopsForSave(
+                          suggestion,
+                          stops,
+                          startDate || '',
+                          endDate || ''
+                        );
                         const response = await fetch('/api/trips/saved', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
                             destination: suggestion.destination,
+                            budgetAmount,
                             estimatedCost: suggestion.estimatedTotal,
                             reason: suggestion.whyItFits,
                             fitScore: suggestion.fitScore,
@@ -547,12 +583,7 @@ function SuggestionsContent() {
                             endDate: endDate || undefined,
                             vibe: vibe || vibes[0] || undefined,
                             suggestion,
-                            // Multi-city: pass the real ordered city list so the hub
-                            // renders separate stop cards instead of one destination.
-                            stops:
-                              suggestion.stops && suggestion.stops.length > 1
-                                ? distributeStops(suggestion.stops, startDate || '', endDate || '')
-                                : undefined,
+                            stops: resolvedStops,
                           }),
                         });
 

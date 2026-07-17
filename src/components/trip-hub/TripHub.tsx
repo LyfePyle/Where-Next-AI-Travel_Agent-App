@@ -9,6 +9,11 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getAffiliateLinks, type AffiliateLink as AffiliateLinkData } from '@/lib/affiliates';
 import AffiliateLink from '@/components/AffiliateLink';
+import {
+  getStopPreviewForDestination,
+  parseStoredSuggestions,
+  type StopPreview,
+} from '@/lib/trip-preview';
 
 export interface TripStop {
   id: string;
@@ -29,6 +34,8 @@ export interface Trip {
   budget_amount?: number;
   vibe?: string;
   stops?: TripStop[];
+  /** Persisted AI preview blob from trips.suggestions */
+  suggestions?: unknown;
   status: string;
   created_at: string;
   user_id?: string;
@@ -246,6 +253,8 @@ function TripHubContent({ trip, booking }: TripHubProps) {
             endDate: trip.end_date || '',
           },
         ];
+
+  const { overview: tripOverview, stopPreviews } = parseStoredSuggestions(trip.suggestions);
 
   const primaryDestination = stops[0]?.destination || trip.destination;
   const totalNights = nights(trip.start_date, trip.end_date);
@@ -556,7 +565,29 @@ function TripHubContent({ trip, booking }: TripHubProps) {
 
             <div style={{ marginBottom: '1.75rem' }}>
               <SectionTitle>{stops.length > 1 ? 'Your stops' : 'Destination'}</SectionTitle>
-              {stops.map((stop, i) => (
+              {stops.length > 1 && tripOverview.description && (
+                <p
+                  style={{
+                    fontSize: 14,
+                    color: '#57534E',
+                    lineHeight: 1.5,
+                    marginBottom: 12,
+                    padding: '10px 12px',
+                    background: '#FAFAF9',
+                    borderRadius: 8,
+                    border: '1px solid #EAE3D5',
+                  }}
+                >
+                  {tripOverview.description}
+                </p>
+              )}
+              {stops.map((stop, i) => {
+                const stopPreview: StopPreview | undefined = getStopPreviewForDestination(
+                  stopPreviews,
+                  stop.destination,
+                  i
+                );
+                return (
                 <div
                   key={stop.id}
                   style={{
@@ -566,7 +597,7 @@ function TripHubContent({ trip, booking }: TripHubProps) {
                     padding: '1rem 1.25rem',
                     display: 'flex',
                     gap: 14,
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     marginBottom: 8,
                     boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                   }}
@@ -584,11 +615,12 @@ function TripHubContent({ trip, booking }: TripHubProps) {
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
+                      marginTop: 2,
                     }}
                   >
                     {i + 1}
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 2 }}>
                       {stop.destination}
                     </div>
@@ -599,6 +631,36 @@ function TripHubContent({ trip, booking }: TripHubProps) {
                           : `${fmtShort(trip.start_date)} – ${fmt(trip.end_date, { day: 'numeric', month: 'short', year: 'numeric' })}`}
                       </div>
                     ) : null}
+                    {stopPreview?.description && (
+                      <p style={{ fontSize: 13, color: '#57534E', marginTop: 8, lineHeight: 1.45 }}>
+                        {stopPreview.description}
+                      </p>
+                    )}
+                    {stopPreview?.highlights && stopPreview.highlights.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                        {stopPreview.highlights.slice(0, 4).map((h, hi) => (
+                          <span
+                            key={`${stop.id}-hl-${hi}`}
+                            style={{
+                              fontSize: 11,
+                              background: '#F5F0E8',
+                              color: '#57534E',
+                              padding: '2px 8px',
+                              borderRadius: 999,
+                            }}
+                          >
+                            {h}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {stopPreview?.hotelBand && (
+                      <div style={{ fontSize: 11, color: '#78716C', marginTop: 6 }}>
+                        Hotels ${stopPreview.hotelBand.min.toLocaleString()}–$
+                        {stopPreview.hotelBand.max.toLocaleString()}/night
+                        {stopPreview.hotelBand.area ? ` · ${stopPreview.hotelBand.area}` : ''}
+                      </div>
+                    )}
                   </div>
                   {stop.startDate && stop.endDate && (
                     <div
@@ -610,14 +672,37 @@ function TripHubContent({ trip, booking }: TripHubProps) {
                         padding: '3px 8px',
                         borderRadius: 6,
                         whiteSpace: 'nowrap',
+                        flexShrink: 0,
                       }}
                     >
                       {nights(stop.startDate, stop.endDate)} nights
                     </div>
                   )}
                 </div>
-              ))}
+              );
+              })}
             </div>
+
+            {tripOverview.description && stops.length <= 1 && (
+              <div style={{ marginBottom: '1.75rem' }}>
+                <SectionTitle>Trip overview</SectionTitle>
+                <p style={{ fontSize: 14, color: '#57534E', lineHeight: 1.5 }}>{tripOverview.description}</p>
+                {tripOverview.whyItFits && (
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: '#1E3A8A',
+                      background: '#EFF6FF',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      marginTop: 8,
+                    }}
+                  >
+                    {tripOverview.whyItFits}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div style={{ marginBottom: '1.75rem' }}>
               <SectionTitle>Weather</SectionTitle>

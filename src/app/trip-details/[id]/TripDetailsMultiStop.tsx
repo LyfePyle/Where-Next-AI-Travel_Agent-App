@@ -3,9 +3,15 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { stopsFromSearchParams, TripStop } from '@/types/trip';
+import {
+  getStopPreviewForDestination,
+  parseStoredSuggestions,
+  type StopPreview,
+  type TripPreview,
+} from '@/lib/trip-preview';
 import MultiStopTripDetails from '@/components/MultiStopTripDetails';
 
-/** Multi-stop itinerary view (legacy booking UI per stop). */
+/** Multi-stop itinerary view with per-stop AI content rehydrated from DB. */
 export default function TripDetailsMultiStop() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -17,6 +23,8 @@ export default function TripDetailsMultiStop() {
     adults: number;
     kids: number;
   } | null>(null);
+  const [tripOverview, setTripOverview] = useState<TripPreview>({});
+  const [stopPreviews, setStopPreviews] = useState<StopPreview[]>([]);
   const lastFetchedTripId = useRef<string | null>(null);
 
   const budgetParam = searchParams.get('budgetAmount');
@@ -34,36 +42,35 @@ export default function TripDetailsMultiStop() {
   const vibe = searchParams.get('vibe') ?? undefined;
 
   useEffect(() => {
-    const stops = stopsFromSearchParams(searchParams);
-
-    if (stops.length > 0) {
-      setResolvedStops(stops);
-      setTripApiMeta(null);
-      lastFetchedTripId.current = null;
-      return;
-    }
+    const urlStops = stopsFromSearchParams(searchParams);
+    const hasUrlStops = urlStops.length > 0;
 
     if (tripId && tripId !== 'new') {
       if (lastFetchedTripId.current !== tripId) {
-        setResolvedStops(null);
+        if (!hasUrlStops) setResolvedStops(null);
         lastFetchedTripId.current = tripId;
       }
+
       let cancelled = false;
       fetch(`/api/trips/${tripId}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (cancelled) return;
-          if (data) {
-            const trip = data.trip ?? data;
-            const apiStops: TripStop[] = trip.stops ?? [
-              {
-                id: 'stop-0',
-                destination: trip.destination ?? '',
-                startDate: trip.start_date ?? '',
-                endDate: trip.end_date ?? '',
-              },
-            ];
+          if (data?.trip) {
+            const trip = data.trip;
+            const apiStops: TripStop[] =
+              hasUrlStops && urlStops.length > 0
+                ? urlStops
+                : (trip.stops?.length ? trip.stops : [
+                    {
+                      id: 'stop-0',
+                      destination: trip.destination ?? '',
+                      startDate: trip.start_date ?? '',
+                      endDate: trip.end_date ?? '',
+                    },
+                  ]);
             setResolvedStops(apiStops);
+
             const ba = trip.budget_amount;
             const budgetFromApi =
               typeof ba === 'number' && Number.isFinite(ba)
@@ -76,24 +83,48 @@ export default function TripDetailsMultiStop() {
               adults: trip.travelers?.adults ?? trip.adults ?? 1,
               kids: trip.travelers?.kids ?? trip.kids ?? 0,
             });
+
+            const parsed = parseStoredSuggestions(trip.suggestions);
+            setTripOverview(parsed.overview);
+            setStopPreviews(parsed.stopPreviews);
+          } else if (hasUrlStops) {
+            setResolvedStops(urlStops);
+            setTripApiMeta(null);
+            setTripOverview({});
+            setStopPreviews([]);
           } else {
             setResolvedStops([]);
             setTripApiMeta(null);
+            setTripOverview({});
+            setStopPreviews([]);
           }
         })
         .catch(() => {
           if (!cancelled) {
-            setResolvedStops([]);
+            setResolvedStops(hasUrlStops ? urlStops : []);
             setTripApiMeta(null);
+            setTripOverview({});
+            setStopPreviews([]);
           }
         });
       return () => {
         cancelled = true;
       };
-    } else {
-      setResolvedStops([]);
-      setTripApiMeta(null);
     }
+
+    if (hasUrlStops) {
+      setResolvedStops(urlStops);
+      setTripApiMeta(null);
+      setTripOverview({});
+      setStopPreviews([]);
+      lastFetchedTripId.current = null;
+      return;
+    }
+
+    setResolvedStops([]);
+    setTripApiMeta(null);
+    setTripOverview({});
+    setStopPreviews([]);
   }, [tripId, searchParams]);
 
   if (resolvedStops === null) {
@@ -117,6 +148,12 @@ export default function TripDetailsMultiStop() {
     );
   }
 
+  const enrichedStopPreviews = resolvedStops.map((stop, i) => {
+    const fromDb = getStopPreviewForDestination(stopPreviews, stop.destination, i);
+    if (fromDb) return fromDb;
+    return { destination: stop.destination };
+  });
+
   return (
     <MultiStopTripDetails
       stops={resolvedStops}
@@ -125,6 +162,8 @@ export default function TripDetailsMultiStop() {
       budgetAmount={budgetAmount}
       tripId={tripId !== 'new' ? tripId : undefined}
       vibe={vibe}
+      tripOverview={tripOverview}
+      stopPreviews={enrichedStopPreviews}
     />
   );
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { parseDestinationToStops } from '@/lib/stop-parser';
-import { buildTripPreview, isPreviewEmpty } from '@/lib/trip-preview';
+import { buildMultiStopSuggestionsBlob, isStoredSuggestionsEmpty } from '@/lib/trip-preview';
 
 interface SavedTrip {
   id: string;
@@ -120,16 +120,37 @@ export async function POST(request: NextRequest) {
     }
 
     const destination = body.destination;
-    const estimatedCost = body.estimatedCost || body.budget;
     const source = body.source || 'manual';
     const { reason, fitScore, tripDuration, travelers } = body;
 
-    if (!destination || !estimatedCost) {
+    // User's stated budget from plan-trip — NOT the AI itinerary estimate.
+    const userBudget =
+      typeof body.budgetAmount === 'number' && Number.isFinite(body.budgetAmount)
+        ? body.budgetAmount
+        : body.budget != null && Number.isFinite(Number(body.budget))
+          ? Number(body.budget)
+          : null;
+    const aiEstimate =
+      body.estimatedCost ??
+      (typeof body.suggestion?.estimatedTotal === 'number'
+        ? body.suggestion.estimatedTotal
+        : null);
+
+    if (!destination) {
       return NextResponse.json(
-        { error: 'Missing required fields: destination, estimatedCost (or budget)' },
+        { error: 'Missing required field: destination' },
         { status: 400 }
       );
     }
+
+    if (userBudget == null && aiEstimate == null) {
+      return NextResponse.json(
+        { error: 'Missing budget: provide budgetAmount (user budget) or estimatedCost (AI estimate)' },
+        { status: 400 }
+      );
+    }
+
+    const budgetToPersist = userBudget ?? aiEstimate!;
 
     const MAX_SAVED_TRIPS = 50;
     const { count } = await supabase
@@ -161,7 +182,7 @@ export async function POST(request: NextRequest) {
     const title = body.title || `${destination.split(',')[0]?.trim() || destination} Trip`;
     const startDate = body.startDate || null;
     const endDate = body.endDate || null;
-    const budgetCents = Math.round(Number(estimatedCost) * 100);
+    const budgetCents = Math.round(Number(budgetToPersist) * 100);
     const adultsCount =
       typeof body.adults === 'number'
         ? body.adults
@@ -179,10 +200,13 @@ export async function POST(request: NextRequest) {
         ? body.stops
         : parseDestinationToStops(destination, startDate || '', endDate || '');
 
-    // Persist the AI preview content so the trip-details page renders in full when the
-    // trip is later reopened by ID (accepts either a whole `suggestion` object or the
-    // flatter fields sent by the suggestions/trip-details save buttons).
-    const preview = buildTripPreview({ ...(body.suggestion ?? {}), ...body });
+    // Persist AI preview content (including per-stop previews for multi-city trips)
+    // so trip hub / trip-details render fully when reopened by ID.
+    const suggestionsBlob = buildMultiStopSuggestionsBlob(
+      body.suggestion ?? {},
+      stops,
+      body
+    );
 
     const { data: newTrip, error } = await supabase
       .from('trips')
@@ -192,14 +216,14 @@ export async function POST(request: NextRequest) {
         destination,
         start_date: startDate,
         end_date: endDate,
-        budget_amount: Number.isFinite(budgetCents) ? budgetCents / 100 : Number(estimatedCost),
+        budget_amount: Number.isFinite(budgetCents) ? budgetCents / 100 : Number(budgetToPersist),
         adults: adultsCount,
         kids: kidsCount,
         travelers: adultsCount + kidsCount,
         vibe: body.vibe ?? null,
         stops: stops.length > 0 ? stops : null,
         status: 'saved',
-        suggestions: isPreviewEmpty(preview) ? {} : preview,
+        suggestions: isStoredSuggestionsEmpty(suggestionsBlob) ? {} : suggestionsBlob,
       })
       .select()
       .single();

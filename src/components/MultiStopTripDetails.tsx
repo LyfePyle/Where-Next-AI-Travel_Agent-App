@@ -12,6 +12,7 @@ import {
   TripPlan,
 } from '@/types/trip';
 import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
+import type { StopPreview, TripPreview } from '@/lib/trip-preview';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -336,6 +337,49 @@ function HotelsSection({
 }
 
 // ---------------------------------------------------------------------------
+// StopPreviewSection — AI content per stop (from DB, not URL-only)
+// ---------------------------------------------------------------------------
+
+function StopPreviewSection({ preview }: { preview?: StopPreview }) {
+  if (!preview || (!preview.description && !preview.highlights?.length && !preview.hotelBand)) {
+    return null;
+  }
+
+  return (
+    <div className="mb-5 pb-5 border-b border-slate-100">
+      {preview.description && (
+        <p className="text-sm text-slate-700 leading-relaxed mb-3">{preview.description}</p>
+      )}
+      {preview.whyItFits && (
+        <p className="text-xs text-blue-900 bg-blue-50 rounded-lg px-3 py-2 mb-3">{preview.whyItFits}</p>
+      )}
+      {preview.highlights && preview.highlights.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {preview.highlights.map((h, i) => (
+            <span
+              key={`${preview.destination}-hl-${i}`}
+              className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-full"
+            >
+              {h}
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+        {preview.crowdLevel && <span>Crowd: {preview.crowdLevel}</span>}
+        {preview.seasonality && <span>{preview.seasonality}</span>}
+        {preview.hotelBand && (
+          <span>
+            Hotels ${preview.hotelBand.min.toLocaleString()}–${preview.hotelBand.max.toLocaleString()}/night
+            {preview.hotelBand.area ? ` · ${preview.hotelBand.area}` : ''}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // StopCard
 // ---------------------------------------------------------------------------
 
@@ -345,6 +389,7 @@ function StopCard({
   isLast,
   adults,
   stopState,
+  stopPreview,
   onHotelSearch,
   onHotelSelect,
 }: {
@@ -353,6 +398,7 @@ function StopCard({
   isLast: boolean;
   adults: number;
   stopState: StopState;
+  stopPreview?: StopPreview;
   onHotelSearch: () => void;
   onHotelSelect: (id: string | null) => void;
 }) {
@@ -392,6 +438,7 @@ function StopCard({
         </div>
 
         <div className="p-5">
+          <StopPreviewSection preview={stopPreview} />
           <HotelsSection
             stop={stop}
             adults={adults}
@@ -416,6 +463,8 @@ interface MultiStopTripDetailsProps {
   budgetAmount: number;
   tripId?: string;
   vibe?: string;
+  tripOverview?: TripPreview;
+  stopPreviews?: StopPreview[];
 }
 
 export default function MultiStopTripDetails({
@@ -425,6 +474,8 @@ export default function MultiStopTripDetails({
   budgetAmount,
   tripId,
   vibe,
+  tripOverview,
+  stopPreviews = [],
 }: MultiStopTripDetailsProps) {
   const router = useRouter();
 
@@ -566,6 +617,16 @@ export default function MultiStopTripDetails({
                 {adults} adult{adults !== 1 ? 's' : ''}
                 {kids > 0 ? `, ${kids} child${kids !== 1 ? 'ren' : ''}` : ''}
               </p>
+              {tripOverview?.description && (
+                <p className="text-sm text-slate-600 mt-3 max-w-2xl leading-relaxed">
+                  {tripOverview.description}
+                </p>
+              )}
+              {tripOverview?.whyItFits && (
+                <p className="text-xs text-blue-900 bg-blue-50 rounded-lg px-3 py-2 mt-2 max-w-2xl inline-block">
+                  {tripOverview.whyItFits}
+                </p>
+              )}
             </div>
             <div className="text-right">
               <p className="text-xs text-slate-500">Budget</p>
@@ -636,6 +697,7 @@ export default function MultiStopTripDetails({
                     index={i}
                     isLast={i === stops.length - 1}
                     adults={adults}
+                    stopPreview={stopPreviews[i]}
                     stopState={stopStates[stop.id] ?? {
                       hotels: [],
                       hotelsLoading: false,

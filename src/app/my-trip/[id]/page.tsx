@@ -71,6 +71,7 @@ export default async function MyTripPage({
         : undefined,
     vibe: trip.vibe ?? undefined,
     stops: Array.isArray(trip.stops) ? trip.stops : [],
+    suggestions: trip.suggestions ?? undefined,
     status: trip.status ?? 'saved',
     created_at: trip.created_at,
     user_id: trip.user_id ?? undefined,

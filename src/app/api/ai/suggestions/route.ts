@@ -221,7 +221,8 @@ TRIP TYPE: ${prefs.tripType === 'multi-country' ? 'Multi-country/region' : 'Mult
 - destination = short title, e.g. "Paris, Lyon & Nice" or "London, Paris & Amsterdam"
 - city = first or main city; country = main country or region name for multi-country
 - Include a "stops" array: ordered list of city names, e.g. ["Paris", "Lyon", "Nice"]
-- estimatedTotal and bands = for the ENTIRE multi-stop trip; description/whyItFits = describe the itinerary as a whole.`
+- estimatedTotal and bands = for the ENTIRE multi-stop trip; description/whyItFits = describe the itinerary as a whole.
+- Include "stopPreviews": array with one object per city in "stops", each with destination (city name), description (max 100 chars, unique to that city), highlights (3 items specific to that city), hotelBand {min,max,style,area} for that city.`
     : '';
 
   const destinationInstruction = hasChosenDestination
@@ -249,7 +250,7 @@ ${multiInstruction}
 ${destinationInstruction}
 
 Output ONLY a raw JSON array of 4 objects â€” no wrapper, no markdown, no explanation.
-Each object must have: id, destination, country, city, fitScore, description, weather{temp,condition,icon}, crowdLevel, seasonality, estimatedTotal, flightBand{min,max}, hotelBand{min,max,style,area}, highlights, whyItFits${isMulti ? ', stops (array of city names)' : ''}`;
+Each object must have: id, destination, country, city, fitScore, description, weather{temp,condition,icon}, crowdLevel, seasonality, estimatedTotal, flightBand{min,max}, hotelBand{min,max,style,area}, highlights, whyItFits${isMulti ? ', stops (array of city names), stopPreviews (array of per-city preview objects)' : ''}`;
 
   const userPrompt = [
     `Origin: ${prefs.from}`,

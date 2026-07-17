@@ -1,24 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import { buildTripPreview, isPreviewEmpty } from '@/lib/trip-preview';
+import {
+  buildMultiStopSuggestionsBlob,
+  isStoredSuggestionsEmpty,
+} from '@/lib/trip-preview';
+import { distributeStops } from '@/lib/stop-parser';
+import type { TripStop } from '@/types/trip';
 
 type TripPayload = {
   title?: string;
-  destination: string;
+  destination?: string;
   startDate?: string | null;
   endDate?: string | null;
   budgetAmount?: number | null;
   from?: string;
   vibe?: string;
+  stops?: TripStop[];
   travelers?: {
     adults?: number;
     children?: number;
     kids?: number;
   };
-  suggestion?: any;
-  selections?: any;
+  suggestion?: Record<string, unknown>;
+  selections?: unknown;
 };
+
+function strField(v: unknown): string | undefined {
+  return typeof v === 'string' && v.trim() ? v.trim() : undefined;
+}
+
+function numField(v: unknown, fallback: number): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
 
 async function getSupabaseClient() {
   const cookieStore = await cookies(); // ✅ FIXED: await required in Next.js 15
@@ -57,38 +72,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const suggestion = body.suggestion ?? {};
+
     const title =
       body.title ||
       body.destination ||
-      body.suggestion?.title ||
-      body.suggestion?.destination ||
+      strField(suggestion.title) ||
+      strField(suggestion.destination) ||
       'Trip';
 
     const destination =
-      body.destination || body.suggestion?.destination || 'Unknown';
+      body.destination || strField(suggestion.destination) || 'Unknown';
 
     const startDate =
-      body.startDate || body.suggestion?.startDate || null;
+      body.startDate ?? strField(suggestion.startDate) ?? null;
 
     const endDate =
-      body.endDate || body.suggestion?.endDate || null;
+      body.endDate ?? strField(suggestion.endDate) ?? null;
 
     const budgetAmount =
-      body.budgetAmount ??
-      body.suggestion?.estimatedTotal ??
-      body.suggestion?.budgetAmount ??
-      null;
+      body.budgetAmount != null && Number.isFinite(Number(body.budgetAmount))
+        ? Number(body.budgetAmount)
+        : null;
 
     const adults =
-      body.travelers?.adults ??
-      body.suggestion?.adults ??
-      2;
+      body.travelers?.adults ?? numField(suggestion.adults, 2);
 
     const kids =
       body.travelers?.kids ??
       body.travelers?.children ??
-      body.suggestion?.kids ??
-      0;
+      numField(suggestion.kids, 0);
 
     const travelersCount = adults + kids;
     const budgetCents =
@@ -99,12 +112,36 @@ export async function POST(req: NextRequest) {
       budgetAmount != null && Number.isFinite(Number(budgetAmount))
         ? Number(budgetAmount)
         : null;
-    const vibe = body.vibe ?? body.suggestion?.vibe ?? null;
+    const vibe = body.vibe ?? strField(suggestion.vibe) ?? null;
 
-    // Persist the AI preview content (description / whyItFits / highlights / cost bands)
-    // into the `suggestions` jsonb column so the trip renders fully when reopened by ID
-    // — not just when arriving fresh from a suggestion click with URL params.
-    const preview = buildTripPreview({ ...(body.suggestion ?? {}), from: body.from });
+    const resolvedStops: TripStop[] =
+      Array.isArray(body.stops) && body.stops.length > 0
+        ? body.stops
+        : Array.isArray(suggestion.stops) &&
+            (suggestion.stops as unknown[]).length > 1
+          ? distributeStops(
+              suggestion.stops as string[],
+              startDate ?? '',
+              endDate ?? ''
+            )
+          : destination
+            ? [
+                {
+                  id: 'stop-0',
+                  destination,
+                  startDate: startDate ?? '',
+                  endDate: endDate ?? '',
+                },
+              ]
+            : [];
+
+    // Persist AI preview content (including per-stop previews for multi-city trips)
+    // into trips.suggestions so reopening by ID shows full content — not URL-only.
+    const suggestionsBlob = buildMultiStopSuggestionsBlob(suggestion, resolvedStops, {
+      from: body.from,
+      reason: suggestion.whyItFits,
+      bestTime: suggestion.seasonality,
+    });
 
     const { data, error } = await supabase
       .from('trips')
@@ -120,8 +157,9 @@ export async function POST(req: NextRequest) {
         adults,
         kids,
         vibe,
+        stops: resolvedStops.length > 0 ? resolvedStops : null,
         status: 'saved',
-        suggestions: isPreviewEmpty(preview) ? {} : preview,
+        suggestions: isStoredSuggestionsEmpty(suggestionsBlob) ? {} : suggestionsBlob,
       })
       .select()
       .single();
@@ -138,7 +176,10 @@ export async function POST(req: NextRequest) {
             destination,
             start_date: startDate,
             end_date: endDate,
-            budget_cents: budgetAmount ? Math.round(budgetAmount * 100) : null,
+            budget_cents:
+              budgetAmount != null && Number.isFinite(Number(budgetAmount))
+                ? Math.round(Number(budgetAmount) * 100)
+                : null,
             currency: 'usd',
             preferences: {
               suggestion: body.suggestion,

@@ -16,6 +16,8 @@ export type NormalizedTrip = {
   adults?: number;
   kids?: number;
   vibe?: string | null;
+  /** Persisted AI preview blob (single-stop flat or multi-stop structured). */
+  suggestions?: unknown;
 };
 
 async function supabaseServer() {
@@ -53,6 +55,7 @@ function normalizeFromTrips(row: any): NormalizedTrip {
     adults,
     kids,
     vibe: row.vibe ?? null,
+    suggestions: row.suggestions ?? undefined,
   };
 }
 

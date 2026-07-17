@@ -7,6 +7,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import StopsBuilder, { makeEmptyStop } from '@/components/StopsBuilder';
+import type { TripStop } from '@/types/trip';
 
 const VIBES = [
   { value: 'adventure', label: '🏔 Adventure' },
@@ -52,6 +54,11 @@ export default function PlanTripPage() {
   const [additionalDetails, setAdditionalDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [originError, setOriginError] = useState('');
+  const [multiStops, setMultiStops] = useState<TripStop[]>(() => [
+    makeEmptyStop(0),
+    makeEmptyStop(4),
+    makeEmptyStop(8),
+  ]);
 
   const isSurprise = tripStyle === 'surprise';
   const isMulti = tripStyle === 'multi';
@@ -86,23 +93,50 @@ export default function PlanTripPage() {
     }
 
     // Destination only applies to single + multi (a region is fine for multi).
-    if (!isSurprise && destination.trim()) {
-      params.set(
-        'stops',
-        JSON.stringify([
-          {
-            id: 'stop-main',
-            destination: destination.trim(),
-            startDate: startDate || '',
-            endDate: endDate || '',
-          },
-        ])
-      );
-      params.set('destination', destination.trim());
+    if (!isSurprise) {
+      if (isMulti) {
+        const validStops = multiStops.filter((s) => s.destination.trim());
+        if (validStops.length > 0) {
+          params.set('stops', JSON.stringify(validStops));
+          params.set('destination', validStops.map((s) => s.destination).join(' → '));
+          const first = validStops[0];
+          const last = validStops[validStops.length - 1];
+          if (first.startDate) params.set('startDate', first.startDate);
+          if (last.endDate) params.set('endDate', last.endDate);
+        } else if (destination.trim()) {
+          params.set(
+            'stops',
+            JSON.stringify([
+              {
+                id: 'stop-main',
+                destination: destination.trim(),
+                startDate: startDate || '',
+                endDate: endDate || '',
+              },
+            ])
+          );
+          params.set('destination', destination.trim());
+        }
+      } else if (destination.trim()) {
+        params.set(
+          'stops',
+          JSON.stringify([
+            {
+              id: 'stop-main',
+              destination: destination.trim(),
+              startDate: startDate || '',
+              endDate: endDate || '',
+            },
+          ])
+        );
+        params.set('destination', destination.trim());
+      }
     }
 
-    if (startDate) params.set('startDate', startDate);
-    if (endDate) params.set('endDate', endDate);
+    if (!isMulti || multiStops.every((s) => !s.destination.trim())) {
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
+    }
     if (vibes.length) params.set('vibes', vibes.join(','));
     if (additionalDetails.trim()) params.set('additionalDetails', additionalDetails.trim());
 
@@ -324,12 +358,29 @@ export default function PlanTripPage() {
             </FormSection>
           )}
 
+          {isMulti && (
+            <FormSection
+              step={3.5}
+              title="Your stops"
+              subtitle="Add 2 or more cities with dates — or leave blank and AI will suggest a route"
+              optional
+            >
+              <StopsBuilder stops={multiStops} onChange={setMultiStops} maxStops={8} />
+            </FormSection>
+          )}
+
           <FormSection
             step={4}
             title="When are you travelling?"
             optional
-            subtitle="Helps the AI check seasonality and pricing"
+            subtitle={
+              isMulti && multiStops.some((s) => s.destination.trim())
+                ? 'Overall dates are set per stop above; these apply when you only name a region'
+                : 'Helps the AI check seasonality and pricing'
+            }
           >
+            {!(isMulti && multiStops.some((s) => s.destination.trim())) && (
+            <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Departure</label>
@@ -363,6 +414,8 @@ export default function PlanTripPage() {
               >
                 {tripNights} night{tripNights !== 1 ? 's' : ''} away
               </div>
+            )}
+            </>
             )}
           </FormSection>
 

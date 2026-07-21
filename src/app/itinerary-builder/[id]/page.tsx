@@ -1050,11 +1050,11 @@ function ItineraryBuilderContent() {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
                 <Link
-                  href={`/booking/confirmation?destination=${encodeURIComponent(destination)}&startDate=${startDate}&endDate=${endDate}&travelers=${travelers}&totalCost=${itinerary?.totalCost || 3500}`}
+                  href={`/booking/confirmation?destination=${encodeURIComponent(destination)}&startDate=${startDate}&endDate=${endDate}&travelers=${travelers}&budget=${itinerary?.totalCost || ''}`}
                   className="bg-white text-purple-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center justify-center space-x-2"
                 >
-                  <span>🎯</span>
-                  <span>Book Complete Trip</span>
+                  <span>📋</span>
+                  <span>View trip summary</span>
                 </Link>
                 
                 <button

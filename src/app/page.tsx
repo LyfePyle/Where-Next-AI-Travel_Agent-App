@@ -641,7 +641,7 @@ export default function NewHomePage() {
                                 )}
                               </button>
                               <Link
-                                href="/flight-booking"
+                                href="/plan-trip"
                                 className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border-2 border-purple-600 text-purple-700 text-sm font-semibold hover:bg-purple-50 transition-colors"
                               >
                                 Book flights
@@ -1031,7 +1031,7 @@ export default function NewHomePage() {
                 Compare prices across airlines and find the cheapest flights. Real-time pricing from trusted partners like Amadeus.
               </p>
               <div className="flex justify-center mt-auto">
-                <Link href="/flight-booking" className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
+                <Link href="/plan-trip" className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
                   Find Flights
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
@@ -1269,7 +1269,6 @@ export default function NewHomePage() {
                 <li><Link href="/plan-trip" className="text-gray-300 hover:text-white transition-colors text-lg block">Trip Planning</Link></li>
                 <li><Link href="/budget" className="text-gray-300 hover:text-white transition-colors text-lg block">Budget Tracker</Link></li>
                 <li><Link href="/ai-travel-agent" className="text-gray-300 hover:text-white transition-colors text-lg block">AI Agent</Link></li>
-                <li><Link href="/flight-booking" className="text-gray-300 hover:text-white transition-colors text-lg block">Flight Booking</Link></li>
               </ul>
             </div>
 

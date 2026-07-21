@@ -11,7 +11,6 @@ const footerSections = [
       { label: 'Trip Planning', href: '/product/trip-planning' },
       { label: 'Budget Tracker', href: '/budget' },
       { label: 'AI Agent', href: '/product/ai-agent' },
-      { label: 'Flight Booking', href: '/product/flight-booking' },
     ]
   },
   {

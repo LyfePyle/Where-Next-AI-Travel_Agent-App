@@ -8,6 +8,7 @@ import { useToast, ToastContainer } from '@/hooks/useToast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { stopsFromSearchParams, type TripStop } from '@/types/trip';
 import { distributeStops } from '@/lib/stop-parser';
+import CompareSummaryBlock from '@/components/suggestions/CompareSummaryBlock';
 
 function resolveStopsForSave(
   suggestion: TripSuggestion,
@@ -27,7 +28,8 @@ function resolveStopsForSave(
 function SuggestionsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { suggestions, isLoading, isStreaming, dataSource, fetchSuggestions, error } = useStreamingSuggestions();
+  const { suggestions, compareSummary, isLoading, isStreaming, dataSource, fetchSuggestions, error } =
+    useStreamingSuggestions();
   const { toasts, addToast, removeToast } = useToast();
 
   const stops = stopsFromSearchParams(searchParams);
@@ -380,6 +382,8 @@ function SuggestionsContent() {
             <span>Finding more destinations for you...</span>
           </div>
         )}
+
+        {compareSummary && <CompareSummaryBlock summary={compareSummary} />}
 
         {/* Suggestions Grid */}
         {suggestions.length > 0 ? (

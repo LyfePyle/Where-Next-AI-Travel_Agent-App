@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import type { CompareSummary } from '@/lib/compare-summary';
 
 export interface TripSuggestion {
   id: string;
@@ -34,6 +35,7 @@ export type SuggestionsError = {
 
 interface UseStreamingSuggestionsReturn {
   suggestions: TripSuggestion[];
+  compareSummary: CompareSummary | null;
   isLoading: boolean;
   isStreaming: boolean;
   dataSource: DataSource;
@@ -44,6 +46,7 @@ interface UseStreamingSuggestionsReturn {
 
 export function useStreamingSuggestions(): UseStreamingSuggestionsReturn {
   const [suggestions, setSuggestions] = useState<TripSuggestion[]>([]);
+  const [compareSummary, setCompareSummary] = useState<CompareSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [dataSource, setDataSource] = useState<DataSource>('mock');
@@ -58,6 +61,7 @@ export function useStreamingSuggestions(): UseStreamingSuggestionsReturn {
     setIsLoading(true);
     setIsStreaming(false);
     setSuggestions([]);
+    setCompareSummary(null);
     setError(null);
 
     try {
@@ -108,7 +112,9 @@ export function useStreamingSuggestions(): UseStreamingSuggestionsReturn {
             try {
               const event = JSON.parse(trimmed);
 
-              if (event.type === 'suggestion' && event.data) {
+              if (event.type === 'compare' && event.data?.compare) {
+                setCompareSummary(event.data as CompareSummary);
+              } else if (event.type === 'suggestion' && event.data) {
                 const suggestion = event.data as TripSuggestion;
                 suggestion.id = suggestion.id || `stream_${Date.now()}_${Math.random()}`;
 
@@ -169,9 +175,19 @@ export function useStreamingSuggestions(): UseStreamingSuggestionsReturn {
 
   const clearSuggestions = useCallback(() => {
     setSuggestions([]);
+    setCompareSummary(null);
     setError(null);
     setDataSource('mock');
   }, []);
 
-  return { suggestions, isLoading, isStreaming, dataSource, error, fetchSuggestions, clearSuggestions };
+  return {
+    suggestions,
+    compareSummary,
+    isLoading,
+    isStreaming,
+    dataSource,
+    error,
+    fetchSuggestions,
+    clearSuggestions,
+  };
 }

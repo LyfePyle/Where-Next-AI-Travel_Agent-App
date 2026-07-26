@@ -5,6 +5,8 @@ import { suggestionCache, generateCacheKey, cacheMetrics } from '@/lib/cache';
 import { getWeatherForCity } from '@/lib/weather';
 import { getCurrencyForLocale, getExchangeRate } from '@/lib/exchange';
 import { rateLimit } from '@/lib/rate-limit';
+import { hasCompareIntent } from '@/lib/compare-intent';
+import { fetchCompareSummary } from '@/lib/compare-summary';
 import seedSuggestions from '@/data/seed/suggestions.json';
 
 export const runtime = 'nodejs';
@@ -72,6 +74,22 @@ function applyCurrency(
         }
       : suggestion.hotelBand,
   };
+}
+
+async function maybeEnqueueCompare(
+  prefs: ReturnType<typeof normalizePrefs>,
+  enqueue: (obj: object) => void
+): Promise<void> {
+  if (
+    !openai ||
+    !hasCompareIntent(prefs.additionalDetails, prefs.destination ?? undefined)
+  ) {
+    return;
+  }
+  const summary = await fetchCompareSummary(openai, prefs);
+  if (summary) {
+    enqueue({ type: 'compare', data: summary });
+  }
 }
 
 function getClientIp(req: Request) {
@@ -152,13 +170,16 @@ export async function POST(req: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         const enc = new TextEncoder();
+        const enqueue = (obj: object) =>
+          controller.enqueue(enc.encode(JSON.stringify(obj) + '\n'));
+        await maybeEnqueueCompare(prefs, enqueue);
         for (const s of cachedSuggestions as any[]) {
           const enriched = await enrichWeather(s);
           const priced = applyCurrency(enriched, exchange);
-          controller.enqueue(enc.encode(JSON.stringify({ type: 'suggestion', data: priced, source: 'cache' }) + '\n'));
+          enqueue({ type: 'suggestion', data: priced, source: 'cache' });
           await new Promise((r) => setTimeout(r, 80));
         }
-        controller.enqueue(enc.encode(JSON.stringify({ type: 'done' }) + '\n'));
+        enqueue({ type: 'done' });
         controller.close();
       },
     });
@@ -277,6 +298,8 @@ Each object must have: id, destination, country, city, fitScore, description, we
         controller.enqueue(encoder.encode(JSON.stringify(obj) + '\n'));
 
       try {
+        await maybeEnqueueCompare(prefs, enqueue);
+
         const aiStream = await openai!.chat.completions.create({
           model: 'gpt-4o-mini',
           temperature: skipCache ? 0.85 : 0.7,

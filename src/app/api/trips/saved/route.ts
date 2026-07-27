@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { parseDestinationToStops } from '@/lib/stop-parser';
+import { serializeStopsForDb } from '@/lib/trip-stops';
 import { buildMultiStopSuggestionsBlob, isStoredSuggestionsEmpty } from '@/lib/trip-preview';
 
 interface SavedTrip {
@@ -200,6 +201,8 @@ export async function POST(request: NextRequest) {
         ? body.stops
         : parseDestinationToStops(destination, startDate || '', endDate || '');
 
+    const stopsForDb = serializeStopsForDb(stops);
+
     // Persist AI preview content (including per-stop previews for multi-city trips)
     // so trip hub / trip-details render fully when reopened by ID.
     const suggestionsBlob = buildMultiStopSuggestionsBlob(
@@ -221,7 +224,7 @@ export async function POST(request: NextRequest) {
         kids: kidsCount,
         travelers: adultsCount + kidsCount,
         vibe: body.vibe ?? null,
-        stops: stops.length > 0 ? stops : null,
+        stops: stopsForDb,
         status: 'saved',
         suggestions: isStoredSuggestionsEmpty(suggestionsBlob) ? {} : suggestionsBlob,
       })

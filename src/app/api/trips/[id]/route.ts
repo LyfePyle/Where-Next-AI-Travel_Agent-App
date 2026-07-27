@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { normalizeTripStopsFromRow } from "@/lib/trip-stops";
+import type { TripStop } from "@/types/trip";
 
 /** Normalized shape returned to the booking page (and any client). */
 export type NormalizedTrip = {
@@ -11,8 +13,8 @@ export type NormalizedTrip = {
   end_date: string | null;
   travelers: { adults: number; kids: number };
   budget_amount: number | null;
-  /** Multi-stop array when present (from trips.stops JSONB). */
-  stops?: Array<{ id: string; destination: string; startDate: string; endDate: string }>;
+  /** Normalized stops (always at least one; legacy rows synthesized). */
+  stops: TripStop[];
   adults?: number;
   kids?: number;
   vibe?: string | null;
@@ -51,7 +53,7 @@ function normalizeFromTrips(row: any): NormalizedTrip {
         : row.budget_amount != null
           ? Number(row.budget_amount)
           : null,
-    stops: Array.isArray(row.stops) && row.stops.length > 0 ? row.stops : undefined,
+    stops: normalizeTripStopsFromRow(row),
     adults,
     kids,
     vibe: row.vibe ?? null,
@@ -90,6 +92,7 @@ function normalizeFromSavedTrips(row: any): NormalizedTrip {
           : null,
     adults,
     kids,
+    stops: normalizeTripStopsFromRow(row),
   };
 }
 

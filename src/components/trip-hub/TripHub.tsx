@@ -14,14 +14,10 @@ import {
   parseStoredSuggestions,
   type StopPreview,
 } from '@/lib/trip-preview';
+import { normalizeTripStopsFromRow } from '@/lib/trip-stops';
+import type { TripStop } from '@/types/trip';
 
-export interface TripStop {
-  id: string;
-  destination: string;
-  startDate: string;
-  endDate: string;
-  notes?: string;
-}
+export type { TripStop };
 
 export interface Trip {
   id: string;
@@ -242,17 +238,13 @@ function TripHubContent({ trip, booking }: TripHubProps) {
     tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : 'overview'
   );
 
-  const stops: TripStop[] =
-    Array.isArray(trip.stops) && trip.stops.length > 0
-      ? trip.stops
-      : [
-          {
-            id: 'main',
-            destination: trip.destination || trip.title || 'Your destination',
-            startDate: trip.start_date || '',
-            endDate: trip.end_date || '',
-          },
-        ];
+  const stops: TripStop[] = normalizeTripStopsFromRow({
+    destination: trip.destination,
+    title: trip.title,
+    start_date: trip.start_date,
+    end_date: trip.end_date,
+    stops: trip.stops,
+  });
 
   const { overview: tripOverview, stopPreviews } = parseStoredSuggestions(trip.suggestions);
 

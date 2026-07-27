@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { TripStop, tripDestinationSummary, tripStartDate, tripEndDate } from '@/types/trip';
+import { serializeStopsForDb } from '@/lib/trip-stops';
 
 /**
  * POST /api/trips/save — writes to `trips` (must match /saved page query).
@@ -67,6 +68,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No stops provided' }, { status: 400 });
     }
 
+    const stopsForDb = serializeStopsForDb(stops) ?? stops;
+
     const destination = body.title ?? tripDestinationSummary(stops);
     const startDate = tripStartDate(stops);
     const endDate = tripEndDate(stops);
@@ -82,7 +85,7 @@ export async function POST(req: NextRequest) {
       kids: body.kids ?? prefs?.kids ?? 0,
       budget_amount: body.budgetAmount ?? prefs?.budgetAmount ?? body.tripDetail?.estimatedTotal ?? null,
       vibe: body.vibe ?? prefs?.vibes?.[0] ?? null,
-      stops,
+      stops: stopsForDb,
       status: 'saved',
       user_id: userId,
     };

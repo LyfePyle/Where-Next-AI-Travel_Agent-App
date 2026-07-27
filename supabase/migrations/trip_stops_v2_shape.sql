@@ -1,0 +1,23 @@
+-- =============================================================================
+-- Documentation: trips.stops JSONB v2 shape (comment-only — no DDL)
+-- Run is optional; documents the enriched stop object for Stage 1+.
+-- Existing rows are unchanged; new fields are optional on read/write.
+-- =============================================================================
+--
+-- Each element in trips.stops is a TripStop object:
+--
+-- {
+--   "id": "stop-0",              -- required, stable key for UI lists
+--   "destination": "Monteverde, Costa Rica",  -- required display string
+--   "startDate": "2026-03-01",   -- ISO date YYYY-MM-DD
+--   "endDate": "2026-03-07",     -- ISO date YYYY-MM-DD
+--   "country": "Costa Rica",     -- optional; inferred from destination if omitted
+--   "city": "Monteverde",        -- optional; inferred from "City, Country" if omitted
+--   "order": 0,                  -- optional; explicit sort order within trip
+--   "notes": "..."               -- optional user notes
+-- }
+--
+-- Legacy trips: stops is null; app synthesizes one stop from
+-- destination + start_date + end_date at read time (see src/lib/trip-stops.ts).
+--
+-- No ALTER TABLE, no COMMENT ON, no CHECK constraints, no data migration required.

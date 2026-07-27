@@ -12,12 +12,9 @@
  *     comma alone usually means "City, Country", not multiple destinations.
  */
 
-export interface TripStop {
-  id: string;
-  destination: string;
-  startDate: string;
-  endDate: string;
-}
+import type { TripStop } from '@/types/trip';
+
+export type { TripStop };
 
 /** Spread a date range across an ordered list of city names, proportionally. */
 export function distributeStops(
@@ -28,7 +25,7 @@ export function distributeStops(
   const clean = names.map((n) => n.trim()).filter(Boolean);
   if (clean.length === 0) return [];
   if (clean.length === 1) {
-    return [{ id: 'stop-0', destination: clean[0], startDate, endDate }];
+    return [{ id: 'stop-0', destination: clean[0], startDate, endDate, order: 0 }];
   }
 
   const start = startDate ? new Date(startDate) : null;
@@ -52,7 +49,7 @@ export function distributeStops(
       stopEnd = i === clean.length - 1 ? endDate : e.toISOString().split('T')[0];
     }
 
-    return { id: `stop-${i}`, destination: dest, startDate: stopStart, endDate: stopEnd };
+    return { id: `stop-${i}`, destination: dest, startDate: stopStart, endDate: stopEnd, order: i };
   });
 }
 
@@ -71,7 +68,7 @@ export function parseDestinationToStops(
 
   const hasListSeparator = /\s&\s|\s+and\s+|→/i.test(dest);
   if (!hasListSeparator) {
-    return [{ id: 'stop-0', destination: dest, startDate, endDate }];
+    return [{ id: 'stop-0', destination: dest, startDate, endDate, order: 0 }];
   }
 
   const names = dest

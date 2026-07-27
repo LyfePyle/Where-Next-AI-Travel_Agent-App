@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import TripHub from '@/components/trip-hub/TripHub';
+import { normalizeTripStopsFromRow } from '@/lib/trip-stops';
 
 export const metadata: Metadata = {
   title: 'Trip Hub — Where Next',
@@ -70,7 +71,7 @@ export default async function MyTripPage({
         ? Number(trip.budget_cents) / 100
         : undefined,
     vibe: trip.vibe ?? undefined,
-    stops: Array.isArray(trip.stops) ? trip.stops : [],
+    stops: normalizeTripStopsFromRow(trip),
     suggestions: trip.suggestions ?? undefined,
     status: trip.status ?? 'saved',
     created_at: trip.created_at,

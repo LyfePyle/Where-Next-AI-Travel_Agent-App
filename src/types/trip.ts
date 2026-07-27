@@ -8,12 +8,20 @@
 export interface TripStop {
   /** Unique key for React list rendering */
   id: string;
-  /** Human-readable destination name, e.g. "Paris, France" */
+  /** ISO 3166-style or display country, e.g. "Costa Rica" */
+  country?: string;
+  /** City or place name without country, e.g. "Monteverde" */
+  city?: string;
+  /** Human-readable destination name, e.g. "Monteverde, Costa Rica" */
   destination: string;
   /** ISO date string YYYY-MM-DD */
   startDate: string;
   /** ISO date string YYYY-MM-DD */
   endDate: string;
+  /** Explicit ordering within the trip (0-based) */
+  order?: number;
+  /** Optional user notes (Trip Hub) */
+  notes?: string;
 }
 
 export interface TripPlan {

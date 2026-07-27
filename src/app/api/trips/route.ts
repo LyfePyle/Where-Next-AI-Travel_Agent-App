@@ -6,6 +6,7 @@ import {
   isStoredSuggestionsEmpty,
 } from '@/lib/trip-preview';
 import { distributeStops } from '@/lib/stop-parser';
+import { serializeStopsForDb } from '@/lib/trip-stops';
 import type { TripStop } from '@/types/trip';
 
 type TripPayload = {
@@ -135,6 +136,8 @@ export async function POST(req: NextRequest) {
               ]
             : [];
 
+    const stopsForDb = serializeStopsForDb(resolvedStops);
+
     // Persist AI preview content (including per-stop previews for multi-city trips)
     // into trips.suggestions so reopening by ID shows full content — not URL-only.
     const suggestionsBlob = buildMultiStopSuggestionsBlob(suggestion, resolvedStops, {
@@ -157,7 +160,7 @@ export async function POST(req: NextRequest) {
         adults,
         kids,
         vibe,
-        stops: resolvedStops.length > 0 ? resolvedStops : null,
+        stops: stopsForDb,
         status: 'saved',
         suggestions: isStoredSuggestionsEmpty(suggestionsBlob) ? {} : suggestionsBlob,
       })

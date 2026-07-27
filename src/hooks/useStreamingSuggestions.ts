@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import type { CompareSummary } from '@/lib/compare-summary';
+import type { StopPreview } from '@/lib/trip-preview';
 
 export interface TripSuggestion {
   id: string;
@@ -20,6 +21,8 @@ export interface TripSuggestion {
   whyItFits: string;
   /** Multi-destination: ordered list of city names */
   stops?: string[];
+  /** Per-city preview content from AI (multi-stop trips) */
+  stopPreviews?: StopPreview[];
   currency?: string;
   exchangeRate?: number;
   exchangeSource?: 'live' | 'fallback';

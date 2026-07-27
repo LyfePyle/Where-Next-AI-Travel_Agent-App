@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, Suspense, useRef, useState } from 'react';
+import { useCallback, useEffect, Suspense, useRef, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStreamingSuggestions, type TripSuggestion } from '@/hooks/useStreamingSuggestions';
@@ -9,6 +9,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { stopsFromSearchParams, type TripStop } from '@/types/trip';
 import { distributeStops } from '@/lib/stop-parser';
 import CompareSummaryBlock from '@/components/suggestions/CompareSummaryBlock';
+import SuggestionsDrillDown from '@/components/suggestions/SuggestionsDrillDown';
+import { buildDrillDownView } from '@/lib/suggestion-drilldown';
 
 function resolveStopsForSave(
   suggestion: TripSuggestion,
@@ -142,6 +144,36 @@ function SuggestionsContent() {
   const prefsKey = searchParams.toString();
   const [refreshKey, setRefreshKey] = useState(0);
   const skipCacheOnFetch = useRef(false);
+  const [activeLane, setActiveLane] = useState<string | null>(null);
+  const [selectedCityIds, setSelectedCityIds] = useState<Set<string>>(() => new Set());
+
+  const drillDownView = useMemo(
+    () => buildDrillDownView(stops, suggestions, compareSummary, destination),
+    [stops, suggestions, compareSummary, destination]
+  );
+
+  const primarySuggestion = useMemo(() => {
+    if (!suggestions.length) return null;
+    const withStops = suggestions.filter((s) => s.stops && s.stops.length >= 2);
+    if (withStops.length === 0) return suggestions[0];
+    return withStops.reduce((best, s) =>
+      (s.stops?.length ?? 0) > (best.stops?.length ?? 0) ? s : best
+    );
+  }, [suggestions]);
+
+  const toggleCitySelection = useCallback((cityId: string) => {
+    setSelectedCityIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cityId)) next.delete(cityId);
+      else next.add(cityId);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    setActiveLane(null);
+    setSelectedCityIds(new Set());
+  }, [prefsKey, refreshKey]);
 
   useEffect(() => {
     fetchSuggestions(buildFetchParams({ skipCache: skipCacheOnFetch.current }));
@@ -383,10 +415,42 @@ function SuggestionsContent() {
           </div>
         )}
 
-        {compareSummary && <CompareSummaryBlock summary={compareSummary} />}
+        {compareSummary && (
+          <CompareSummaryBlock
+            summary={compareSummary}
+            activeLane={activeLane}
+            onLaneSelect={setActiveLane}
+          />
+        )}
 
-        {/* Suggestions Grid */}
+        {drillDownView && suggestions.length > 0 && (
+          <SuggestionsDrillDown
+            mode={drillDownView.mode}
+            countryGroups={drillDownView.countryGroups}
+            primarySuggestion={primarySuggestion}
+            compareSummary={compareSummary}
+            activeLane={activeLane}
+            selectedCityIds={selectedCityIds}
+            onToggleCity={toggleCitySelection}
+          />
+        )}
+
+        {/* Trip itinerary options — unchanged save/detail cards */}
         {suggestions.length > 0 ? (
+          <>
+            {drillDownView && (
+              <div className="flex items-center gap-3 mb-4 mt-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <span className="text-sm">🗺️</span>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-black">Trip itinerary options</h2>
+                  <p className="text-sm text-gray-500">
+                    Full AI itineraries — save or explore details below
+                  </p>
+                </div>
+              </div>
+            )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {suggestions.map((suggestion) => (
             <div key={suggestion.id} className="trip-card bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden hover:shadow-2xl hover:border-purple-300 transition-all duration-300 transform hover:scale-[1.02]">
@@ -657,6 +721,7 @@ function SuggestionsContent() {
             </div>
           ))}
           </div>
+          </>
         ) : (
           <div className="text-center py-16">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">

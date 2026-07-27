@@ -4,9 +4,15 @@ import type { CompareSummary } from '@/lib/compare-summary';
 
 interface CompareSummaryBlockProps {
   summary: CompareSummary;
+  activeLane?: string | null;
+  onLaneSelect?: (label: string) => void;
 }
 
-export default function CompareSummaryBlock({ summary }: CompareSummaryBlockProps) {
+export default function CompareSummaryBlock({
+  summary,
+  activeLane = null,
+  onLaneSelect,
+}: CompareSummaryBlockProps) {
   return (
     <section className="mb-8">
       <div className="flex items-center gap-3 mb-4">
@@ -27,10 +33,21 @@ export default function CompareSummaryBlock({ summary }: CompareSummaryBlockProp
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {summary.options.map((option) => (
-          <div
+        {summary.options.map((option) => {
+          const isActive = activeLane === option.label;
+          return (
+          <button
+            type="button"
             key={option.label}
-            className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-4 flex flex-col h-full hover:border-purple-200 transition-colors"
+            onClick={() => onLaneSelect?.(option.label)}
+            disabled={!onLaneSelect}
+            className={`bg-white rounded-xl border-2 shadow-sm p-4 flex flex-col h-full text-left transition-colors ${
+              onLaneSelect ? 'cursor-pointer hover:border-purple-300' : 'cursor-default'
+            } ${
+              isActive
+                ? 'border-purple-500 ring-2 ring-purple-200'
+                : 'border-gray-200 hover:border-purple-200'
+            }`}
           >
             <h3 className="text-base font-bold text-black mb-1">{option.label}</h3>
             {option.forWho && (
@@ -72,8 +89,14 @@ export default function CompareSummaryBlock({ summary }: CompareSummaryBlockProp
               <span className="font-medium text-gray-900">Best if: </span>
               {option.bestIf}
             </p>
-          </div>
-        ))}
+            {onLaneSelect && (
+              <p className="text-xs text-purple-600 font-medium mt-2">
+                {isActive ? '✓ Lane selected — cities filtered below' : 'Tap to focus this lane'}
+              </p>
+            )}
+          </button>
+        );
+        })}
       </div>
 
       <div className="mt-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200">

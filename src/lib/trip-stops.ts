@@ -132,6 +132,30 @@ export function serializeStopsForDb(stops: TripStop[]): TripStop[] | null {
   return normalized.map((s, i) => ({ ...s, order: s.order ?? i }));
 }
 
+/** Stable key for duplicate detection: ordered city|country pairs. */
+export function stopSetFingerprint(stops: TripStop[]): string {
+  const normalized = serializeStopsForDb(stops);
+  if (!normalized?.length) return '';
+  return normalized
+    .slice()
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((s) => {
+      const city = (s.city || s.destination.split(',')[0]).trim().toLowerCase();
+      const country = (s.country || '').trim().toLowerCase();
+      return `${city}|${country}`;
+    })
+    .join(';;');
+}
+
+/** Fingerprint from raw trips.stops JSONB (for server-side duplicate checks). */
+export function fingerprintFromStopsJson(raw: unknown): string {
+  if (!Array.isArray(raw) || raw.length === 0) return '';
+  const stops = raw
+    .map((s, i) => normalizeStop(s, i))
+    .filter((s): s is TripStop => s !== null);
+  return stopSetFingerprint(stops);
+}
+
 /** Group normalized stops by country for Stage 2 drill-down UI. */
 export function groupStopsByCountry(stops: TripStop[]): CountryStopGroup[] {
   const groups = new Map<string, TripStop[]>();
@@ -145,4 +169,75 @@ export function groupStopsByCountry(stops: TripStop[]): CountryStopGroup[] {
     country,
     stops: countryStops.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
   }));
+}
+
+function isoAddDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function nightsBetween(start: string, end: string): number {
+  const s = new Date(`${start}T12:00:00`);
+  const e = new Date(`${end}T12:00:00`);
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
+  return Math.max(0, Math.round((e.getTime() - s.getTime()) / 86_400_000));
+}
+
+/**
+ * Split a trip date range evenly across ordered stops.
+ * Shared boundary days: stop N ends on the same day stop N+1 starts (checkout/check-in).
+ * Remainder nights go on the last stop only; last stop always ends on tripEnd.
+ */
+export function assignDatesAcrossStops(
+  stops: TripStop[],
+  tripStart: string,
+  tripEnd: string
+): TripStop[] {
+  if (stops.length === 0) return [];
+  if (stops.length === 1) {
+    return [
+      {
+        ...stops[0],
+        startDate: tripStart || stops[0].startDate,
+        endDate: tripEnd || stops[0].endDate,
+        order: 0,
+      },
+    ];
+  }
+  if (!tripStart || !tripEnd) {
+    return stops.map((s, i) => ({ ...s, order: i }));
+  }
+
+  const totalNights = Math.max(1, nightsBetween(tripStart, tripEnd));
+  const n = stops.length;
+  const base = Math.floor(totalNights / n);
+  const remainder = totalNights % n;
+
+  let cursor = tripStart;
+  return stops.map((stop, i) => {
+    const nights = i === n - 1 ? base + remainder : base;
+    const startDate = cursor;
+    const endDate = i === n - 1 ? tripEnd : isoAddDays(cursor, nights);
+    cursor = endDate;
+    return { ...stop, startDate, endDate, order: i };
+  });
+}
+
+/** Auto-title from distinct countries in stop order, e.g. "Costa Rica & Nicaragua". */
+export function titleFromCountries(stops: TripStop[]): string {
+  const seen = new Set<string>();
+  const countries: string[] = [];
+  for (const s of stops) {
+    const c = s.country?.trim();
+    if (c && !seen.has(c.toLowerCase())) {
+      seen.add(c.toLowerCase());
+      countries.push(c);
+    }
+  }
+  if (countries.length === 0) {
+    const first = stops[0]?.destination.split(',')[0]?.trim();
+    return first || 'Your trip';
+  }
+  return countries.join(' & ');
 }

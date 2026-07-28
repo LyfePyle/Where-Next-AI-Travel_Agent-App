@@ -6,11 +6,16 @@ import Link from 'next/link';
 import { useStreamingSuggestions, type TripSuggestion } from '@/hooks/useStreamingSuggestions';
 import { useToast, ToastContainer } from '@/hooks/useToast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { stopsFromSearchParams, type TripStop } from '@/types/trip';
+import { stopsFromSearchParams, tripDestinationSummary, type TripStop } from '@/types/trip';
 import { distributeStops } from '@/lib/stop-parser';
+import { serializeStopsForDb, titleFromCountries } from '@/lib/trip-stops';
 import CompareSummaryBlock from '@/components/suggestions/CompareSummaryBlock';
 import SuggestionsDrillDown from '@/components/suggestions/SuggestionsDrillDown';
-import { buildDrillDownView } from '@/lib/suggestion-drilldown';
+import {
+  buildDrillDownView,
+  buildStopsFromSelection,
+  suggestionPayloadForSelection,
+} from '@/lib/suggestion-drilldown';
 
 function resolveStopsForSave(
   suggestion: TripSuggestion,
@@ -146,6 +151,7 @@ function SuggestionsContent() {
   const skipCacheOnFetch = useRef(false);
   const [activeLane, setActiveLane] = useState<string | null>(null);
   const [selectedCityIds, setSelectedCityIds] = useState<Set<string>>(() => new Set());
+  const [isSavingSelection, setIsSavingSelection] = useState(false);
 
   const drillDownView = useMemo(
     () => buildDrillDownView(stops, suggestions, compareSummary, destination),
@@ -169,6 +175,122 @@ function SuggestionsContent() {
       return next;
     });
   }, []);
+
+  const handleSaveSelected = useCallback(async () => {
+    if (!drillDownView || selectedCityIds.size === 0) {
+      alert('Select at least one city to save as a trip.');
+      return;
+    }
+
+    const effectiveEndDate =
+      endDate ||
+      (startDate && tripDuration
+        ? (() => {
+            const d = new Date(`${startDate}T12:00:00`);
+            d.setDate(d.getDate() + tripDuration);
+            return d.toISOString().split('T')[0];
+          })()
+        : '');
+
+    if (!startDate || !effectiveEndDate) {
+      alert(
+        'Add trip start and end dates on Plan Trip before saving a multi-stop trip.'
+      );
+      return;
+    }
+
+    const builtStops = buildStopsFromSelection(
+      drillDownView.countryGroups,
+      selectedCityIds,
+      primarySuggestion,
+      startDate,
+      effectiveEndDate
+    );
+
+    if (!builtStops || builtStops.length === 0) {
+      alert('Could not build a valid trip from your selection. Try selecting different cities.');
+      return;
+    }
+
+    const serialized = serializeStopsForDb(builtStops);
+    if (!serialized || serialized.length === 0) {
+      alert('Could not build a valid trip from your selection. Try selecting different cities.');
+      return;
+    }
+
+    const countryTitle = titleFromCountries(serialized);
+    const destination = tripDestinationSummary(serialized);
+    const title = `${countryTitle} Trip`;
+    const suggestionPayload = suggestionPayloadForSelection(primarySuggestion, serialized);
+
+    setIsSavingSelection(true);
+    try {
+      const response = await fetch('/api/trips/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination,
+          title,
+          budgetAmount,
+          estimatedCost: primarySuggestion?.estimatedTotal ?? budgetAmount,
+          reason: primarySuggestion?.whyItFits,
+          fitScore: primarySuggestion?.fitScore,
+          bestTime: primarySuggestion?.seasonality,
+          source: 'suggestions',
+          tripDuration,
+          travelers: adults + kids,
+          adults,
+          kids,
+          startDate,
+          endDate: effectiveEndDate,
+          vibe: vibe || vibes[0] || undefined,
+          suggestion: suggestionPayload,
+          stops: serialized,
+        }),
+      });
+
+      if (response.ok) {
+        window.location.href = '/saved';
+        return;
+      }
+
+      if (response.status === 401) {
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/auth/login?next=${returnUrl}`;
+        return;
+      }
+
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 409) {
+        alert(
+          `ℹ️ ${errorData.error || 'A similar trip is already saved.'}\n\nCheck your Saved Trips page.`
+        );
+      } else if (response.status === 429) {
+        alert(`🚫 ${errorData.error || 'Save limit reached. Please try again later.'}`);
+      } else {
+        alert(
+          `❌ ${errorData.error || errorData.message || 'Failed to save trip. Please try again.'}`
+        );
+      }
+    } catch (err: unknown) {
+      console.error('Error saving selected trip:', err);
+      alert('❌ Network error. Please check your connection and try again.');
+    } finally {
+      setIsSavingSelection(false);
+    }
+  }, [
+    drillDownView,
+    selectedCityIds,
+    startDate,
+    endDate,
+    tripDuration,
+    primarySuggestion,
+    budgetAmount,
+    adults,
+    kids,
+    vibe,
+    vibes,
+  ]);
 
   useEffect(() => {
     setActiveLane(null);
@@ -432,6 +554,8 @@ function SuggestionsContent() {
             activeLane={activeLane}
             selectedCityIds={selectedCityIds}
             onToggleCity={toggleCitySelection}
+            onSaveSelected={handleSaveSelected}
+            isSavingSelection={isSavingSelection}
           />
         )}
 

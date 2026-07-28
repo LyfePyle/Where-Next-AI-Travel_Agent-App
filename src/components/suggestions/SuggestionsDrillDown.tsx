@@ -19,6 +19,37 @@ interface SuggestionsDrillDownProps {
   activeLane: string | null;
   selectedCityIds: Set<string>;
   onToggleCity: (cityId: string) => void;
+  onSaveSelected: () => void;
+  isSavingSelection: boolean;
+}
+
+function SaveSelectedBar({
+  count,
+  onSave,
+  isSaving,
+}: {
+  count: number;
+  onSave: () => void;
+  isSaving: boolean;
+}) {
+  if (count === 0) return null;
+  return (
+    <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200">
+      <p className="text-sm text-purple-900 font-medium flex-1">
+        {count} {count === 1 ? 'city' : 'cities'} selected — save as one multi-stop trip
+      </p>
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={isSaving}
+        className="bg-purple-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-md"
+      >
+        {isSaving
+          ? '💾 Saving...'
+          : `💾 Save selected as trip (${count} ${count === 1 ? 'city' : 'cities'})`}
+      </button>
+    </div>
+  );
 }
 
 export default function SuggestionsDrillDown({
@@ -29,6 +60,8 @@ export default function SuggestionsDrillDown({
   activeLane,
   selectedCityIds,
   onToggleCity,
+  onSaveSelected,
+  isSavingSelection,
 }: SuggestionsDrillDownProps) {
   const citiesByCountry = useMemo(
     () => citiesForGroups(countryGroups, primarySuggestion),
@@ -95,7 +128,7 @@ export default function SuggestionsDrillDown({
           <div>
             <h2 className="text-lg font-semibold text-black">Pick your cities</h2>
             <p className="text-sm text-gray-500">
-              Select one or more places for your trip — saving comes in a later step
+              Select one or more places, then save as a single multi-stop trip
             </p>
           </div>
         </div>
@@ -109,11 +142,11 @@ export default function SuggestionsDrillDown({
             />
           ))}
         </div>
-        {selectedCityIds.size > 0 && (
-          <p className="mt-3 text-sm text-purple-700 font-medium">
-            {selectedCityIds.size} {selectedCityIds.size === 1 ? 'city' : 'cities'} selected
-          </p>
-        )}
+        <SaveSelectedBar
+          count={selectedCityIds.size}
+          onSave={onSaveSelected}
+          isSaving={isSavingSelection}
+        />
       </section>
     );
   }
@@ -127,7 +160,7 @@ export default function SuggestionsDrillDown({
         <div>
           <h2 className="text-lg font-semibold text-black">Pick your countries & cities</h2>
           <p className="text-sm text-gray-500">
-            Expand a country to browse its cities — tap to select (no save yet)
+            Expand a country to browse its cities — tap to select, then save as one trip
           </p>
         </div>
       </div>
@@ -189,13 +222,11 @@ export default function SuggestionsDrillDown({
         })}
       </div>
 
-      {selectedCityIds.size > 0 && (
-        <p className="mt-3 text-sm text-purple-700 font-medium">
-          {selectedCityIds.size} {selectedCityIds.size === 1 ? 'city' : 'cities'} selected
-          across {countryGroups.length}{' '}
-          {countryGroups.length === 1 ? 'country' : 'countries'}
-        </p>
-      )}
+      <SaveSelectedBar
+        count={selectedCityIds.size}
+        onSave={onSaveSelected}
+        isSaving={isSavingSelection}
+      />
     </section>
   );
 }

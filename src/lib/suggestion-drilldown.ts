@@ -5,7 +5,12 @@
 
 import type { CompareSummary } from '@/lib/compare-summary';
 import type { StopPreview } from '@/lib/trip-preview';
-import { groupStopsByCountry, normalizeStop, type CountryStopGroup } from '@/lib/trip-stops';
+import {
+  assignDatesAcrossStops,
+  groupStopsByCountry,
+  normalizeStop,
+  type CountryStopGroup,
+} from '@/lib/trip-stops';
 import type { TripStop } from '@/types/trip';
 import type { TripSuggestion } from '@/hooks/useStreamingSuggestions';
 
@@ -313,4 +318,70 @@ export function citiesForGroups(
     map.set(group.country, list);
   }
   return map;
+}
+
+/**
+ * Turn selected drill-down cities into dated TripStop[] ready for save.
+ * Returns null when selection is empty or stops cannot be normalized.
+ */
+export function buildStopsFromSelection(
+  countryGroups: CountryStopGroup[],
+  selectedCityIds: Set<string>,
+  primary: TripSuggestion | null,
+  tripStart: string,
+  tripEnd: string
+): TripStop[] | null {
+  const citiesByCountry = citiesForGroups(countryGroups, primary);
+  const selected: DrillDownCity[] = [];
+
+  for (const group of countryGroups) {
+    for (const city of citiesByCountry.get(group.country) ?? []) {
+      if (selectedCityIds.has(city.id)) selected.push(city);
+    }
+  }
+
+  if (selected.length === 0) return null;
+
+  const rawStops: TripStop[] = [];
+  for (let i = 0; i < selected.length; i++) {
+    const c = selected[i];
+    const normalized = normalizeStop(
+      {
+        id: `stop-${i}`,
+        destination: c.destination,
+        city: c.city,
+        country: c.country,
+        startDate: '',
+        endDate: '',
+        order: i,
+      },
+      i
+    );
+    if (!normalized) return null;
+    rawStops.push(normalized);
+  }
+
+  return assignDatesAcrossStops(rawStops, tripStart, tripEnd);
+}
+
+/** Narrow primary suggestion stopPreviews to selected cities for storage. */
+export function suggestionPayloadForSelection(
+  primary: TripSuggestion | null,
+  stops: TripStop[]
+): TripSuggestion | Record<string, unknown> {
+  if (!primary) return {};
+
+  const cityKeys = new Set(
+    stops.map((s) => (s.city || s.destination.split(',')[0]).toLowerCase().trim())
+  );
+
+  const stopPreviews = primary.stopPreviews?.filter((p) =>
+    cityKeys.has(p.destination.toLowerCase().trim())
+  );
+
+  return {
+    ...primary,
+    stops: stops.map((s) => s.city || s.destination.split(',')[0].trim()),
+    stopPreviews: stopPreviews?.length ? stopPreviews : primary.stopPreviews,
+  };
 }

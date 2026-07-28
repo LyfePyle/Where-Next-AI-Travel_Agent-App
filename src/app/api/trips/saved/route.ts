@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { parseDestinationToStops } from '@/lib/stop-parser';
-import { serializeStopsForDb } from '@/lib/trip-stops';
+import { serializeStopsForDb, stopSetFingerprint, fingerprintFromStopsJson } from '@/lib/trip-stops';
 import { buildMultiStopSuggestionsBlob, isStoredSuggestionsEmpty } from '@/lib/trip-preview';
 
 interface SavedTrip {
@@ -166,21 +166,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: existingTrip } = await supabase
-      .from('trips')
-      .select('id')
-      .eq('user_id', user.id)
-      .ilike('destination', destination)
-      .maybeSingle();
+    const isMultiStopSave = Array.isArray(body.stops) && body.stops.length > 1;
 
-    if (existingTrip) {
-      return NextResponse.json(
-        { error: 'This destination is already in your saved trips' },
-        { status: 409 }
-      );
+    if (isMultiStopSave) {
+      const incomingStops = serializeStopsForDb(body.stops);
+      if (!incomingStops?.length) {
+        return NextResponse.json(
+          { error: 'Invalid stops for multi-stop trip' },
+          { status: 400 }
+        );
+      }
+      const incomingFingerprint = stopSetFingerprint(incomingStops);
+      const proposedTitle =
+        typeof body.title === 'string' && body.title.trim()
+          ? body.title.trim()
+          : null;
+
+      const { data: userTrips } = await supabase
+        .from('trips')
+        .select('id, title, stops')
+        .eq('user_id', user.id);
+
+      for (const trip of userTrips ?? []) {
+        if (
+          proposedTitle &&
+          trip.title?.trim().toLowerCase() === proposedTitle.toLowerCase()
+        ) {
+          return NextResponse.json(
+            { error: 'This trip is already in your saved trips' },
+            { status: 409 }
+          );
+        }
+        const existingFingerprint = fingerprintFromStopsJson(trip.stops);
+        if (existingFingerprint && existingFingerprint === incomingFingerprint) {
+          return NextResponse.json(
+            { error: 'This trip is already in your saved trips' },
+            { status: 409 }
+          );
+        }
+      }
+    } else {
+      const { data: existingTrip } = await supabase
+        .from('trips')
+        .select('id')
+        .eq('user_id', user.id)
+        .ilike('destination', destination)
+        .maybeSingle();
+
+      if (existingTrip) {
+        return NextResponse.json(
+          { error: 'This destination is already in your saved trips' },
+          { status: 409 }
+        );
+      }
     }
 
-    const title = body.title || `${destination.split(',')[0]?.trim() || destination} Trip`;
+    const title =
+      typeof body.title === 'string' && body.title.trim()
+        ? body.title.trim()
+        : `${destination.split(',')[0]?.trim() || destination} Trip`;
     const startDate = body.startDate || null;
     const endDate = body.endDate || null;
     const budgetCents = Math.round(Number(budgetToPersist) * 100);

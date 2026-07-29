@@ -18,6 +18,8 @@ export interface TripStop {
   startDate: string;
   /** ISO date string YYYY-MM-DD */
   endDate: string;
+  /** Nights at this stop (editor source of truth; optional cache on save). */
+  nights?: number;
   /** Explicit ordering within the trip (0-based) */
   order?: number;
   /** Optional user notes (Trip Hub) */

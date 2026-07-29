@@ -4,17 +4,18 @@
  * Travel command center for one saved trip — /my-trip/[id]
  */
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useCallback } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getAffiliateLinks, type AffiliateLink as AffiliateLinkData } from '@/lib/affiliates';
 import AffiliateLink from '@/components/AffiliateLink';
 import {
-  getStopPreviewForDestination,
   parseStoredSuggestions,
-  type StopPreview,
 } from '@/lib/trip-preview';
-import { normalizeTripStopsFromRow } from '@/lib/trip-stops';
+import { normalizeTripStopsFromRow, serializeStopsForDb, validateStopsForSave } from '@/lib/trip-stops';
+import { useToast, ToastContainer } from '@/hooks/useToast';
+import TripHubStopsSection from '@/components/trip-hub/TripHubStopsSection';
+import { useTripEditState } from '@/components/trip-hub/useTripEditState';
 import type { TripStop } from '@/types/trip';
 
 export type { TripStop };
@@ -232,11 +233,14 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 function TripHubContent({ trip, booking }: TripHubProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { toasts, addToast, removeToast } = useToast();
   const tabParam = searchParams.get('tab') as TabId | null;
   const [activeTab, setActiveTab] = useState<TabId>(
     tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : 'overview'
   );
+  const [isSaving, setIsSaving] = useState(false);
 
   const stops: TripStop[] = normalizeTripStopsFromRow({
     destination: trip.destination,
@@ -246,10 +250,100 @@ function TripHubContent({ trip, booking }: TripHubProps) {
     stops: trip.stops,
   });
 
+  const {
+    isEditing,
+    draftTitle,
+    setDraftTitle,
+    draftTripStart,
+    draftStops,
+    saveError,
+    setSaveError,
+    validationErrors,
+    setValidationErrors,
+    enterEdit,
+    cancelEdit,
+    finishSave,
+    handleTripStartChange,
+    handleDraftStopsChange,
+    buildStopsForSave,
+  } = useTripEditState(trip.title || trip.destination, stops, trip.start_date);
+
   const { overview: tripOverview, stopPreviews } = parseStoredSuggestions(trip.suggestions);
 
-  const primaryDestination = stops[0]?.destination || trip.destination;
-  const totalNights = nights(trip.start_date, trip.end_date);
+  const handleSave = useCallback(async () => {
+    const title = draftTitle.trim();
+    if (!title) {
+      setValidationErrors({ _form: 'Trip title cannot be empty.' });
+      return;
+    }
+
+    if (!draftTripStart.trim()) {
+      setValidationErrors({ _form: 'Trip start date is required.' });
+      return;
+    }
+
+    const toSave = buildStopsForSave();
+    if (!toSave) {
+      setValidationErrors({
+        _form: 'Could not build trip dates — check start date and stops.',
+      });
+      return;
+    }
+
+    const validation = validateStopsForSave(toSave);
+    setValidationErrors(validation.errors);
+    if (!validation.ok) return;
+
+    const serialized = serializeStopsForDb(toSave);
+    if (!serialized) {
+      setValidationErrors({ _form: 'Could not save stops — check each destination.' });
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const response = await fetch(`/api/trips/${trip.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, stops: serialized }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setSaveError(data.error || 'Failed to save changes. Your trip was not changed.');
+        return;
+      }
+
+      finishSave();
+      addToast('Trip updated', { variant: 'success' });
+      router.refresh();
+    } catch {
+      setSaveError('Network error — your trip was not changed.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    buildStopsForSave,
+    draftTripStart,
+    draftTitle,
+    trip.id,
+    finishSave,
+    addToast,
+    router,
+    setValidationErrors,
+    setSaveError,
+  ]);
+
+  const displayStops = isEditing ? draftStops : stops;
+  const displayTitle = isEditing ? draftTitle : trip.title || trip.destination;
+  const displayStart = isEditing ? draftTripStart || trip.start_date : trip.start_date;
+  const displayEnd = isEditing
+    ? draftStops[draftStops.length - 1]?.endDate || trip.end_date
+    : trip.end_date;
+
+  const primaryDestination = displayStops[0]?.destination || trip.destination;
+  const totalNights = nights(displayStart, displayEnd);
   const totalTravelers = (trip.adults ?? 1) + (trip.kids ?? 0);
   const isConfirmed = booking?.status === 'confirmed';
   const paidCents = booking ? bookingAmountCents(booking) : null;
@@ -326,24 +420,114 @@ function TripHubContent({ trip, booking }: TripHubProps) {
             )}
           </div>
 
-          <h1 style={{ fontSize: 'clamp(2rem,5vw,3rem)', fontWeight: 400, marginBottom: 6 }}>
-            {trip.title || trip.destination}
-          </h1>
-          <div
-            style={{
-              fontFamily: 'monospace',
-              fontSize: 12,
-              color: 'rgba(255,255,255,0.45)',
-              marginBottom: 20,
-            }}
-          >
-            {trip.start_date ? fmtShort(trip.start_date) : '—'} —{' '}
-            {trip.end_date
-              ? fmt(trip.end_date, { day: 'numeric', month: 'short', year: 'numeric' })
-              : '—'}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  aria-label="Trip title"
+                  style={{
+                    width: '100%',
+                    fontSize: 'clamp(1.5rem,4vw,2.5rem)',
+                    fontWeight: 400,
+                    marginBottom: 6,
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: 8,
+                    color: '#fff',
+                    padding: '6px 10px',
+                    fontFamily: "Georgia, 'Times New Roman', serif",
+                  }}
+                />
+              ) : (
+                <h1 style={{ fontSize: 'clamp(2rem,5vw,3rem)', fontWeight: 400, marginBottom: 6 }}>
+                  {displayTitle}
+                </h1>
+              )}
+              <div
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.45)',
+                  marginBottom: isEditing ? 0 : 20,
+                }}
+              >
+                {displayStart ? fmtShort(displayStart) : '—'} —{' '}
+                {displayEnd
+                  ? fmt(displayEnd, { day: 'numeric', month: 'short', year: 'numeric' })
+                  : '—'}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0, marginTop: 4 }}>
+              {isEditing ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    disabled={isSaving}
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      border: '1px solid rgba(255,255,255,0.25)',
+                      background: 'transparent',
+                      color: 'rgba(255,255,255,0.75)',
+                      cursor: isSaving ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: '#D97706',
+                      color: '#fff',
+                      cursor: isSaving ? 'not-allowed' : 'pointer',
+                      opacity: isSaving ? 0.7 : 1,
+                    }}
+                  >
+                    {isSaving ? 'Saving…' : 'Save changes'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={enterEdit}
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(255,255,255,0.25)',
+                    background: 'rgba(255,255,255,0.08)',
+                    color: 'rgba(255,255,255,0.85)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Edit
+                </button>
+              )}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginTop: isEditing ? 16 : 0 }}>
             {[
               {
                 label: 'Duration',
@@ -361,8 +545,8 @@ function TripHubContent({ trip, booking }: TripHubProps) {
                     },
                   ]
                 : []),
-              ...(stops.length > 1
-                ? [{ label: 'Stops', val: `${stops.length} destinations` }]
+              ...(displayStops.length > 1
+                ? [{ label: 'Stops', val: `${displayStops.length} destinations` }]
                 : []),
             ].map(({ label, val }) => (
               <div key={label}>
@@ -516,7 +700,7 @@ function TripHubContent({ trip, booking }: TripHubProps) {
               {[
                 { val: totalNights > 0 ? totalNights : '—', label: 'Nights' },
                 { val: totalTravelers, label: 'Travellers' },
-                { val: stops.length, label: stops.length === 1 ? 'Destination' : 'Stops' },
+                { val: displayStops.length, label: displayStops.length === 1 ? 'Destination' : 'Stops' },
                 ...(trip.budget_amount && totalNights > 0
                   ? [
                       {
@@ -555,127 +739,37 @@ function TripHubContent({ trip, booking }: TripHubProps) {
               ))}
             </div>
 
-            <div style={{ marginBottom: '1.75rem' }}>
-              <SectionTitle>{stops.length > 1 ? 'Your stops' : 'Destination'}</SectionTitle>
-              {stops.length > 1 && tripOverview.description && (
-                <p
-                  style={{
-                    fontSize: 14,
-                    color: '#57534E',
-                    lineHeight: 1.5,
-                    marginBottom: 12,
-                    padding: '10px 12px',
-                    background: '#FAFAF9',
-                    borderRadius: 8,
-                    border: '1px solid #EAE3D5',
-                  }}
-                >
-                  {tripOverview.description}
-                </p>
-              )}
-              {stops.map((stop, i) => {
-                const stopPreview: StopPreview | undefined = getStopPreviewForDestination(
-                  stopPreviews,
-                  stop.destination,
-                  i
-                );
-                return (
-                <div
-                  key={stop.id}
-                  style={{
-                    background: '#fff',
-                    borderRadius: 12,
-                    border: '1px solid #EAE3D5',
-                    padding: '1rem 1.25rem',
-                    display: 'flex',
-                    gap: 14,
-                    alignItems: 'flex-start',
-                    marginBottom: 8,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: '50%',
-                      background: '#1C1917',
-                      color: '#fff',
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginTop: 2,
-                    }}
-                  >
-                    {i + 1}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 2 }}>
-                      {stop.destination}
-                    </div>
-                    {(stop.startDate && stop.endDate) || (trip.start_date && trip.end_date) ? (
-                      <div style={{ fontSize: 12, color: '#78716C' }}>
-                        {stop.startDate && stop.endDate
-                          ? `${fmtShort(stop.startDate)} – ${fmt(stop.endDate, { day: 'numeric', month: 'short', year: 'numeric' })}`
-                          : `${fmtShort(trip.start_date)} – ${fmt(trip.end_date, { day: 'numeric', month: 'short', year: 'numeric' })}`}
-                      </div>
-                    ) : null}
-                    {stopPreview?.description && (
-                      <p style={{ fontSize: 13, color: '#57534E', marginTop: 8, lineHeight: 1.45 }}>
-                        {stopPreview.description}
-                      </p>
-                    )}
-                    {stopPreview?.highlights && stopPreview.highlights.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                        {stopPreview.highlights.slice(0, 4).map((h, hi) => (
-                          <span
-                            key={`${stop.id}-hl-${hi}`}
-                            style={{
-                              fontSize: 11,
-                              background: '#F5F0E8',
-                              color: '#57534E',
-                              padding: '2px 8px',
-                              borderRadius: 999,
-                            }}
-                          >
-                            {h}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {stopPreview?.hotelBand && (
-                      <div style={{ fontSize: 11, color: '#78716C', marginTop: 6 }}>
-                        Hotels ${stopPreview.hotelBand.min.toLocaleString()}–$
-                        {stopPreview.hotelBand.max.toLocaleString()}/night
-                        {stopPreview.hotelBand.area ? ` · ${stopPreview.hotelBand.area}` : ''}
-                      </div>
-                    )}
-                  </div>
-                  {stop.startDate && stop.endDate && (
-                    <div
-                      style={{
-                        fontFamily: 'monospace',
-                        fontSize: 11,
-                        color: '#78716C',
-                        background: '#F5F0E8',
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {nights(stop.startDate, stop.endDate)} nights
-                    </div>
-                  )}
-                </div>
-              );
-              })}
-            </div>
+            {saveError && (
+              <div
+                style={{
+                  fontSize: 13,
+                  color: '#B91C1C',
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  marginBottom: '1rem',
+                }}
+              >
+                {saveError}
+              </div>
+            )}
 
-            {tripOverview.description && stops.length <= 1 && (
+            <TripHubStopsSection
+              stops={stops}
+              isEditing={isEditing}
+              draftStops={draftStops}
+              draftTripStart={draftTripStart}
+              onDraftTripStartChange={handleTripStartChange}
+              onDraftStopsChange={handleDraftStopsChange}
+              validationErrors={validationErrors}
+              tripStartDate={trip.start_date}
+              tripEndDate={trip.end_date}
+              tripOverviewDescription={tripOverview.description}
+              stopPreviews={stopPreviews}
+            />
+
+            {tripOverview.description && stops.length <= 1 && !isEditing && (
               <div style={{ marginBottom: '1.75rem' }}>
                 <SectionTitle>Trip overview</SectionTitle>
                 <p style={{ fontSize: 14, color: '#57534E', lineHeight: 1.5 }}>{tripOverview.description}</p>
@@ -954,6 +1048,7 @@ function TripHubContent({ trip, booking }: TripHubProps) {
           </div>
         )}
       </div>
+      <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>
   );
 }

@@ -60,11 +60,17 @@ export function normalizeStop(
   const order =
     typeof o.order === 'number' && Number.isFinite(o.order) ? o.order : index;
   const notes = str(o.notes) || undefined;
+  const nightsRaw = o.nights;
+  const nights =
+    typeof nightsRaw === 'number' && Number.isFinite(nightsRaw) && nightsRaw >= 1
+      ? Math.round(nightsRaw)
+      : undefined;
 
   const stop: TripStop = { id, destination, startDate, endDate, order };
   if (country) stop.country = country;
   if (city) stop.city = city;
   if (notes) stop.notes = notes;
+  if (nights != null) stop.nights = nights;
   return stop;
 }
 
@@ -177,11 +183,55 @@ function isoAddDays(iso: string, days: number): string {
   return d.toISOString().split('T')[0];
 }
 
-function nightsBetween(start: string, end: string): number {
+/** Nights between dates (shared boundary: same-day checkout/check-in = 0 gap). */
+export function nightsBetween(start: string, end: string): number {
   const s = new Date(`${start}T12:00:00`);
   const e = new Date(`${end}T12:00:00`);
   if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
   return Math.max(0, Math.round((e.getTime() - s.getTime()) / 86_400_000));
+}
+
+const DEFAULT_STOP_NIGHTS = 3;
+
+/** Derive nights for one stop from cached nights or stored dates. */
+export function deriveNightsFromStop(stop: TripStop): number {
+  if (typeof stop.nights === 'number' && stop.nights >= 1 && Number.isFinite(stop.nights)) {
+    return Math.round(stop.nights);
+  }
+  if (stop.startDate && stop.endDate) {
+    return Math.max(1, nightsBetween(stop.startDate, stop.endDate));
+  }
+  return DEFAULT_STOP_NIGHTS;
+}
+
+/**
+ * Cascade arrive/leave dates from trip start + per-stop nights.
+ * Stop N+1 arrives on stop N's leave day (shared boundary).
+ * Returns null when chain cannot be built (missing start or stops).
+ */
+export function chainStopsFromNights(
+  stops: TripStop[],
+  tripStart: string
+): TripStop[] | null {
+  if (!tripStart || stops.length === 0) return null;
+
+  let cursor = tripStart;
+  return stops.map((stop, i) => {
+    const n = Math.max(1, deriveNightsFromStop(stop));
+    const startDate = cursor;
+    const endDate = isoAddDays(cursor, n);
+    cursor = endDate;
+    return { ...stop, startDate, endDate, nights: n, order: i };
+  });
+}
+
+/** Re-chain after load so legacy rows with nights metadata get consistent dates. */
+export function hydrateStopsWithNights(
+  stops: TripStop[],
+  tripStart: string
+): TripStop[] {
+  const withNights = stops.map((s) => ({ ...s, nights: deriveNightsFromStop(s) }));
+  return chainStopsFromNights(withNights, tripStart) ?? withNights;
 }
 
 /**
@@ -222,6 +272,57 @@ export function assignDatesAcrossStops(
     cursor = endDate;
     return { ...stop, startDate, endDate, order: i };
   });
+}
+
+export interface StopsValidationResult {
+  ok: boolean;
+  errors: Record<string, string>;
+  warnings: string[];
+}
+
+/** Client/server validation before persisting edited stops. */
+export function validateStopsForSave(stops: TripStop[]): StopsValidationResult {
+  const errors: Record<string, string> = {};
+  const warnings: string[] = [];
+
+  if (!Array.isArray(stops) || stops.length === 0) {
+    return { ok: false, errors: { _form: 'At least one stop is required.' }, warnings };
+  }
+
+  for (let i = 0; i < stops.length; i++) {
+    const stop = stops[i];
+    const dest = str(stop.destination);
+    if (!dest) {
+      errors[stop.id] = 'Enter a destination (e.g. Monteverde, Costa Rica).';
+      continue;
+    }
+    if (!stop.startDate || !stop.endDate) {
+      errors[stop.id] = 'Start and end dates are required.';
+      continue;
+    }
+    if (stop.startDate > stop.endDate) {
+      errors[stop.id] = 'End date must be on or after start date.';
+    }
+    if (i > 0) {
+      const prev = stops[i - 1];
+      if (prev.endDate && stop.startDate && stop.startDate < prev.endDate) {
+        warnings.push(
+          `${stop.destination || `Stop ${i + 1}`} starts before the previous stop ends — check your dates.`
+        );
+      } else if (prev.endDate && stop.startDate && stop.startDate > prev.endDate) {
+        warnings.push(
+          `There is a gap between stop ${i} and stop ${i + 1} — check your dates.`
+        );
+      }
+    }
+  }
+
+  const serialized = serializeStopsForDb(stops);
+  if (!serialized) {
+    return { ok: false, errors: { _form: 'Could not validate stops.' }, warnings };
+  }
+
+  return { ok: Object.keys(errors).length === 0, errors, warnings };
 }
 
 /** Auto-title from distinct countries in stop order, e.g. "Costa Rica & Nicaragua". */

@@ -57,6 +57,23 @@ export default async function MyTripPage({
     .limit(1)
     .maybeSingle();
 
+  const { data: chatMessages, error: chatError } = await supabase
+    .from('trip_chat_messages')
+    .select('id, role, content, tool_calls, metadata, created_at')
+    .eq('trip_id', id)
+    .order('created_at', { ascending: true });
+
+  if (chatError) {
+    console.warn('trip_chat_messages unavailable:', chatError.message);
+  }
+
+  const undoExpiresAt = (trip as { undo_expires_at?: string | null }).undo_expires_at ?? null;
+  const undoSnapshot = (trip as { undo_snapshot?: unknown }).undo_snapshot;
+  const undoAvailable =
+    !!undoSnapshot &&
+    !!undoExpiresAt &&
+    new Date(undoExpiresAt).getTime() > Date.now();
+
   const hubTrip = {
     id: trip.id,
     title: trip.title ?? trip.destination ?? 'Trip',
@@ -80,7 +97,13 @@ export default async function MyTripPage({
 
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading…</div>}>
-      <TripHub trip={hubTrip} booking={booking ?? null} />
+      <TripHub
+        trip={hubTrip}
+        booking={booking ?? null}
+        chatMessages={chatError ? [] : chatMessages ?? []}
+        undoAvailable={undoAvailable}
+        undoExpiresAt={undoAvailable ? undoExpiresAt : null}
+      />
     </Suspense>
   );
 }

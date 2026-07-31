@@ -15,7 +15,9 @@ import {
 import { normalizeTripStopsFromRow, serializeStopsForDb, validateStopsForSave } from '@/lib/trip-stops';
 import { useToast, ToastContainer } from '@/hooks/useToast';
 import TripHubStopsSection from '@/components/trip-hub/TripHubStopsSection';
+import TripChatPanel from '@/components/trip-hub/TripChatPanel';
 import { useTripEditState } from '@/components/trip-hub/useTripEditState';
+import type { ChatMessageRow } from '@/app/api/trips/[id]/chat/route';
 import type { TripStop } from '@/types/trip';
 
 export type { TripStop };
@@ -56,6 +58,9 @@ type TabId = 'overview' | 'book' | 'documents' | 'itinerary';
 interface TripHubProps {
   trip: Trip;
   booking?: Booking | null;
+  chatMessages?: ChatMessageRow[];
+  undoAvailable?: boolean;
+  undoExpiresAt?: string | null;
 }
 
 function fmt(d: string, opts?: Intl.DateTimeFormatOptions) {
@@ -232,7 +237,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'itinerary', label: '📅 Itinerary' },
 ];
 
-function TripHubContent({ trip, booking }: TripHubProps) {
+function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = false, undoExpiresAt = null }: TripHubProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toasts, addToast, removeToast } = useToast();
@@ -647,7 +652,8 @@ function TripHubContent({ trip, booking }: TripHubProps) {
         </div>
       </div>
 
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '2rem 1.5rem' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '2rem 1.5rem', display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 0, maxWidth: 760 }}>
         {activeTab === 'overview' && (
           <>
             {isConfirmed && booking && (
@@ -1047,6 +1053,14 @@ function TripHubContent({ trip, booking }: TripHubProps) {
             </Link>
           </div>
         )}
+        </div>
+
+        <TripChatPanel
+          tripId={trip.id}
+          initialMessages={chatMessages}
+          initialUndoAvailable={undoAvailable}
+          initialUndoExpiresAt={undoExpiresAt}
+        />
       </div>
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>

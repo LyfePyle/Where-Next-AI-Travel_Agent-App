@@ -2,30 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import {
-  normalizeTripStopsFromRow,
   serializeStopsForDb,
   validateStopsForSave,
 } from "@/lib/trip-stops";
+import { normalizeFromSavedTrips, normalizeFromTrips } from "@/lib/trip-normalize";
 import { tripDestinationSummary, tripEndDate, tripStartDate } from "@/types/trip";
 import type { TripStop } from "@/types/trip";
 
-/** Normalized shape returned to the booking page (and any client). */
-export type NormalizedTrip = {
-  id: string;
-  title: string;
-  destination: string;
-  start_date: string | null;
-  end_date: string | null;
-  travelers: { adults: number; kids: number };
-  budget_amount: number | null;
-  /** Normalized stops (always at least one; legacy rows synthesized). */
-  stops: TripStop[];
-  adults?: number;
-  kids?: number;
-  vibe?: string | null;
-  /** Persisted AI preview blob (single-stop flat or multi-stop structured). */
-  suggestions?: unknown;
-};
+/** @deprecated import from @/lib/trip-normalize */
+export type { NormalizedTrip } from "@/lib/trip-normalize";
 
 async function supabaseServer() {
   const cookieStore = await cookies();
@@ -40,65 +25,6 @@ async function supabaseServer() {
       },
     }
   );
-}
-
-function normalizeFromTrips(row: any): NormalizedTrip {
-  const adults = typeof row.adults === "number" ? row.adults : 2;
-  const kids = typeof row.kids === "number" ? row.kids : typeof row.children === "number" ? row.children : 0;
-  return {
-    id: row.id,
-    title: row.title ?? row.destination ?? "Trip",
-    destination: row.destination ?? "",
-    start_date: row.start_date ?? null,
-    end_date: row.end_date ?? null,
-    travelers: { adults, kids },
-    budget_amount:
-      typeof row.budget_amount === "number"
-        ? row.budget_amount
-        : row.budget_amount != null
-          ? Number(row.budget_amount)
-          : null,
-    stops: normalizeTripStopsFromRow(row),
-    adults,
-    kids,
-    vibe: row.vibe ?? null,
-    suggestions: row.suggestions ?? undefined,
-  };
-}
-
-function normalizeFromSavedTrips(row: any): NormalizedTrip {
-  const prefs = row.preferences ?? {};
-  const travelers = prefs.travelers ?? {};
-  const adults =
-    typeof travelers.adults === "number"
-      ? travelers.adults
-      : typeof row.travelers === "number"
-        ? row.travelers
-        : 2;
-  const kids =
-    typeof travelers.children === "number"
-      ? travelers.children
-      : typeof travelers.kids === "number"
-        ? travelers.kids
-        : 0;
-
-  return {
-    id: row.id,
-    title: row.title ?? row.destination ?? "Trip",
-    destination: row.destination ?? "",
-    start_date: row.start_date ?? null,
-    end_date: row.end_date ?? null,
-    travelers: { adults, kids },
-    budget_amount:
-      typeof row.budget_cents === "number"
-        ? row.budget_cents / 100
-        : row.budget_cents != null
-          ? Number(row.budget_cents) / 100
-          : null,
-    adults,
-    kids,
-    stops: normalizeTripStopsFromRow(row),
-  };
 }
 
 export async function PATCH(

@@ -37,7 +37,6 @@ const footerSections = [
       { label: 'Travel Tools', href: '/tools' },
       { label: 'Walking Tours', href: '/tours' },
       { label: 'Saved Trips', href: '/saved' },
-      { label: 'My Trips', href: '/saved' },
     ]
   }
 ];

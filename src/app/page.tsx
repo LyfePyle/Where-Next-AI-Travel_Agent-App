@@ -868,99 +868,13 @@ export default function NewHomePage() {
         </div>
       </section>
 
-      {/* Social Proof & Trust Section */}
-      <section className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Testimonials */}
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-gray-900 mb-6">
-              Trusted by Travelers Worldwide
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See why thousands of travelers choose Where Next for their adventures
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-            {/* Testimonial 1 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-              <div className="flex gap-0.5 mb-4" aria-hidden>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <svg key={i} className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="#eab308" aria-hidden>
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                ))}
-              </div>
-              <p className="text-gray-700 text-lg mb-6 leading-relaxed">
-                "Saved me $500 on my Tokyo trip! The AI suggestions were spot-on and the budget tracking kept me on course."
-              </p>
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 font-bold">SM</span>
-                </div>
-                <div className="ml-4">
-                  <p className="font-semibold text-gray-900">Sarah M.</p>
-                  <p className="text-gray-600 text-sm">Solo Traveler</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Testimonial 2 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-              <div className="flex gap-0.5 mb-4" aria-hidden>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <svg key={i} className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="#eab308" aria-hidden>
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                ))}
-              </div>
-              <p className="text-gray-700 text-lg mb-6 leading-relaxed">
-                "Finally, one app for everything! No more switching between booking sites, budget apps, and weather checks."
-              </p>
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 font-bold">MJ</span>
-                </div>
-                <div className="ml-4">
-                  <p className="font-semibold text-gray-900">Mike J.</p>
-                  <p className="text-gray-600 text-sm">Business Traveler</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Testimonial 3 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-              <div className="flex gap-0.5 mb-4" aria-hidden>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <svg key={i} className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="#eab308" aria-hidden>
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                ))}
-              </div>
-              <p className="text-gray-700 text-lg mb-6 leading-relaxed">
-                "The AI travel planning is incredible. It found hidden gems in Barcelona I never would have discovered!"
-              </p>
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <span className="text-purple-600 font-bold">ER</span>
-                </div>
-                <div className="ml-4">
-                  <p className="font-semibold text-gray-900">Emily R.</p>
-                  <p className="text-gray-600 text-sm">Family Traveler</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Partner Logos - clean wordmarks */}
-          <div className="text-center">
-            <p className="text-gray-600 text-lg mb-8 font-medium">Powered by industry leaders</p>
-            <div className="flex flex-wrap justify-center items-center gap-10 lg:gap-14">
-              <span className="text-xl font-bold tracking-tight text-[#635bff]">Stripe</span>
-              <span className="text-xl font-bold tracking-tight text-gray-700">Amadeus</span>
-              <span className="text-xl font-bold tracking-tight text-gray-800">OpenAI</span>
-              <span className="text-xl font-bold tracking-tight text-[#3ecf8e]">Supabase</span>
-            </div>
+      {/* Technology partners — only list integrations that are actually in use */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-gray-600 text-lg mb-8 font-medium">Built with</p>
+          <div className="flex flex-wrap justify-center items-center gap-10 lg:gap-14">
+            <span className="text-xl font-bold tracking-tight text-gray-800">OpenAI</span>
+            <span className="text-xl font-bold tracking-tight text-[#3ecf8e]">Supabase</span>
           </div>
         </div>
       </section>
@@ -1026,13 +940,13 @@ export default function NewHomePage() {
               <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8">
                 <Plane className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
               </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Best Flight Deals</h3>
+              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Flight Search</h3>
               <p className="text-base lg:text-lg text-gray-600 leading-relaxed mb-6 lg:mb-8 flex-grow">
-                Compare prices across airlines and find the cheapest flights. Real-time pricing from trusted partners like Amadeus.
+                Plan your route, then compare flight options on trusted booking partners like Expedia and Kayak. We send you to partners to book — we don&apos;t sell tickets directly.
               </p>
               <div className="flex justify-center mt-auto">
                 <Link href="/plan-trip" className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
-                  Find Flights
+                  Plan a trip
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </div>
@@ -1301,7 +1215,6 @@ export default function NewHomePage() {
                 <li><Link href="/tools" className="text-gray-300 hover:text-white transition-colors text-lg block">Travel Tools</Link></li>
                 <li><Link href="/tours" className="text-gray-300 hover:text-white transition-colors text-lg block">Walking Tours</Link></li>
                 <li><Link href="/saved" className="text-gray-300 hover:text-white transition-colors text-lg block">Saved Trips</Link></li>
-                <li><Link href="/saved" className="text-gray-300 hover:text-white transition-colors text-lg block">My Trips</Link></li>
               </ul>
             </div>
           </div>

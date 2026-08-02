@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { DollarSign, Calculator, Save, ArrowRight, Users, Calendar, MapPin } from 'lucide-react';
 import { tripDurationDays } from '@/lib/parse-destination';
+import { shortTripDestinationSummary } from '@/lib/place-names';
 
 function PublicBudgetPageInner() {
   const searchParams = useSearchParams();
@@ -29,7 +30,11 @@ function PublicBudgetPageInner() {
         if (cancelled || !trip) return;
 
         setTripTitle(trip.title || trip.destination);
-        if (trip.destination) setDestination(trip.destination);
+        if (Array.isArray(trip.stops) && trip.stops.length > 0) {
+          setDestination(shortTripDestinationSummary(trip.stops));
+        } else if (trip.destination) {
+          setDestination(trip.destination);
+        }
         if (typeof trip.budget_amount === 'number' && trip.budget_amount > 0) {
           setTotalBudget(Math.round(trip.budget_amount));
         }

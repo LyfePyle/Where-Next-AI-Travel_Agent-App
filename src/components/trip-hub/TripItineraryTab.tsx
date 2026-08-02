@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { newBlankBlock } from '@/lib/generate-itinerary-days';
 import { sortBlocksByTimeOfDay } from '@/lib/itinerary-blocks';
+import { shortStopLabel } from '@/lib/place-names';
+import TripItineraryMap, { useActiveStopObserver } from '@/components/trip-hub/TripItineraryMap';
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
 
@@ -32,7 +34,7 @@ function fmtDate(d: string | null) {
 }
 
 function stopLabel(stop: TripStop): string {
-  return stop.city || stop.destination.split(',')[0]?.trim() || stop.destination;
+  return shortStopLabel(stop);
 }
 
 export default function TripItineraryTab({ tripId, stops, active }: TripItineraryTabProps) {
@@ -43,6 +45,7 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
   const [error, setError] = useState<string | null>(null);
   const [savingDayId, setSavingDayId] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { activeStopId, setSectionRef } = useActiveStopObserver(stops, active, days.length);
 
   const fetchDays = useCallback(async () => {
     const res = await fetch(`/api/trips/${tripId}/itinerary`);
@@ -196,6 +199,8 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
 
   return (
     <div style={{ padding: '0 0 1.5rem' }}>
+      <TripItineraryMap tripId={tripId} stops={stops} activeStopId={activeStopId} />
+
       {(generating || (!complete && days.length > 0)) && (
         <div
           style={{
@@ -259,7 +264,12 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
         if (stopDays.length === 0 && complete) return null;
 
         return (
-          <section key={stop.id} style={{ marginBottom: 28 }}>
+          <section
+            key={stop.id}
+            ref={setSectionRef(stop.id)}
+            data-stop-id={stop.id}
+            style={{ marginBottom: 28 }}
+          >
             <div
               style={{
                 fontFamily: 'monospace',

@@ -1,15 +1,52 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { DollarSign, Calculator, Save, ArrowRight, Users, Calendar, MapPin } from 'lucide-react';
+import { tripDurationDays } from '@/lib/parse-destination';
 
-export default function PublicBudgetPage() {
+function PublicBudgetPageInner() {
+  const searchParams = useSearchParams();
+  const tripId = searchParams.get('tripId');
+
   const [totalBudget, setTotalBudget] = useState(3000);
   const [destination, setDestination] = useState('');
   const [tripDuration, setTripDuration] = useState(7);
   const [travelers, setTravelers] = useState(2);
   const [budgetStyle, setBudgetStyle] = useState<'budget' | 'comfortable' | 'luxury'>('comfortable');
+  const [tripTitle, setTripTitle] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!tripId) return;
+    let cancelled = false;
+
+    async function loadTrip() {
+      try {
+        const res = await fetch(`/api/trips/${tripId}`);
+        if (!res.ok || cancelled) return;
+        const { trip } = await res.json();
+        if (cancelled || !trip) return;
+
+        setTripTitle(trip.title || trip.destination);
+        if (trip.destination) setDestination(trip.destination);
+        if (typeof trip.budget_amount === 'number' && trip.budget_amount > 0) {
+          setTotalBudget(Math.round(trip.budget_amount));
+        }
+        const adults = trip.adults ?? trip.travelers?.adults ?? 2;
+        const kids = trip.kids ?? trip.travelers?.kids ?? 0;
+        setTravelers(Math.max(1, adults + kids));
+        setTripDuration(tripDurationDays(trip.start_date, trip.end_date));
+      } catch {
+        /* keep defaults */
+      }
+    }
+
+    loadTrip();
+    return () => {
+      cancelled = true;
+    };
+  }, [tripId]);
 
   const budgetBreakdown = {
     budget: {
@@ -61,8 +98,22 @@ export default function PublicBudgetPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-black">Travel Budget Calculator</h1>
-              <p className="text-gray-600 mt-2">Plan your perfect trip budget - no signup required</p>
+              {tripId && (
+                <Link
+                  href={`/my-trip/${tripId}`}
+                  className="text-sm text-indigo-600 hover:underline mb-2 inline-block"
+                >
+                  ← Back to trip
+                </Link>
+              )}
+              <h1 className="text-3xl font-bold text-black">
+                {tripTitle ? `Budget · ${tripTitle}` : 'Travel Budget Calculator'}
+              </h1>
+              <p className="text-gray-600 mt-2">
+                {tripId
+                  ? 'Pre-filled from your saved trip — adjust as needed'
+                  : 'Plan your perfect trip budget - no signup required'}
+              </p>
             </div>
             <Link
               href="/auth/login?next=/budget"
@@ -301,5 +352,13 @@ export default function PublicBudgetPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PublicBudgetPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+      <PublicBudgetPageInner />
+    </Suspense>
   );
 }

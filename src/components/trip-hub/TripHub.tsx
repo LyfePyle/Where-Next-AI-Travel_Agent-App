@@ -18,6 +18,7 @@ import TripHubStopsSection from '@/components/trip-hub/TripHubStopsSection';
 import TripChatPanel from '@/components/trip-hub/TripChatPanel';
 import { useTripEditState } from '@/components/trip-hub/useTripEditState';
 import type { ChatMessageRow } from '@/app/api/trips/[id]/chat/route';
+import { parseDestinationParts } from '@/lib/parse-destination';
 import type { TripStop } from '@/types/trip';
 
 export type { TripStop };
@@ -348,6 +349,8 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
     : trip.end_date;
 
   const primaryDestination = displayStops[0]?.destination || trip.destination;
+  const { city: toolCity, country: toolCountry } = parseDestinationParts(primaryDestination);
+  const toolDestEnc = encodeURIComponent(primaryDestination);
   const totalNights = nights(displayStart, displayEnd);
   const totalTravelers = (trip.adults ?? 1) + (trip.kids ?? 0);
   const isConfirmed = booking?.status === 'confirmed';
@@ -835,7 +838,7 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
                   Live weather loads closer to your travel dates.
                 </p>
                 <Link
-                  href={`/utilities/weather?destination=${encodeURIComponent(primaryDestination)}`}
+                  href={`/utilities/weather?destination=${toolDestEnc}&tripId=${trip.id}`}
                   style={{
                     fontSize: 12,
                     color: 'rgba(255,255,255,0.7)',
@@ -885,17 +888,17 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
               >
                 <UtilBtn href={`/budget?tripId=${trip.id}`} icon="💰" label="Budget" />
                 <UtilBtn
-                  href={`/utilities/weather?destination=${encodeURIComponent(primaryDestination)}`}
+                  href={`/utilities/weather?destination=${toolDestEnc}&tripId=${trip.id}`}
                   icon="🌤"
                   label="Weather"
                 />
                 <UtilBtn
-                  href={`/utilities/currency?destination=${encodeURIComponent(primaryDestination)}`}
+                  href={`/utilities/currency?destination=${toolDestEnc}&tripId=${trip.id}`}
                   icon="💱"
                   label="Currency"
                 />
                 <UtilBtn
-                  href={`/tour?destination=${encodeURIComponent(primaryDestination)}`}
+                  href={`/tour?city=${encodeURIComponent(toolCity)}&country=${encodeURIComponent(toolCountry)}&trip_id=${trip.id}`}
                   icon="🚶"
                   label="Walking tour"
                 />

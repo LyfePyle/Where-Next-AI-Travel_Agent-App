@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
+import { parseDestinationParts } from '@/lib/parse-destination';
 import { useWalkingTour } from '@/hooks/useWalkingTour';
 import { MapPin, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
 const TourMap = dynamic(() => import('@/components/TourMap'), { ssr: false });
 
@@ -31,8 +33,10 @@ function TourPageInner() {
   } = useWalkingTour();
 
   const searchParams = useSearchParams();
-  const [city, setCity] = useState(searchParams.get('city') ?? '');
-  const [country, setCountry] = useState(searchParams.get('country') ?? '');
+  const destFromUrl = searchParams.get('destination') ?? '';
+  const parsedDest = destFromUrl ? parseDestinationParts(destFromUrl) : { city: '', country: '' };
+  const [city, setCity] = useState(searchParams.get('city') ?? parsedDest.city);
+  const [country, setCountry] = useState(searchParams.get('country') ?? parsedDest.country);
   const [preferences, setPreferences] = useState('');
   const tripId = searchParams.get('trip_id') ?? undefined;
 
@@ -316,9 +320,19 @@ function TourPageInner() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="max-w-md mx-auto">
+        {tripId && (
+          <Link
+            href={`/my-trip/${tripId}`}
+            className="text-sm text-indigo-600 hover:underline mb-3 inline-block"
+          >
+            ← Back to trip
+          </Link>
+        )}
         <h1 className="text-xl font-bold text-gray-900 mb-2">Walking tour</h1>
         <p className="text-gray-600 text-sm mb-6">
-          Enter a city and country to generate a 6–8 stop walking tour with local tips.
+          {city && country
+            ? `Generate a walking tour for ${city}, ${country}`
+            : 'Enter a city and country to generate a 6–8 stop walking tour with local tips.'}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">

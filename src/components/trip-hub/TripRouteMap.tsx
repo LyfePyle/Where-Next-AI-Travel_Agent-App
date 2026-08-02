@@ -19,7 +19,7 @@ interface TripRouteMapProps {
   stops: TripStop[];
 }
 
-type ProjectedPin = RoutePin & { x: number; y: number };
+type ProjectedPin = RoutePin & { x: number; y: number; mapLabel: string };
 
 type PlacedLabel = ProjectedPin & {
   labelX: number;
@@ -36,6 +36,47 @@ interface LabelBox {
 }
 
 const MIN_SPAN_DEG = 1.5;
+const CLUSTER_DIST_PX = 13;
+const PIN_RADIUS = 2.8;
+const LABEL_FONT = 3.2;
+const NIGHTS_FONT = 2.6;
+
+const ADMIN_PREFIXES = [
+  /^special\s+capital\s+region\s+of\s+/i,
+  /^capital\s+region\s+of\s+/i,
+  /^autonomous\s+region\s+of\s+/i,
+  /^province\s+of\s+/i,
+  /^city\s+of\s+/i,
+  /^municipality\s+of\s+/i,
+  /^district\s+of\s+/i,
+  /^greater\s+/i,
+  /^metropolitan\s+/i,
+];
+
+/** Short label for map pins only — strip formal/administrative prefixes. */
+export function mapLabelForCity(city: string): string {
+  let label = city.trim();
+  if (!label) return city;
+
+  for (const re of ADMIN_PREFIXES) {
+    label = label.replace(re, '');
+  }
+
+  label = label
+    .replace(/\s+(city\s+municipality|municipality|metropolitan\s+city|city|province|region)$/i, '')
+    .trim();
+
+  if (label.includes(',')) {
+    label = label.split(',')[0].trim();
+  }
+
+  if (label.length > 20) {
+    const words = label.split(/\s+/);
+    label = words.length > 2 ? words.slice(-2).join(' ') : words[0] ?? label;
+  }
+
+  return label || city.trim();
+}
 
 /** Equirectangular projection with uniform lat/lon scale, centered in the view box. */
 function projectPins(
@@ -76,6 +117,7 @@ function projectPins(
 
   return pins.map((pin) => ({
     ...pin,
+    mapLabel: mapLabelForCity(pin.city),
     x: offsetX + (pin.lon - minLon) * scale,
     y: offsetY + (maxLat - pin.lat) * scale,
   }));
@@ -85,8 +127,13 @@ function estimateTextWidth(text: string, fontSize: number): number {
   return text.length * fontSize * 0.52;
 }
 
-function boxesOverlap(a: LabelBox, b: LabelBox): boolean {
-  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+function boxesOverlap(a: LabelBox, b: LabelBox, margin = 0.8): boolean {
+  return (
+    a.x - margin < b.x + b.w + margin &&
+    a.x + a.w + margin > b.x - margin &&
+    a.y - margin < b.y + b.h + margin &&
+    a.y + a.h + margin > b.y - margin
+  );
 }
 
 function boxNearPoint(box: LabelBox, x: number, y: number, margin: number): boolean {
@@ -102,87 +149,218 @@ function labelBox(
   labelX: number,
   labelY: number,
   anchor: 'start' | 'middle' | 'end',
-  city: string,
+  text: string,
   fontSize: number
 ): LabelBox {
-  const w = estimateTextWidth(city, fontSize);
+  const w = estimateTextWidth(text, fontSize);
   const h = fontSize * 1.2;
   const x =
     anchor === 'middle' ? labelX - w / 2 : anchor === 'start' ? labelX : labelX - w;
   return { x, y: labelY - h * 0.85, w, h };
 }
 
-/** Offset labels by quadrant; nudge to avoid pin and other label overlap. */
-function placeLabels(projected: ProjectedPin[], width: number, height: number): PlacedLabel[] {
-  const cx = width / 2;
-  const cy = height / 2;
-  const placed: LabelBox[] = [];
-  const pinRadius = 2.8;
-  const fontSize = 3.2;
-  const nightsFontSize = 2.6;
+function nightsBox(
+  labelX: number,
+  nightsY: number,
+  anchor: 'start' | 'middle' | 'end',
+  text: string
+): LabelBox {
+  const w = estimateTextWidth(text, NIGHTS_FONT);
+  const h = NIGHTS_FONT * 1.2;
+  const x =
+    anchor === 'middle' ? labelX - w / 2 : anchor === 'start' ? labelX : labelX - w;
+  return { x, y: nightsY - h, w, h };
+}
 
-  return projected.map((pin) => {
+/** Group pins whose projected positions fall within CLUSTER_DIST_PX of each other. */
+function findClusters(pins: ProjectedPin[]): Map<string, string[]> {
+  const n = pins.length;
+  const parent = Array.from({ length: n }, (_, i) => i);
+
+  function find(i: number): number {
+    if (parent[i] !== i) parent[i] = find(parent[i]);
+    return parent[i];
+  }
+
+  function unite(a: number, b: number) {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent[rb] = ra;
+  }
+
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const dist = Math.hypot(pins[i].x - pins[j].x, pins[i].y - pins[j].y);
+      if (dist <= CLUSTER_DIST_PX) unite(i, j);
+    }
+  }
+
+  const groups = new Map<number, string[]>();
+  for (let i = 0; i < n; i++) {
+    const root = find(i);
+    const list = groups.get(root) ?? [];
+    list.push(pins[i].stopId);
+    groups.set(root, list);
+  }
+
+  const byStop = new Map<string, string[]>();
+  for (const ids of groups.values()) {
+    for (const id of ids) byStop.set(id, ids);
+  }
+  return byStop;
+}
+
+function anchorForAngle(angle: number): 'start' | 'middle' | 'end' {
+  const c = Math.cos(angle);
+  if (c > 0.35) return 'start';
+  if (c < -0.35) return 'end';
+  return 'middle';
+}
+
+function candidatePositions(
+  pin: ProjectedPin,
+  clusterIds: string[],
+  clusterIndex: number,
+  width: number,
+  height: number
+): Array<{ x: number; y: number; anchor: 'start' | 'middle' | 'end' }> {
+  const out: Array<{ x: number; y: number; anchor: 'start' | 'middle' | 'end' }> = [];
+  const isCluster = clusterIds.length >= 2;
+
+  if (isCluster) {
+    const k = clusterIds.length;
+    const idx = clusterIds.indexOf(pin.stopId);
+    const baseAngle = (2 * Math.PI * idx) / k - Math.PI / 2;
+    const radii = k >= 4 ? [10, 13, 16, 19, 22, 25] : [8, 11, 14, 17, 20];
+
+    for (const r of radii) {
+      for (let fan = 0; fan < 3; fan++) {
+        const angle = baseAngle + (fan - 1) * 0.35;
+        out.push({
+          x: pin.x + Math.cos(angle) * r,
+          y: pin.y + Math.sin(angle) * r * 0.85,
+          anchor: anchorForAngle(angle),
+        });
+      }
+    }
+  } else {
+    const cx = width / 2;
+    const cy = height / 2;
     const dx = pin.x - cx;
     const dy = pin.y - cy;
 
-    let labelAnchor: 'start' | 'middle' | 'end' = 'middle';
-    let labelX = pin.x;
-    let labelY = pin.y;
-    let nightsY = pin.y + 5.5;
+    const offsets: Array<[number, number, 'start' | 'middle' | 'end']> = [];
 
     if (Math.abs(dx) > Math.abs(dy) * 0.85) {
-      if (dx > 0) {
-        labelAnchor = 'start';
-        labelX = pin.x + 4.5;
-        labelY = pin.y + 0.5;
-        nightsY = pin.y + 4.8;
-      } else {
-        labelAnchor = 'end';
-        labelX = pin.x - 4.5;
-        labelY = pin.y + 0.5;
-        nightsY = pin.y + 4.8;
-      }
-    } else if (dy > 0) {
-      labelY = pin.y + 6.5;
-      nightsY = pin.y + 10;
-    } else {
-      labelY = pin.y - 5.5;
-      nightsY = pin.y - 2;
-    }
-
-    let box = labelBox(labelX, labelY, labelAnchor, pin.city, fontSize);
-    const nudgeStep = 2.2;
-
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const hitsPin = Math.hypot(labelX - pin.x, labelY - pin.y) < pinRadius + 2.5;
-      const hitsLabel = placed.some((b) => boxesOverlap(b, box));
-      const hitsOtherPin = projected.some(
-        (other) =>
-          other.stopId !== pin.stopId && boxNearPoint(box, other.x, other.y, pinRadius + 1.5)
+      offsets.push(
+        [dx > 0 ? 5 : -5, 0, dx > 0 ? 'start' : 'end'],
+        [dx > 0 ? 7 : -7, -3, dx > 0 ? 'start' : 'end'],
+        [dx > 0 ? 7 : -7, 3, dx > 0 ? 'start' : 'end'],
+        [0, dy > 0 ? 7 : -7, 'middle'],
+        [dx > 0 ? 9 : -9, dy > 0 ? -4 : 4, dx > 0 ? 'start' : 'end']
       );
-
-      if (!hitsPin && !hitsLabel && !hitsOtherPin) break;
-
-      if (Math.abs(dx) > Math.abs(dy) * 0.85) {
-        labelY += dy >= 0 ? -nudgeStep : nudgeStep;
-        nightsY = labelY + (dx > 0 ? 4.3 : 4.3);
-      } else {
-        labelY += dy >= 0 ? -nudgeStep : nudgeStep;
-        nightsY = labelY + (dy >= 0 ? 3.5 : 3.5);
-      }
-      box = labelBox(labelX, labelY, labelAnchor, pin.city, fontSize);
+    } else {
+      offsets.push(
+        [0, dy > 0 ? 7 : -7, 'middle'],
+        [dx > 0 ? 6 : -6, dy > 0 ? 5 : -5, dx > 0 ? 'start' : 'end'],
+        [dx > 0 ? -6 : 6, dy > 0 ? 5 : -5, dx > 0 ? 'end' : 'start'],
+        [0, dy > 0 ? 10 : -10, 'middle'],
+        [0, dy > 0 ? -10 : 10, 'middle']
+      );
     }
 
-    placed.push(box);
-    placed.push({
-      x: box.x,
-      y: nightsY - nightsFontSize,
-      w: estimateTextWidth(`${pin.nights}n`, nightsFontSize),
-      h: nightsFontSize * 1.2,
-    });
+    for (const [ox, oy, anchor] of offsets) {
+      out.push({ x: pin.x + ox, y: pin.y + oy, anchor });
+    }
+  }
 
-    return { ...pin, labelX, labelY, nightsY, labelAnchor };
+  return out;
+}
+
+function collides(
+  cityBox: LabelBox,
+  nightsBoxVal: LabelBox,
+  placed: LabelBox[],
+  allPins: ProjectedPin[],
+  selfId: string
+): boolean {
+  for (const b of placed) {
+    if (boxesOverlap(cityBox, b) || boxesOverlap(nightsBoxVal, b)) return true;
+  }
+  for (const p of allPins) {
+    if (boxNearPoint(cityBox, p.x, p.y, PIN_RADIUS + 2)) return true;
+    if (p.stopId !== selfId && boxNearPoint(nightsBoxVal, p.x, p.y, PIN_RADIUS + 1.5)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Place labels — fan out clusters, prefer readable over pin-proximity. */
+function placeLabels(projected: ProjectedPin[], width: number, height: number): PlacedLabel[] {
+  const clusters = findClusters(projected);
+  const placed: LabelBox[] = [];
+
+  const sorted = [...projected].sort((a, b) => {
+    const ca = clusters.get(a.stopId)?.length ?? 1;
+    const cb = clusters.get(b.stopId)?.length ?? 1;
+    if (cb !== ca) return cb - ca;
+    return a.y - b.y;
   });
+
+  const results = new Map<string, PlacedLabel>();
+
+  for (const pin of sorted) {
+    const clusterIds = clusters.get(pin.stopId) ?? [pin.stopId];
+    const clusterIndex = clusterIds.indexOf(pin.stopId);
+    const candidates = candidatePositions(pin, clusterIds, clusterIndex, width, height);
+    const nightsText = `${pin.nights}n`;
+
+    let best: PlacedLabel | null = null;
+    let bestScore = Infinity;
+
+    for (const cand of candidates) {
+      const cityB = labelBox(cand.x, cand.y, cand.anchor, pin.mapLabel, LABEL_FONT);
+      const nightsY = cand.y + (cand.y > pin.y ? 3.8 : 4.2);
+      const nightsB = nightsBox(cand.x, nightsY, cand.anchor, nightsText);
+
+      if (collides(cityB, nightsB, placed, projected, pin.stopId)) continue;
+
+      const dist = Math.hypot(cand.x - pin.x, cand.y - pin.y);
+      const score = dist + (clusterIds.length >= 3 ? 0 : dist * 0.2);
+      if (score < bestScore) {
+        bestScore = score;
+        best = {
+          ...pin,
+          labelX: cand.x,
+          labelY: cand.y,
+          nightsY,
+          labelAnchor: cand.anchor,
+        };
+      }
+    }
+
+    if (!best) {
+      const fallbackAngle =
+        (2 * Math.PI * clusterIndex) / Math.max(clusterIds.length, 1) - Math.PI / 2;
+      const r = clusterIds.length >= 3 ? 22 : 14;
+      best = {
+        ...pin,
+        labelX: pin.x + Math.cos(fallbackAngle) * r,
+        labelY: pin.y + Math.sin(fallbackAngle) * r * 0.85,
+        nightsY: pin.y + Math.sin(fallbackAngle) * r * 0.85 + 4,
+        labelAnchor: anchorForAngle(fallbackAngle),
+      };
+    }
+
+    placed.push(labelBox(best.labelX, best.labelY, best.labelAnchor, pin.mapLabel, LABEL_FONT));
+    placed.push(
+      nightsBox(best.labelX, best.nightsY, best.labelAnchor, nightsText)
+    );
+    results.set(pin.stopId, best);
+  }
+
+  return projected.map((p) => results.get(p.stopId)!);
 }
 
 export default function TripRouteMap({ tripId, stops }: TripRouteMapProps) {
@@ -224,8 +402,8 @@ export default function TripRouteMap({ tripId, stops }: TripRouteMapProps) {
   if (stops.length === 0) return null;
 
   const width = 100;
-  const height = 62;
-  const padding = 12;
+  const height = 68;
+  const padding = 14;
   const projected = placeLabels(projectPins(pins, width, height, padding), width, height);
   const linePoints = projected.map((p) => `${p.x},${p.y}`).join(' ');
 
@@ -264,7 +442,7 @@ export default function TripRouteMap({ tripId, stops }: TripRouteMapProps) {
         {!loading && projected.length > 0 && (
           <svg
             viewBox={`0 0 ${width} ${height}`}
-            style={{ width: '100%', height: 'auto', display: 'block', minHeight: 160 }}
+            style={{ width: '100%', height: 'auto', display: 'block', minHeight: 170 }}
             role="img"
             aria-label="Trip route map"
           >
@@ -285,22 +463,29 @@ export default function TripRouteMap({ tripId, stops }: TripRouteMapProps) {
 
             {projected.map((pin, i) => (
               <g key={pin.stopId}>
-                <circle cx={pin.x} cy={pin.y} r={2.8} fill="#1C1917" stroke="#fff" strokeWidth={0.6} />
+                <circle
+                  cx={pin.x}
+                  cy={pin.y}
+                  r={PIN_RADIUS}
+                  fill="#1C1917"
+                  stroke="#fff"
+                  strokeWidth={0.6}
+                />
                 <text
                   x={pin.labelX}
                   y={pin.labelY}
                   textAnchor={pin.labelAnchor}
-                  fontSize={3.2}
+                  fontSize={LABEL_FONT}
                   fontWeight={600}
                   fill="#1C1917"
                 >
-                  {pin.city}
+                  {pin.mapLabel}
                 </text>
                 <text
-                  x={pin.labelAnchor === 'middle' ? pin.labelX : pin.labelX}
+                  x={pin.labelX}
                   y={pin.nightsY}
                   textAnchor={pin.labelAnchor}
-                  fontSize={2.6}
+                  fontSize={NIGHTS_FONT}
                   fill="#78716C"
                 >
                   {pin.nights}n{i < projected.length - 1 ? ' →' : ''}
@@ -326,7 +511,7 @@ export default function TripRouteMap({ tripId, stops }: TripRouteMapProps) {
               textAlign: 'center',
             }}
           >
-            {projected.map((p) => p.city).join(' → ')}
+            {projected.map((p) => p.mapLabel).join(' → ')}
           </p>
         )}
       </div>

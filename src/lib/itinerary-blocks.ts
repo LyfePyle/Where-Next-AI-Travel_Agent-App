@@ -61,6 +61,7 @@ export function parseRequestedActivities(message: string): string[] {
     while ((match = re.exec(m)) !== null) {
       const phrase = match[1]
         .trim()
+        .replace(/\s+and\b.*$/i, '')
         .replace(/\s+(day|on day|for day)\s*\d*.*$/i, '')
         .replace(/\s+(too|as well|also)$/i, '')
         .trim();

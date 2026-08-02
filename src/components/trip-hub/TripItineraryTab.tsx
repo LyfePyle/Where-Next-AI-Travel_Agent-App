@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { newBlankBlock } from '@/lib/generate-itinerary-days';
+import { sortBlocksByTimeOfDay } from '@/lib/itinerary-blocks';
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
 
@@ -338,7 +339,7 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                     </p>
                   )}
 
-                  {day.blocks.map((block) => (
+                  {sortBlocksByTimeOfDay(day.blocks).map((block) => (
                     <div
                       key={block.id}
                       style={{

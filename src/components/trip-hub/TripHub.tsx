@@ -17,6 +17,7 @@ import { useToast, ToastContainer } from '@/hooks/useToast';
 import TripHubStopsSection from '@/components/trip-hub/TripHubStopsSection';
 import TripChatPanel from '@/components/trip-hub/TripChatPanel';
 import TripItineraryTab from '@/components/trip-hub/TripItineraryTab';
+import TripRouteMap from '@/components/trip-hub/TripRouteMap';
 import { useTripEditState } from '@/components/trip-hub/useTripEditState';
 import type { ChatMessageRow } from '@/app/api/trips/[id]/chat/route';
 import { parseDestinationParts } from '@/lib/parse-destination';
@@ -763,6 +764,10 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
               >
                 {saveError}
               </div>
+            )}
+
+            {displayStops.length > 0 && (
+              <TripRouteMap tripId={trip.id} stops={displayStops} />
             )}
 
             <TripHubStopsSection

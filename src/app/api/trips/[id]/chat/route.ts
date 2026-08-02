@@ -27,6 +27,7 @@ import type { TripStop } from '@/types/trip';
 import { validatePlace } from '@/lib/validate-place';
 import type { TripItineraryDay } from '@/types/itinerary';
 import { normalizeFromTrips } from '@/lib/trip-normalize';
+import { applyReorderFromIntent } from '@/lib/trip-chat-reorder';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -309,10 +310,12 @@ export async function POST(
     .order('created_at', { ascending: true })
     .limit(20);
 
+  const chatHistory = history ?? [];
+
   const systemPrompt = buildTripChatSystemPrompt(stops, tripStart, itinerarySummary);
   const chatMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
-    ...(history ?? []).map((m) => ({
+    ...(chatHistory).map((m) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     })),
@@ -382,7 +385,6 @@ export async function POST(
     });
   }
 
-  const allCalls = [...validated.calls, ...itineraryCalls];
   const undoSnapshot: UndoSnapshot = {
     stops,
     suggestions: trip.suggestions,
@@ -395,6 +397,7 @@ export async function POST(
   let nextStops = stops;
   let stopSummaries: string[] = [];
   let serialized = serializeStopsForDb(stops);
+  let stopCallsForSync = [...validated.calls];
 
   if (validated.calls.length > 0) {
     const applied = applyToolCalls(stops, tripStart, validated.calls);
@@ -415,6 +418,17 @@ export async function POST(
     nextStops = applied.stops;
     stopSummaries = applied.summaries;
     serialized = serializeStopsForDb(applied.stops);
+  }
+
+  const reorderFix = applyReorderFromIntent(nextStops, tripStart, message);
+  if (reorderFix) {
+    nextStops = reorderFix.stops;
+    stopSummaries.push(reorderFix.summary!);
+    stopCallsForSync.push(reorderFix.extraCall!);
+    serialized = serializeStopsForDb(nextStops);
+  }
+
+  if (stopCallsForSync.length > 0) {
     if (!serialized) {
       return NextResponse.json({ error: 'Could not serialize stops' }, { status: 500 });
     }
@@ -428,6 +442,8 @@ export async function POST(
     }
   }
 
+  const allCalls = [...stopCallsForSync, ...itineraryCalls];
+
   let nextItineraryDays = itineraryDays;
   let itinerarySummaries: string[] = [];
 
@@ -438,7 +454,8 @@ export async function POST(
       nextStops,
       itineraryDays,
       itineraryCalls,
-      itineraryContext
+      itineraryContext,
+      { userMessage: message, chatHistory }
     );
     if (!itineraryApplied.ok) {
       const { data: inserted } = await supabase
@@ -457,25 +474,25 @@ export async function POST(
     itinerarySummaries = itineraryApplied.summaries;
   }
 
-  if (validated.calls.length > 0) {
+  if (stopCallsForSync.length > 0) {
     await syncItineraryAfterStopMutations(
       supabase,
       id,
       stops,
       nextStops,
-      validated.calls,
+      stopCallsForSync,
       itineraryContext
     );
     nextItineraryDays = await fetchItineraryDays(supabase, id);
   }
 
   const newSuggestions =
-    validated.calls.length > 0
+    stopCallsForSync.length > 0
       ? await updateSuggestionsForToolCalls(
           trip.suggestions,
           stops,
           serialized!,
-          validated.calls,
+          stopCallsForSync,
           trip.vibe as string | null,
           trip.budget_amount as number | null
         )
@@ -488,7 +505,7 @@ export async function POST(
     undo_expires_at: undoExpiresAt,
   };
 
-  if (validated.calls.length > 0 && serialized) {
+  if (stopCallsForSync.length > 0 && serialized) {
     tripUpdates.stops = serialized;
     tripUpdates.suggestions = newSuggestions;
     tripUpdates.destination = tripDestinationSummary(serialized);

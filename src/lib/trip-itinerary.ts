@@ -12,6 +12,14 @@ import {
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
 import type { ToolCallInput } from '@/lib/trip-mutations';
+import {
+  blockToRestore,
+  dayHasSimilarBlock,
+  findRecentlyRemovedTitles,
+  parseRequestedActivities,
+  sortBlocksByTimeOfDay,
+  type ChatHistoryRow,
+} from '@/lib/itinerary-blocks';
 
 export interface TripItineraryContext {
   vibes?: string | null;
@@ -346,16 +354,83 @@ export async function syncItineraryAfterStopMutations(
   }
 }
 
+export interface ApplyItineraryOptions {
+  userMessage?: string;
+  chatHistory?: ChatHistoryRow[];
+}
+
+async function restoreRequestedBlocks(
+  supabase: SupabaseClient,
+  tripId: string,
+  stops: TripStop[],
+  days: TripItineraryDay[],
+  calls: ToolCallInput[],
+  options?: ApplyItineraryOptions
+): Promise<{ days: TripItineraryDay[]; summaries: string[] }> {
+  const summaries: string[] = [];
+  if (!options?.userMessage) return { days, summaries };
+
+  const removed = findRecentlyRemovedTitles(options.chatHistory ?? []);
+  const requested = parseRequestedActivities(options.userMessage);
+  if (requested.length === 0 || removed.size === 0) return { days, summaries };
+
+  let current = days;
+  const addCalls = calls.filter((c) => c.name === 'add_itinerary_block');
+  if (addCalls.length === 0) return { days, summaries };
+
+  for (const call of addCalls) {
+    const stopId = String(call.arguments.stop_id ?? '');
+    const dayIndex = Math.max(1, Math.round(Number(call.arguments.day_index)));
+    let day = current.find((d) => d.stop_id === stopId && d.day_index === dayIndex);
+    let blocks = [...(day?.blocks ?? [])];
+
+    for (const req of requested) {
+      if (dayHasSimilarBlock(blocks, req)) continue;
+      const restored = blockToRestore(req, removed);
+      if (!restored || dayHasSimilarBlock(blocks, restored.title)) continue;
+
+      blocks = sortBlocksByTimeOfDay([...blocks, restored]).slice(0, 6);
+
+      if (day) {
+        await supabase
+          .from('trip_itinerary_days')
+          .update({ blocks, updated_at: new Date().toISOString() })
+          .eq('id', day.id);
+      } else {
+        const stop = stops.find((s) => s.id === stopId);
+        if (!stop) continue;
+        await upsertDayRows(supabase, tripId, stop, [{ day_index: dayIndex, blocks }]);
+      }
+
+      summaries.push(`Restored "${restored.title}" to day ${dayIndex}`);
+      current = await fetchItineraryDays(supabase, tripId);
+      day = current.find((d) => d.stop_id === stopId && d.day_index === dayIndex);
+      blocks = [...(day?.blocks ?? [])];
+    }
+  }
+
+  return { days: current, summaries };
+}
+
 export async function applyItineraryToolCalls(
   supabase: SupabaseClient,
   tripId: string,
   stops: TripStop[],
   days: TripItineraryDay[],
   calls: ToolCallInput[],
-  context: TripItineraryContext
+  context: TripItineraryContext,
+  options?: ApplyItineraryOptions
 ): Promise<{ ok: true; days: TripItineraryDay[]; summaries: string[] } | { ok: false; error: string }> {
-  let current = [...days];
-  const summaries: string[] = [];
+  const restoreResult = await restoreRequestedBlocks(
+    supabase,
+    tripId,
+    stops,
+    days,
+    calls,
+    options
+  );
+  let current = restoreResult.days;
+  const summaries: string[] = [...restoreResult.summaries];
 
   for (const call of calls) {
     const args = call.arguments;
@@ -425,12 +500,21 @@ export async function applyItineraryToolCalls(
         };
 
         const day = current.find((d) => d.stop_id === stopId && d.day_index === dayIndex);
+        const existingBlocks = day?.blocks ?? [];
+
+        if (dayHasSimilarBlock(existingBlocks, block.title)) {
+          summaries.push(
+            `"${block.title}" is already on day ${dayIndex} — skipped duplicate`
+          );
+          break;
+        }
+
         if (!day) {
           const stop = stops.find((s) => s.id === stopId);
           if (!stop) return { ok: false, error: `Stop not found: ${stopId}` };
           await upsertDayRows(supabase, tripId, stop, [{ day_index: dayIndex, blocks: [block] }]);
         } else {
-          const nextBlocks = [...day.blocks, block].slice(0, 6);
+          const nextBlocks = sortBlocksByTimeOfDay([...existingBlocks, block]).slice(0, 6);
           await supabase
             .from('trip_itinerary_days')
             .update({ blocks: nextBlocks, updated_at: new Date().toISOString() })

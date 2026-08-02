@@ -73,7 +73,8 @@ export const TRIP_CHAT_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'reorder_stops',
-      description: 'Change the order of all stops. Dates recompute from trip start.',
+      description:
+        'REQUIRED when the user asks to change stop order (e.g. "end in X", "put X last", "move X before Y", "start in X"). Pass the full ordered list of stop IDs in the new sequence. Dates recompute from trip start.',
       parameters: {
         type: 'object',
         properties: {
@@ -110,7 +111,8 @@ export const TRIP_CHAT_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'add_itinerary_block',
-      description: 'Add an activity block to a specific day in the itinerary.',
+      description:
+        'Add an activity block to a specific day. Check the current itinerary first — do NOT add a block if a similar activity already exists on that day (same activity type/title). If the user says "keep X", ensure X is present before adding new items.',
       parameters: {
         type: 'object',
         properties: {
@@ -182,6 +184,8 @@ Rules:
 - Use stop tools (swap_stop, resize_stop_nights, add_stop, remove_stop, reorder_stops) for route/date/city changes.
 - Use itinerary tools (regenerate_day, add_itinerary_block, remove_itinerary_block) for day-by-day plan edits.
 - Only modify the trip using the provided tools. Never describe changes in prose without calling a tool.
+- Positional stop requests ALWAYS need reorder_stops: "end in X", "put X last/first", "move X before Y", "finish in X instead". If you add or swap stops AND the user asked for a new order, call reorder_stops with the complete final stop order.
+- Before add_itinerary_block, read that day's existing blocks in the itinerary summary. Skip adding duplicates. If the user says "keep X and add Y", only add Y when missing; do not re-add X if it is already listed.
 - If a request is ambiguous (e.g. "make it shorter" with no amount), make one small reasonable change (default: -1 night, or the minimum viable adjustment) and say what you assumed in your reply so the user can correct it.
 - If a request can't be resolved to a real place, don't guess — ask a clarifying question instead of calling a tool.
 - A single message may require multiple tool calls (e.g. swap + resize together).

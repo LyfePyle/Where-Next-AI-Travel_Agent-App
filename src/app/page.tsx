@@ -117,12 +117,6 @@ export default function NewHomePage() {
     };
   }, [prompt, aiResponse]);
 
-  const defaultItineraryPreview = [
-    { label: 'Day 1', detail: 'Arrive • Old Town walk • Food tour' },
-    { label: 'Day 3', detail: 'Scenic train • Lake day • Sunset cruise' },
-    { label: 'Day 5', detail: 'Markets • Museum • Rooftop dinner' },
-  ];
-
   const routeStops = useMemo(() => {
     const d = planHints.destination;
     if (!d || d === 'Your trip') {
@@ -189,24 +183,28 @@ export default function NewHomePage() {
       id: 'insp-1',
       title: 'Romantic Paris Getaway',
       subtitle: '5 days • Couples',
+      destination: 'Paris, France',
       image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200&h=800&fit=crop',
     },
     {
       id: 'insp-2',
       title: 'Tokyo Food & Culture',
       subtitle: '6 days • Food lovers',
+      destination: 'Tokyo, Japan',
       image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200&h=800&fit=crop',
     },
     {
       id: 'insp-3',
       title: 'Santorini Sunset Escape',
       subtitle: '4 days • Beach',
+      destination: 'Santorini, Greece',
       image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&h=800&fit=crop',
     },
     {
       id: 'insp-4',
       title: 'Swiss Alps Adventure',
       subtitle: '7 days • Nature',
+      destination: 'Zurich, Switzerland',
       image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&h=800&fit=crop',
     },
   ];
@@ -413,14 +411,14 @@ export default function NewHomePage() {
             <div className="text-left">
               <p className="inline-flex items-center gap-2 px-4 py-2 bg-white shadow-sm rounded-full text-sm font-semibold text-purple-700 border border-purple-100">
                 <MessageCircle className="h-4 w-4" />
-                Your AI trip planner
+                Trip planning you can actually change
               </p>
               <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-gray-900 mt-5 mb-4 leading-[1.05]">
-                Plan a trip that feels made for you,
-                <span className="block text-blue-600">not a generic template.</span>
+                Plan a multi-stop trip.
+                <span className="block text-blue-600">Then just tell it what to fix.</span>
               </h2>
               <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl">
-                Tell us what you want and we’ll design a tailored itinerary with flights, stays, and experiences.
+                Where Next helps you discover destinations, chain dates across countries, and build a day-by-day starting point — then refine everything in chat, not by starting over.
               </p>
 
               <form onSubmit={handlePromptSubmit} className="max-w-3xl">
@@ -430,7 +428,7 @@ export default function NewHomePage() {
                     <input
                       value={prompt}
                       onChange={(event) => setPrompt(event.target.value)}
-                      placeholder="e.g. 6-day Tokyo trip for food lovers under $2,000"
+                      placeholder="e.g. 3 weeks in Indonesia and Thailand — temples, food, not too rushed"
                       className="w-full pl-11 pr-4 py-3 text-base md:text-lg rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/40 placeholder:text-gray-400"
                     />
                   </div>
@@ -460,10 +458,10 @@ export default function NewHomePage() {
 
               <div className="mt-6 flex flex-wrap gap-2 text-sm text-purple-700">
                 {[
-                  'Create a 7-day Paris itinerary for a birthday trip',
-                  'Plan a budget-friendly Barcelona weekend',
-                  'Romantic 5-day Rome getaway',
-                  'Family trip to London with kids',
+                  'I don\'t know where to go yet — help me narrow it down',
+                  '6 countries in Southeast Asia, ~6 weeks, mid budget',
+                  'Swap one stop and keep the rest of the trip intact',
+                  'Add a yoga day in Denpasar on day 3',
                 ].map((chip) => (
                   <button
                     key={chip}
@@ -680,67 +678,43 @@ export default function NewHomePage() {
               <div className="relative space-y-4">
                 <div className="rounded-3xl border border-purple-100 bg-white/90 p-6 shadow-2xl shadow-purple-100/50">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="text-sm font-semibold text-gray-900">Sample itinerary</div>
-                    <span className="text-xs text-purple-700 bg-purple-100 px-2 py-1 rounded-full">Live preview</span>
+                    <div className="text-sm font-semibold text-gray-900">See it change in chat</div>
+                    <span className="text-xs text-purple-700 bg-purple-100 px-2 py-1 rounded-full">How it works</span>
                   </div>
-                  <div className="space-y-3 text-sm text-gray-600">
-                    {(aiResponse && planHints.itineraryRows.length > 0
-                      ? planHints.itineraryRows
-                      : defaultItineraryPreview
-                    ).map((row) => (
-                      <div key={row.label} className="flex items-start gap-3">
-                        <div className="h-8 w-8 rounded-full bg-purple-600/10 text-purple-700 flex items-center justify-center text-xs font-semibold">
-                          {row.label}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-gray-800 font-medium">{row.detail}</div>
-                          <div className="text-xs text-gray-500">Flexible & budget-friendly</div>
-                        </div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-slate-900 text-white px-4 py-2.5 text-[13px] leading-snug">
+                        Swap Chiang Mai for Chiang Rai — same number of nights
                       </div>
-                    ))}
+                    </div>
+                    <div className="flex justify-start">
+                      <div className="max-w-[90%] rounded-2xl rounded-tl-sm bg-purple-50 border border-purple-100 text-gray-800 px-4 py-2.5 text-[13px] leading-snug">
+                        Done — Chiang Rai is in. Day 2–4 blocks updated; dates still flow to Siem Reap.
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-slate-900 text-white px-4 py-2.5 text-[13px] leading-snug">
+                        Put Langkawi last
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      <div className="max-w-[90%] rounded-2xl rounded-tl-sm bg-purple-50 border border-purple-100 text-gray-800 px-4 py-2.5 text-[13px] leading-snug">
+                        Moved Langkawi to the final stop. Route and nights recalculated.
+                      </div>
+                    </div>
                   </div>
                   <div className="mt-5 flex items-center gap-3 text-xs text-gray-500">
-                    <Plane className="h-4 w-4 text-purple-600" />
-                    Flights • Hotels • Experiences
+                    <MessageCircle className="h-4 w-4 text-purple-600" />
+                    Stops • dates • day blocks — all editable
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-lg">
-                    <div className="text-xs text-gray-500 mb-2">Budget snapshot</div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {aiResponse
-                        ? `~$${planHints.budgetNum.toLocaleString()}`
-                        : '$2,140'}
-                    </div>
-                    <div className="mt-2 h-2 rounded-full bg-gray-100">
-                      <div className="h-2 rounded-full bg-emerald-500" style={{ width: '72%' }} />
-                    </div>
-                    <div className="mt-2 text-xs text-emerald-600">On track</div>
+                <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-lg">
+                  <div className="text-xs text-gray-500 mb-2">6-stop route</div>
+                  <div className="text-sm font-semibold text-gray-900 leading-relaxed">
+                    Jakarta → Bali → Chiang Rai → Siem Reap → Phuket → Langkawi
                   </div>
-                  <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-lg">
-                    <div className="text-xs text-gray-500 mb-2">Experience score</div>
-                    <div className="text-2xl font-bold text-gray-900">8.9</div>
-                    <div className="mt-2 flex items-center gap-1 text-amber-500">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="h-4 w-4 fill-current" />
-                      ))}
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500">Loved by travelers</div>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-gray-100 bg-gradient-to-br from-blue-50 via-white to-purple-50 p-5 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-xs text-gray-500">Next best window</div>
-                      <div className="text-lg font-semibold text-gray-900">May - June</div>
-                    </div>
-                    <div className="h-10 w-10 rounded-full bg-purple-600 text-white flex items-center justify-center">
-                      <Calendar className="h-5 w-5" />
-                    </div>
-                  </div>
-                  <div className="mt-3 text-xs text-gray-600">Ideal weather + lower prices</div>
+                  <div className="mt-2 text-xs text-gray-500">Dates cascade automatically</div>
                 </div>
               </div>
             </div>
@@ -756,10 +730,10 @@ export default function NewHomePage() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 md:mb-12">
             <div className="text-center md:text-left">
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
-                Where to go next
+                Need a starting point?
               </h2>
               <p className="text-lg text-gray-600 max-w-2xl">
-                Curated trips with the right mix of pace, price, and wow‑factor.
+                Pick a destination — we&apos;ll pre-fill the form, not pretend the trip is already built.
               </p>
             </div>
             <Link
@@ -793,13 +767,13 @@ export default function NewHomePage() {
                   <p className="text-sm text-gray-600 mt-1">{trip.subtitle}</p>
                   <div className="mt-4 flex items-center justify-between">
                     <Link
-                      href="/plan-trip"
+                      href={`/plan-trip?destination=${encodeURIComponent(trip.destination)}`}
                       className="inline-flex items-center text-sm font-semibold text-purple-700 hover:text-purple-800"
                     >
-                      Start planning
+                      Get inspired
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
-                    <span className="text-xs text-gray-500">Tailored</span>
+                    <span className="text-xs text-gray-500">Pre-fills destination</span>
                   </div>
                 </div>
               </div>
@@ -813,65 +787,69 @@ export default function NewHomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16 lg:mb-20">
             <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4 md:mb-6">
-              Everything You Need for Perfect Trips
+              Built for real trips, not PDFs
             </h2>
             <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-              No more juggling apps, spreadsheets, or endless browser tabs. One platform, endless possibilities.
+              Most planners give you a wall of text. Where Next gives you a trip you can work with.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {/* AI Travel Planning */}
             <div className="text-center group hover:scale-[1.02] transition-all duration-300 flex flex-col">
               <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8 group-hover:bg-purple-200 transition-colors">
                 <Compass className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
               </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">AI Travel Planning</h3>
+              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Discover, then narrow down</h3>
               <p className="text-base lg:text-lg text-gray-600 leading-relaxed flex-grow">
-                Tell us your style, get instant itineraries. No research needed.
+                Not sure where to go? Describe your vibe, budget, and timing — the AI suggests options and tradeoffs, instead of jumping straight to &ldquo;here&apos;s Bali.&rdquo;
               </p>
             </div>
 
-            {/* Budget Made Simple */}
-            <div className="text-center group hover:scale-[1.02] transition-all duration-300 flex flex-col">
-              <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8 group-hover:bg-purple-200 transition-colors">
-                <DollarSign className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
-              </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Budget Made Simple</h3>
-              <p className="text-base lg:text-lg text-gray-600 leading-relaxed flex-grow">
-                Track spending across currencies in real time. Never overspend again.
-              </p>
-            </div>
-
-            {/* Book with Confidence */}
-            <div className="text-center group hover:scale-[1.02] transition-all duration-300 flex flex-col">
-              <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8 group-hover:bg-purple-200 transition-colors">
-                <Plane className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
-              </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Book with Confidence</h3>
-              <p className="text-base lg:text-lg text-gray-600 leading-relaxed flex-grow">
-                Flights & hotels powered by trusted partners. Best prices guaranteed.
-              </p>
-            </div>
-
-            {/* Local Utilities */}
             <div className="text-center group hover:scale-[1.02] transition-all duration-300 flex flex-col">
               <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8 group-hover:bg-purple-200 transition-colors">
                 <Globe className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
               </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Local Utilities</h3>
+              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Multi-country trips that flow</h3>
               <p className="text-base lg:text-lg text-gray-600 leading-relaxed flex-grow">
-                Weather, currency, and phrases at your fingertips. Travel like a local.
+                Add stops across borders; nights and dates cascade automatically. No spreadsheet math when you shift one city.
+              </p>
+            </div>
+
+            <div className="text-center group hover:scale-[1.02] transition-all duration-300 flex flex-col">
+              <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8 group-hover:bg-purple-200 transition-colors">
+                <Calendar className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
+              </div>
+              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">A starting point you can edit</h3>
+              <p className="text-base lg:text-lg text-gray-600 leading-relaxed flex-grow">
+                Day-by-day blocks (morning / afternoon / evening) you add, remove, or tweak — not a single blob of AI prose.
+              </p>
+            </div>
+
+            <div className="text-center group hover:scale-[1.02] transition-all duration-300 flex flex-col">
+              <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8 group-hover:bg-purple-200 transition-colors">
+                <MessageCircle className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
+              </div>
+              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Just tell it what to change</h3>
+              <p className="text-base lg:text-lg text-gray-600 leading-relaxed flex-grow">
+                &ldquo;Swap these two cities.&rdquo; &ldquo;Add fishing on day 3.&rdquo; &ldquo;Move Langkawi last.&rdquo; Chat updates the plan — you don&apos;t replan from scratch.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Technology partners — only list integrations that are actually in use */}
+      {/* Founder note + tech credits */}
       <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-gray-600 text-lg mb-8 font-medium">Built with</p>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Why I built this</h2>
+          <p className="text-base md:text-lg text-gray-600 leading-relaxed mb-4">
+            I planned my own Indonesia trip with AI — one of the best trips I&apos;ve taken — and spent way too long copying suggestions into spreadsheets, fixing dates by hand, and re-prompting when I changed my mind.
+          </p>
+          <p className="text-base md:text-lg text-gray-600 leading-relaxed mb-6">
+            Where Next is the tool I wished I had: honest suggestions, multi-stop dates that stay in sync, and a chat that actually edits your trip instead of generating a new essay.
+          </p>
+          <p className="text-sm text-gray-500 mb-10">— Evan, solo founder · pre-launch</p>
+          <p className="text-gray-600 text-sm font-medium mb-4">Built with</p>
           <div className="flex flex-wrap justify-center items-center gap-10 lg:gap-14">
             <span className="text-xl font-bold tracking-tight text-gray-800">OpenAI</span>
             <span className="text-xl font-bold tracking-tight text-[#3ecf8e]">Supabase</span>
@@ -888,61 +866,37 @@ export default function NewHomePage() {
           {/* Header with Golden Ratio spacing */}
           <div className="text-center mb-16 lg:mb-24">
             <h2 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-4 lg:mb-6">
-              Why Choose Where Next?
+              From plan to trip hub
             </h2>
             <p className="text-lg lg:text-xl xl:text-2xl text-gray-600 max-w-3xl lg:max-w-4xl mx-auto leading-relaxed">
-              Everything you need for stress-free travel planning
+              Save your route, refine it in chat, and book through partners when you&apos;re ready.
             </p>
           </div>
 
-          {/* Grid with Golden Ratio gap (gap ≈ 1.618 * 16px = ~26px, using gap-6 lg:gap-8) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto">
-            {/* AI Trip Planning */}
             <div className="bg-white rounded-3xl p-8 lg:p-10 xl:p-12 text-center shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] flex flex-col min-h-[420px] lg:min-h-[480px]">
-              {/* Icon with Golden Ratio sizing (w-20 h-20 = 80px, icon 80/1.618 ≈ 49px) */}
               <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8">
-                <Compass className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
+                <MessageCircle className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
               </div>
-              {/* Title with consistent spacing */}
-              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">AI Trip Planning</h3>
-              {/* Description with flex-grow for equal spacing */}
+              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Chat that edits your trip</h3>
               <p className="text-base lg:text-lg text-gray-600 leading-relaxed mb-6 lg:mb-8 flex-grow">
-                Get personalized itineraries based on your preferences and budget. Our AI analyzes millions of travel options to find your perfect match.
+                Reorder stops, change nights, add activities — in plain English, inside your saved trip.
               </p>
-              {/* Button with fixed width for symmetry */}
               <div className="flex justify-center mt-auto">
-                <Link href="/plan-trip" className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
-                  Try AI Planning
+                <Link href="/auth/login?next=/saved" className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
+                  See Trip Hub
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </div>
             </div>
 
-            {/* Smart Budgeting */}
-            <div className="bg-white rounded-3xl p-8 lg:p-10 xl:p-12 text-center shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] flex flex-col min-h-[420px] lg:min-h-[480px]">
-              <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8">
-                <DollarSign className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
-              </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Smart Budgeting</h3>
-              <p className="text-base lg:text-lg text-gray-600 leading-relaxed mb-6 lg:mb-8 flex-grow">
-                Track expenses and stay within budget with intelligent suggestions. Never overspend again with our real-time budget monitoring.
-              </p>
-              <div className="flex justify-center mt-auto">
-                <Link href="/budget" className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
-                  Manage Budget
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Best Flight Deals */}
             <div className="bg-white rounded-3xl p-8 lg:p-10 xl:p-12 text-center shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] flex flex-col min-h-[420px] lg:min-h-[480px]">
               <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8">
                 <Plane className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
               </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Flight Search</h3>
+              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Book when you&apos;re ready</h3>
               <p className="text-base lg:text-lg text-gray-600 leading-relaxed mb-6 lg:mb-8 flex-grow">
-                Plan your route, then compare flight options on trusted booking partners like Expedia and Kayak. We send you to partners to book — we don&apos;t sell tickets directly.
+                We link out to trusted booking partners like Booking.com, Expedia, GetYourGuide, and Viator — we don&apos;t sell tickets or rooms ourselves.
               </p>
               <div className="flex justify-center mt-auto">
                 <Link href="/plan-trip" className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
@@ -952,18 +906,33 @@ export default function NewHomePage() {
               </div>
             </div>
 
-            {/* Local Insights */}
+            <div className="bg-white rounded-3xl p-8 lg:p-10 xl:p-12 text-center shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] flex flex-col min-h-[420px] lg:min-h-[480px]">
+              <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8">
+                <DollarSign className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
+              </div>
+              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Budget that follows the trip</h3>
+              <p className="text-base lg:text-lg text-gray-600 leading-relaxed mb-6 lg:mb-8 flex-grow">
+                Pre-fill from your saved route and adjust as the plan changes — no separate spreadsheet.
+              </p>
+              <div className="flex justify-center mt-auto">
+                <Link href="/budget" className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
+                  Try budget
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </div>
+            </div>
+
             <div className="bg-white rounded-3xl p-8 lg:p-10 xl:p-12 text-center shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] flex flex-col min-h-[420px] lg:min-h-[480px]">
               <div className="w-20 h-20 lg:w-24 lg:h-24 bg-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 lg:mb-8">
                 <MapPin className="h-10 w-10 lg:h-12 lg:w-12 text-purple-600" />
               </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">Local Insights</h3>
+              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">On-the-ground utilities</h3>
               <p className="text-base lg:text-lg text-gray-600 leading-relaxed mb-6 lg:mb-8 flex-grow">
-                Discover hidden gems and local recommendations. Get insider tips from our AI travel agent for authentic experiences.
+                Weather, currency, and walking tours — tied to where you&apos;re actually going.
               </p>
               <div className="flex justify-center mt-auto">
-                <Link href="/tours" className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
-                  Walking Tours
+                <Link href="/tools" className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
+                  Explore tools
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </div>
@@ -1070,7 +1039,7 @@ export default function NewHomePage() {
               Ready to Experience Smarter Travel?
             </h2>
             <p className="text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Join the revolution in travel planning. See why thousands choose Where Next.
+              Try it on a real multi-stop route — free to plan.
             </p>
           </div>
           
@@ -1122,7 +1091,7 @@ export default function NewHomePage() {
               Ready to Start Your Journey?
             </h2>
             <p className="text-lg lg:text-xl xl:text-2xl text-gray-600 mb-8 lg:mb-12 font-medium bg-gray-50 rounded-2xl px-6 lg:px-8 py-3 lg:py-4 inline-block leading-relaxed">
-              Join thousands of travelers who trust Where Next for their trip planning
+              Save your trip, refine it in chat, book when you&apos;re ready.
             </p>
           </div>
           
@@ -1159,7 +1128,7 @@ export default function NewHomePage() {
               <span className="text-4xl font-bold">Where Next</span>
             </div>
             <p className="text-gray-300 text-xl leading-relaxed max-w-2xl mx-auto mb-8">
-              Your AI-powered travel companion for perfect trips and smart budgeting. Plan, book, and explore with confidence.
+              Discover destinations, build a route, refine it in chat — then book with partners when you&apos;re ready.
             </p>
             <div className="flex justify-center gap-4 lg:gap-6">
               <a href="mailto:hello@wherenext.app" className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-purple-600 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg text-white" aria-label="Email">

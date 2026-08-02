@@ -5,7 +5,7 @@
  * Origin → `from` param for flights. Destination → `stops` / `destination` for AI.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import StopsBuilder, { makeEmptyStop } from '@/components/StopsBuilder';
 import type { TripStop } from '@/types/trip';
@@ -59,6 +59,11 @@ export default function PlanTripPage() {
     makeEmptyStop(4),
     makeEmptyStop(8),
   ]);
+
+  useEffect(() => {
+    const dest = new URLSearchParams(window.location.search).get('destination');
+    if (dest) setDestination(dest);
+  }, []);
 
   const isSurprise = tripStyle === 'surprise';
   const isMulti = tripStyle === 'multi';

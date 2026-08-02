@@ -255,6 +255,14 @@ export async function POST(request: NextRequest) {
       body
     );
 
+    const preferences =
+      body.additionalDetails || body.additional_details || body.details
+        ? {
+            additionalDetails:
+              body.additionalDetails ?? body.additional_details ?? body.details,
+          }
+        : null;
+
     const { data: newTrip, error } = await supabase
       .from('trips')
       .insert({
@@ -269,6 +277,7 @@ export async function POST(request: NextRequest) {
         travelers: adultsCount + kidsCount,
         vibe: body.vibe ?? null,
         stops: stopsForDb,
+        preferences,
         status: 'saved',
         suggestions: isStoredSuggestionsEmpty(suggestionsBlob) ? {} : suggestionsBlob,
       })
@@ -281,6 +290,19 @@ export async function POST(request: NextRequest) {
         { error: `Failed to save trip: ${error.message || 'Database error'}` },
         { status: 500 }
       );
+    }
+
+    if (stopsForDb?.length) {
+      void import('@/lib/trip-itinerary').then(({ extractTripItineraryContext, generateItineraryForTrip }) => {
+        const ctx = extractTripItineraryContext({
+          ...newTrip,
+          vibe: body.vibe,
+          preferences,
+        });
+        generateItineraryForTrip(supabase, newTrip.id, stopsForDb, ctx).catch((err) => {
+          console.error('Background itinerary generation failed:', err);
+        });
+      });
     }
 
     const transformedTrip = {

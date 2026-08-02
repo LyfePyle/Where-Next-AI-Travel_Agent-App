@@ -86,6 +86,64 @@ export const TRIP_CHAT_TOOLS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'regenerate_day',
+      description:
+        'Regenerate one day\'s itinerary blocks for a stop via AI. Use when the user wants a fresh plan for a specific day.',
+      parameters: {
+        type: 'object',
+        properties: {
+          stop_id: { type: 'string', description: 'ID of the stop' },
+          day_index: { type: 'integer', minimum: 1, description: '1-based day within that stop' },
+          guidance: {
+            type: 'string',
+            description: 'Optional focus, e.g. "more food-focused, less temples"',
+          },
+        },
+        required: ['stop_id', 'day_index'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'add_itinerary_block',
+      description: 'Add an activity block to a specific day in the itinerary.',
+      parameters: {
+        type: 'object',
+        properties: {
+          stop_id: { type: 'string' },
+          day_index: { type: 'integer', minimum: 1 },
+          block: {
+            type: 'object',
+            properties: {
+              time_of_day: { type: 'string', enum: ['morning', 'afternoon', 'evening'] },
+              title: { type: 'string' },
+              description: { type: 'string' },
+            },
+            required: ['time_of_day', 'title', 'description'],
+          },
+        },
+        required: ['stop_id', 'day_index', 'block'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'remove_itinerary_block',
+      description: 'Remove one itinerary activity block by its block id.',
+      parameters: {
+        type: 'object',
+        properties: {
+          block_id: { type: 'string' },
+        },
+        required: ['block_id'],
+      },
+    },
+  },
 ];
 
 export function buildTripJsonForPrompt(stops: TripStop[], tripStart: string): string {
@@ -105,15 +163,24 @@ export function buildTripJsonForPrompt(stops: TripStop[], tripStart: string): st
   return JSON.stringify(payload, null, 2);
 }
 
-export function buildTripChatSystemPrompt(stops: TripStop[], tripStart: string): string {
+export function buildTripChatSystemPrompt(
+  stops: TripStop[],
+  tripStart: string,
+  itinerarySummary?: string
+): string {
   const tripJson = buildTripJsonForPrompt(stops, tripStart);
+  const itinerarySection = itinerarySummary
+    ? `\nCurrent itinerary (for day-level edits):\n${itinerarySummary}\n`
+    : '';
 
   return `You are the trip-editing assistant for Where Next, embedded in a trip dashboard chat panel.
 
 The user's current trip:
 ${tripJson}
-
+${itinerarySection}
 Rules:
+- Use stop tools (swap_stop, resize_stop_nights, add_stop, remove_stop, reorder_stops) for route/date/city changes.
+- Use itinerary tools (regenerate_day, add_itinerary_block, remove_itinerary_block) for day-by-day plan edits.
 - Only modify the trip using the provided tools. Never describe changes in prose without calling a tool.
 - If a request is ambiguous (e.g. "make it shorter" with no amount), make one small reasonable change (default: -1 night, or the minimum viable adjustment) and say what you assumed in your reply so the user can correct it.
 - If a request can't be resolved to a real place, don't guess — ask a clarifying question instead of calling a tool.

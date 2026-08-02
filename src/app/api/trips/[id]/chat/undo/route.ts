@@ -27,6 +27,7 @@ interface UndoSnapshot {
   destination?: string;
   start_date?: string | null;
   end_date?: string | null;
+  itinerary_days?: import('@/types/itinerary').TripItineraryDay[];
 }
 
 /** POST — restore pre-edit snapshot from last AI change */
@@ -91,6 +92,23 @@ export async function POST(
   if (updateError || !updated) {
     console.error('Undo restore failed:', updateError);
     return NextResponse.json({ error: 'Failed to undo' }, { status: 500 });
+  }
+
+  if (snapshot.itinerary_days && Array.isArray(snapshot.itinerary_days)) {
+    await supabase.from('trip_itinerary_days').delete().eq('trip_id', id);
+    const rows = snapshot.itinerary_days.map((day) => ({
+      id: day.id,
+      trip_id: id,
+      stop_id: day.stop_id,
+      day_index: day.day_index,
+      date: day.date,
+      blocks: day.blocks,
+      updated_at: new Date().toISOString(),
+    }));
+    if (rows.length > 0) {
+      const { error: restoreError } = await supabase.from('trip_itinerary_days').insert(rows);
+      if (restoreError) console.error('Itinerary undo restore failed:', restoreError);
+    }
   }
 
   await supabase.from('trip_chat_messages').insert({

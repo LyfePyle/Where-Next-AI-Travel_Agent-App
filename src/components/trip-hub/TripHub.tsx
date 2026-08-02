@@ -16,6 +16,7 @@ import { normalizeTripStopsFromRow, serializeStopsForDb, validateStopsForSave } 
 import { useToast, ToastContainer } from '@/hooks/useToast';
 import TripHubStopsSection from '@/components/trip-hub/TripHubStopsSection';
 import TripChatPanel from '@/components/trip-hub/TripChatPanel';
+import TripItineraryTab from '@/components/trip-hub/TripItineraryTab';
 import { useTripEditState } from '@/components/trip-hub/useTripEditState';
 import type { ChatMessageRow } from '@/app/api/trips/[id]/chat/route';
 import { parseDestinationParts } from '@/lib/parse-destination';
@@ -1021,40 +1022,7 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
         )}
 
         {activeTab === 'itinerary' && (
-          <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-            <p style={{ fontSize: 14, color: '#78716C', marginBottom: '1.5rem' }}>
-              Generate a day-by-day plan with AI or open full trip details.
-            </p>
-            <Link
-              href={`/trip-details/${trip.id}?destination=${encodeURIComponent(trip.destination)}`}
-              style={{
-                display: 'inline-block',
-                padding: '12px 24px',
-                background: '#1C1917',
-                color: '#fff',
-                borderRadius: 8,
-                fontSize: 13,
-                textDecoration: 'none',
-                marginRight: 8,
-              }}
-            >
-              Trip details →
-            </Link>
-            <Link
-              href={`/suggestions?destination=${encodeURIComponent(trip.destination)}`}
-              style={{
-                display: 'inline-block',
-                padding: '12px 24px',
-                border: '1px solid #EAE3D5',
-                borderRadius: 8,
-                fontSize: 13,
-                textDecoration: 'none',
-                color: '#1C1917',
-              }}
-            >
-              AI suggestions →
-            </Link>
-          </div>
+          <TripItineraryTab tripId={trip.id} stops={stops} active={activeTab === 'itinerary'} />
         )}
         </div>
 

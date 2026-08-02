@@ -177,7 +177,7 @@ export function groupStopsByCountry(stops: TripStop[]): CountryStopGroup[] {
   }));
 }
 
-function isoAddDays(iso: string, days: number): string {
+export function isoAddDays(iso: string, days: number): string {
   const d = new Date(`${iso}T12:00:00`);
   d.setDate(d.getDate() + days);
   return d.toISOString().split('T')[0];

@@ -15,9 +15,17 @@ import {
   removeStopPreviewFromSuggestions,
   upsertStopPreviewInSuggestions,
 } from '@/lib/trip-preview';
-import { validatePlace } from '@/lib/validate-place';
+import {
+  applyItineraryToolCalls,
+  extractTripItineraryContext,
+  fetchItineraryDays,
+  splitToolCalls,
+  syncItineraryAfterStopMutations,
+} from '@/lib/trip-itinerary';
 import { tripDestinationSummary, tripEndDate, tripStartDate } from '@/types/trip';
 import type { TripStop } from '@/types/trip';
+import { validatePlace } from '@/lib/validate-place';
+import type { TripItineraryDay } from '@/types/itinerary';
 import { normalizeFromTrips } from '@/lib/trip-normalize';
 
 const openai = process.env.OPENAI_API_KEY
@@ -47,6 +55,7 @@ interface UndoSnapshot {
   destination?: string;
   start_date?: string | null;
   end_date?: string | null;
+  itinerary_days?: TripItineraryDay[];
 }
 
 export interface ChatMessageRow {
@@ -230,6 +239,31 @@ async function updateSuggestionsForToolCalls(
   return next;
 }
 
+function buildItinerarySummaryForPrompt(
+  stops: TripStop[],
+  days: TripItineraryDay[]
+): string {
+  if (days.length === 0) return 'No itinerary generated yet.';
+
+  return stops
+    .map((stop) => {
+      const stopDays = days
+        .filter((d) => d.stop_id === stop.id)
+        .sort((a, b) => a.day_index - b.day_index);
+      if (stopDays.length === 0) return null;
+      const city = stop.city || stop.destination.split(',')[0]?.trim() || stop.destination;
+      const dayLines = stopDays.map((d) => {
+        const blocks = d.blocks
+          .map((b) => `    - [${b.id}] ${b.time_of_day}: ${b.title}`)
+          .join('\n');
+        return `  Day ${d.day_index} (id: ${d.id}):\n${blocks || '    (empty)'}`;
+      });
+      return `${city} (stop_id: ${stop.id}):\n${dayLines.join('\n')}`;
+    })
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 /** POST — send a chat message; AI may apply trip edits */
 export async function POST(
   request: NextRequest,
@@ -264,6 +298,9 @@ export async function POST(
   try {
   const stops = normalizeTripStopsFromRow(trip);
   const tripStart = tripStartDate(stops) || String(trip.start_date ?? '');
+  const itineraryContext = extractTripItineraryContext(trip);
+  const itineraryDays = await fetchItineraryDays(supabase, id);
+  const itinerarySummary = buildItinerarySummaryForPrompt(stops, itineraryDays);
 
   const { data: history } = await supabase
     .from('trip_chat_messages')
@@ -272,7 +309,7 @@ export async function POST(
     .order('created_at', { ascending: true })
     .limit(20);
 
-  const systemPrompt = buildTripChatSystemPrompt(stops, tripStart);
+  const systemPrompt = buildTripChatSystemPrompt(stops, tripStart, itinerarySummary);
   const chatMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...(history ?? []).map((m) => ({
@@ -293,7 +330,6 @@ export async function POST(
   const assistantMsg = completion.choices[0]?.message;
   const rawToolCalls = assistantMsg?.tool_calls ?? [];
 
-  // Persist user message
   await supabase.from('trip_chat_messages').insert({
     trip_id: id,
     role: 'user',
@@ -324,8 +360,10 @@ export async function POST(
       arguments: JSON.parse(tc.function.arguments || '{}') as Record<string, unknown>,
     }));
 
+  const { stopCalls, itineraryCalls } = splitToolCalls(toolCalls);
+
   const validated = await enrichToolCallsWithValidation(
-    toolCalls,
+    stopCalls,
     stops,
     trip.vibe as string | null,
     trip.budget_amount as number | null
@@ -344,64 +382,123 @@ export async function POST(
     });
   }
 
+  const allCalls = [...validated.calls, ...itineraryCalls];
   const undoSnapshot: UndoSnapshot = {
     stops,
     suggestions: trip.suggestions,
     destination: trip.destination as string,
     start_date: trip.start_date as string | null,
     end_date: trip.end_date as string | null,
+    itinerary_days: itineraryDays,
   };
 
-  const applied = applyToolCalls(stops, tripStart, validated.calls);
-  if (!applied.ok) {
-    const { data: inserted } = await supabase
-      .from('trip_chat_messages')
-      .insert({ trip_id: id, role: 'assistant', content: applied.error })
-      .select('id, role, content, metadata, created_at')
-      .single();
+  let nextStops = stops;
+  let stopSummaries: string[] = [];
+  let serialized = serializeStopsForDb(stops);
 
-    return NextResponse.json({
-      trip: normalizeFromTrips(trip),
-      message: inserted,
-      applied: false,
-    });
+  if (validated.calls.length > 0) {
+    const applied = applyToolCalls(stops, tripStart, validated.calls);
+    if (!applied.ok) {
+      const { data: inserted } = await supabase
+        .from('trip_chat_messages')
+        .insert({ trip_id: id, role: 'assistant', content: applied.error })
+        .select('id, role, content, metadata, created_at')
+        .single();
+
+      return NextResponse.json({
+        trip: normalizeFromTrips(trip),
+        message: inserted,
+        applied: false,
+      });
+    }
+
+    nextStops = applied.stops;
+    stopSummaries = applied.summaries;
+    serialized = serializeStopsForDb(applied.stops);
+    if (!serialized) {
+      return NextResponse.json({ error: 'Could not serialize stops' }, { status: 500 });
+    }
+
+    const validation = validateStopsForSave(serialized);
+    if (!validation.ok) {
+      return NextResponse.json(
+        { error: validation.errors._form ?? 'Invalid stops after edit' },
+        { status: 400 }
+      );
+    }
   }
 
-  const serialized = serializeStopsForDb(applied.stops);
-  if (!serialized) {
-    return NextResponse.json({ error: 'Could not serialize stops' }, { status: 500 });
-  }
+  let nextItineraryDays = itineraryDays;
+  let itinerarySummaries: string[] = [];
 
-  const validation = validateStopsForSave(serialized);
-  if (!validation.ok) {
-    return NextResponse.json(
-      { error: validation.errors._form ?? 'Invalid stops after edit' },
-      { status: 400 }
+  if (itineraryCalls.length > 0) {
+    const itineraryApplied = await applyItineraryToolCalls(
+      supabase,
+      id,
+      nextStops,
+      itineraryDays,
+      itineraryCalls,
+      itineraryContext
     );
+    if (!itineraryApplied.ok) {
+      const { data: inserted } = await supabase
+        .from('trip_chat_messages')
+        .insert({ trip_id: id, role: 'assistant', content: itineraryApplied.error })
+        .select('id, role, content, metadata, created_at')
+        .single();
+
+      return NextResponse.json({
+        trip: normalizeFromTrips(trip),
+        message: inserted,
+        applied: false,
+      });
+    }
+    nextItineraryDays = itineraryApplied.days;
+    itinerarySummaries = itineraryApplied.summaries;
   }
 
-  const newSuggestions = await updateSuggestionsForToolCalls(
-    trip.suggestions,
-    stops,
-    serialized,
-    validated.calls,
-    trip.vibe as string | null,
-    trip.budget_amount as number | null
-  );
+  if (validated.calls.length > 0) {
+    await syncItineraryAfterStopMutations(
+      supabase,
+      id,
+      stops,
+      nextStops,
+      validated.calls,
+      itineraryContext
+    );
+    nextItineraryDays = await fetchItineraryDays(supabase, id);
+  }
+
+  const newSuggestions =
+    validated.calls.length > 0
+      ? await updateSuggestionsForToolCalls(
+          trip.suggestions,
+          stops,
+          serialized!,
+          validated.calls,
+          trip.vibe as string | null,
+          trip.budget_amount as number | null
+        )
+      : trip.suggestions;
 
   const undoExpiresAt = new Date(Date.now() + UNDO_TTL_MS).toISOString();
 
+  const tripUpdates: Record<string, unknown> = {
+    undo_snapshot: undoSnapshot,
+    undo_expires_at: undoExpiresAt,
+  };
+
+  if (validated.calls.length > 0 && serialized) {
+    tripUpdates.stops = serialized;
+    tripUpdates.suggestions = newSuggestions;
+    tripUpdates.destination = tripDestinationSummary(serialized);
+    tripUpdates.start_date = tripStartDate(serialized) || null;
+    tripUpdates.end_date = tripEndDate(serialized) || null;
+  }
+
   const { data: updated, error: updateError } = await supabase
     .from('trips')
-    .update({
-      stops: serialized,
-      suggestions: newSuggestions,
-      destination: tripDestinationSummary(serialized),
-      start_date: tripStartDate(serialized) || null,
-      end_date: tripEndDate(serialized) || null,
-      undo_snapshot: undoSnapshot,
-      undo_expires_at: undoExpiresAt,
-    })
+    .update(tripUpdates)
     .eq('id', id)
     .select('*')
     .single();
@@ -411,9 +508,10 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to save trip changes' }, { status: 500 });
   }
 
+  const allSummaries = [...stopSummaries, ...itinerarySummaries];
   const confirmation =
     assistantMsg?.content?.trim() ||
-    applied.summaries.join('. ') ||
+    allSummaries.join('. ') ||
     'Trip updated.';
 
   const { data: assistantRow, error: assistantError } = await supabase
@@ -422,11 +520,11 @@ export async function POST(
       trip_id: id,
       role: 'assistant',
       content: confirmation,
-      tool_calls: validated.calls,
+      tool_calls: allCalls,
       metadata: {
         undo_available: true,
         undo_expires_at: undoExpiresAt,
-        summaries: applied.summaries,
+        summaries: allSummaries,
       },
     })
     .select('id, role, content, tool_calls, metadata, created_at')
@@ -438,6 +536,7 @@ export async function POST(
 
   return NextResponse.json({
     trip: normalizeFromTrips(updated),
+    itineraryDays: nextItineraryDays,
     message: assistantRow,
     applied: true,
     undoAvailable: true,

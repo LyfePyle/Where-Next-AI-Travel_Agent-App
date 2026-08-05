@@ -17,6 +17,16 @@ import {
   suggestionPayloadForSelection,
 } from '@/lib/suggestion-drilldown';
 
+function getItineraryTeaser(suggestion: TripSuggestion): string[] {
+  if (suggestion.itineraryTeaser?.length) {
+    return suggestion.itineraryTeaser.filter(Boolean).slice(0, 3);
+  }
+  if (suggestion.stops?.length) {
+    return suggestion.stops.slice(0, 3).map((stop, i) => `Stop ${i + 1}: ${stop}`);
+  }
+  return suggestion.highlights.slice(0, 2).map((h, i) => `Day ${i + 1}: ${h}`);
+}
+
 function resolveStopsForSave(
   suggestion: TripSuggestion,
   urlStops: TripStop[],
@@ -83,6 +93,7 @@ function SuggestionsContent() {
   const additionalDetails = searchParams.get('additionalDetails') || '';
   const adults = parseInt(searchParams.get('adults') || '2', 10);
   const kids = parseInt(searchParams.get('kids') || '0', 10);
+  const travelerCount = Math.max(adults + kids, 1);
   const tripTypeParam = searchParams.get('tripType');
   const tripType =
     tripTypeParam === 'multi-city' || tripTypeParam === 'multi-country'
@@ -481,8 +492,13 @@ function SuggestionsContent() {
             )}
             {hasBudgetAmount && (
               <div className="bg-gray-50 p-3 rounded-lg">
-                <span className="text-gray-600 text-xs uppercase tracking-wide">Budget</span>
+                <span className="text-gray-600 text-xs uppercase tracking-wide">Budget (total)</span>
                 <p className="font-medium text-black">${budgetAmount.toLocaleString()}</p>
+                {travelerCount > 1 && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    ≈ ${Math.round(budgetAmount / travelerCount).toLocaleString()} per person
+                  </p>
+                )}
               </div>
             )}
             {(hasAdults || hasKids) && (
@@ -600,19 +616,24 @@ function SuggestionsContent() {
                     )}
                     <p className="text-sm text-gray-700 mt-2 line-clamp-2">{suggestion.description}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1.5 rounded-full text-xs font-bold mb-2 inline-block shadow-md">
                       {suggestion.fitScore}/100 Fit
                     </div>
                     <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
                       {formatMoney(suggestion.estimatedTotal, suggestion.currency ?? 'USD')}
                     </div>
-                    <div className="text-xs text-gray-600 font-medium">est. total</div>
-                    {(adults + kids) > 1 && (
+                    <div className="text-xs text-gray-600 font-medium">
+                      est. total{travelerCount > 1 ? ` (${travelerCount} travellers)` : ''}
+                    </div>
+                    {travelerCount > 1 && (
                       <div className="text-xs text-gray-500 mt-1 font-medium">
-                        {formatMoney(Math.round(suggestion.estimatedTotal / (adults + kids)), suggestion.currency ?? 'USD')} per person
+                        {formatMoney(Math.round(suggestion.estimatedTotal / travelerCount), suggestion.currency ?? 'USD')} per person
                       </div>
                     )}
+                    <p className="text-[10px] text-gray-400 mt-1 max-w-[140px] ml-auto leading-tight">
+                      AI estimate — verify prices before booking
+                    </p>
                   </div>
                 </div>
 
@@ -629,6 +650,30 @@ function SuggestionsContent() {
                   </div>
                   <div className="text-xs text-gray-600">{suggestion.seasonality}</div>
                 </div>
+
+                {/* Sample itinerary teaser */}
+                {(() => {
+                  const teaser = getItineraryTeaser(suggestion);
+                  if (!teaser.length) return null;
+                  return (
+                    <div className="mt-3 rounded-lg border border-stone-200 bg-stone-50/80 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-stone-500 mb-2">
+                        Sample itinerary
+                      </div>
+                      <ul className="space-y-1.5">
+                        {teaser.map((line, index) => (
+                          <li
+                            key={`${suggestion.id}-teaser-${index}`}
+                            className="text-sm text-stone-700 flex items-start gap-2"
+                          >
+                            <span className="text-purple-500 shrink-0">▸</span>
+                            <span className="line-clamp-1">{line}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
 
                 {/* Price bands */}
                 <div className="grid grid-cols-3 gap-2 mt-3 text-sm">

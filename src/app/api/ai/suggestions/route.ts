@@ -43,6 +43,28 @@ async function enrichWeather(suggestion: any): Promise<any> {
   }
 }
 
+/** Correct AI totals when it treated the user's trip budget as per-person. */
+function normalizeEstimatedTotal(
+  estimatedTotal: unknown,
+  budgetAmount: number | undefined,
+  travelers: number
+): number | undefined {
+  const total =
+    typeof estimatedTotal === 'number' && Number.isFinite(estimatedTotal)
+      ? estimatedTotal
+      : undefined;
+  if (total == null || travelers <= 1) return total;
+
+  const budget = budgetAmount && budgetAmount > 0 ? budgetAmount : undefined;
+  if (!budget) return total;
+
+  const doubled = budget * travelers;
+  if (total >= doubled * 0.85 && total <= doubled * 1.15) {
+    return Math.round(total / travelers);
+  }
+  return total;
+}
+
 function applyCurrency(
   suggestion: any,
   exchange: { rate: number; target: string; source: 'live' | 'fallback' }
@@ -74,6 +96,24 @@ function applyCurrency(
         }
       : suggestion.hotelBand,
   };
+}
+
+async function prepareSuggestion(
+  suggestion: any,
+  exchange: { rate: number; target: string; source: 'live' | 'fallback' },
+  prefs: ReturnType<typeof normalizePrefs>
+): Promise<any> {
+  const enriched = await enrichWeather(suggestion);
+  const travelers = prefs.adults + prefs.kids;
+  const normalizedTotal = normalizeEstimatedTotal(
+    enriched.estimatedTotal,
+    prefs.budgetAmount,
+    travelers
+  );
+  return applyCurrency(
+    normalizedTotal != null ? { ...enriched, estimatedTotal: normalizedTotal } : enriched,
+    exchange
+  );
 }
 
 async function maybeEnqueueCompare(
@@ -174,8 +214,7 @@ export async function POST(req: Request) {
           controller.enqueue(enc.encode(JSON.stringify(obj) + '\n'));
         await maybeEnqueueCompare(prefs, enqueue);
         for (const s of cachedSuggestions as any[]) {
-          const enriched = await enrichWeather(s);
-          const priced = applyCurrency(enriched, exchange);
+          const priced = await prepareSuggestion(s, exchange, prefs);
           enqueue({ type: 'suggestion', data: priced, source: 'cache' });
           await new Promise((r) => setTimeout(r, 80));
         }
@@ -197,8 +236,7 @@ export async function POST(req: Request) {
       async start(controller) {
         const enc = new TextEncoder();
         for (const s of getDefaultSuggestions()) {
-          const enriched = await enrichWeather(s);
-          const priced = applyCurrency(enriched, exchange);
+          const priced = await prepareSuggestion(s, exchange, prefs);
           controller.enqueue(enc.encode(JSON.stringify({ type: 'suggestion', data: priced, source: 'fallback' }) + '\n'));
           await new Promise((r) => setTimeout(r, 100));
         }
@@ -265,13 +303,14 @@ CRITICAL RULES:
 6. description: max 140 chars, 1 sentence
 7. whyItFits: max 180 chars, 1 sentence
 8. highlights: 3-4 items, max 3 words each
-9. weather: provide placeholder only â€” real weather is fetched server-side
+9. itineraryTeaser: 2-3 short day previews, e.g. "Day 1: Old Town walk" — max 55 chars each
+10. weather: provide placeholder only — real weather is fetched server-side
 ${prefs.maxFlightTime ? `10. Prefer destinations within ${prefs.maxFlightTime} hours flight time from ${prefs.from}` : ''}
 ${multiInstruction}
 ${destinationInstruction}
 
 Output ONLY a raw JSON array of 4 objects â€” no wrapper, no markdown, no explanation.
-Each object must have: id, destination, country, city, fitScore, description, weather{temp,condition,icon}, crowdLevel, seasonality, estimatedTotal, flightBand{min,max}, hotelBand{min,max,style,area}, highlights, whyItFits${isMulti ? ', stops (array of city names), stopPreviews (array of per-city preview objects)' : ''}`;
+Each object must have: id, destination, country, city, fitScore, description, weather{temp,condition,icon}, crowdLevel, seasonality, estimatedTotal, flightBand{min,max}, hotelBand{min,max,style,area}, highlights, whyItFits, itineraryTeaser (array of 2-3 day-preview strings)${isMulti ? ', stops (array of city names), stopPreviews (array of per-city preview objects)' : ''}`;
 
   const userPrompt = [
     `Origin: ${prefs.from}`,
@@ -284,7 +323,7 @@ Each object must have: id, destination, country, city, fitScore, description, we
     `Budget style: ${prefs.budgetStyle ?? 'comfortable'}`,
     budgetBreakdown
       ? `Budget: $${budgetBreakdown.flights}/person flights, $${budgetBreakdown.hotels}/night hotel, $${budgetBreakdown.daily}/day expenses`
-      : `Total budget per person: $${prefs.budgetAmount ?? 2000}`,
+      : `Total budget for all ${totalTravelers} traveler${totalTravelers === 1 ? '' : 's'} combined: $${prefs.budgetAmount ?? 2000} (NOT per person)`,
     `Interests: ${prefs.vibes?.length ? prefs.vibes.join(', ') : 'general travel'}`,
     prefs.additionalDetails ? `Special requests: ${prefs.additionalDetails}` : '',
   ].filter(Boolean).join('\n');
@@ -335,9 +374,8 @@ Each object must have: id, destination, country, city, fitScore, description, we
               const s = JSON.parse(objStr);
               if (s.destination && s.city) {
                 s.id = s.id || `ai_${Date.now()}_${collected.length}`;
-                const enriched = await enrichWeather(s);
-                collected.push(enriched);
-                const priced = applyCurrency(enriched, exchange);
+                const priced = await prepareSuggestion(s, exchange, prefs);
+                collected.push(priced);
                 enqueue({ type: 'suggestion', data: priced, source: 'openai' });
                 found = true;
               }
@@ -353,9 +391,8 @@ Each object must have: id, destination, country, city, fitScore, description, we
             if (!Array.isArray(all)) all = all.suggestions ?? [];
             for (const s of all) {
               s.id = s.id || `ai_${Date.now()}_${collected.length}`;
-              const enriched = await enrichWeather(s);
-              collected.push(enriched);
-              const priced = applyCurrency(enriched, exchange);
+              const priced = await prepareSuggestion(s, exchange, prefs);
+              collected.push(priced);
               enqueue({ type: 'suggestion', data: priced, source: 'openai' });
               await new Promise((r) => setTimeout(r, 120));
             }
@@ -368,8 +405,7 @@ Each object must have: id, destination, country, city, fitScore, description, we
           suggestionCache.set(cacheKey, collected);
         } else {
           for (const s of getDefaultSuggestions()) {
-            const enriched = await enrichWeather(s);
-            const priced = applyCurrency(enriched, exchange);
+            const priced = await prepareSuggestion(s, exchange, prefs);
             enqueue({ type: 'suggestion', data: priced, source: 'fallback' });
             await new Promise((r) => setTimeout(r, 100));
           }
@@ -379,8 +415,7 @@ Each object must have: id, destination, country, city, fitScore, description, we
       } catch (err: any) {
         console.error('Streaming AI error:', err?.message);
         for (const s of getDefaultSuggestions()) {
-          const enriched = await enrichWeather(s);
-          const priced = applyCurrency(enriched, exchange);
+          const priced = await prepareSuggestion(s, exchange, prefs);
           enqueue({ type: 'suggestion', data: priced, source: 'fallback' });
           await new Promise((r) => setTimeout(r, 100));
         }

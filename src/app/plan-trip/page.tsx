@@ -224,13 +224,7 @@ export default function PlanTripPage() {
             title="What kind of trip?"
             subtitle="Pick a style — you can change it any time"
           >
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 10,
-              }}
-            >
+            <div className="grid grid-cols-1 min-[480px]:grid-cols-3 gap-2.5">
               {TRIP_STYLES.map((style) => {
                 const active = tripStyle === style.value;
                 return (
@@ -386,7 +380,7 @@ export default function PlanTripPage() {
           >
             {!(isMulti && multiStops.some((s) => s.destination.trim())) && (
             <>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3">
               <div>
                 <label style={labelStyle}>Departure</label>
                 <input
@@ -425,7 +419,7 @@ export default function PlanTripPage() {
           </FormSection>
 
           <FormSection step={5} title="Who's travelling?">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3">
               <Counter
                 label="Adults"
                 sub="Age 18+"
@@ -476,7 +470,8 @@ export default function PlanTripPage() {
                 step={250}
                 value={budget}
                 onChange={(e) => setBudget(Number(e.target.value))}
-                style={{ width: '100%', accentColor: '#1C1917', height: 4, cursor: 'pointer' }}
+                className="w-full cursor-pointer accent-stone-900 min-h-[44px]"
+                style={{ height: 6 }}
               />
               <div
                 style={{
@@ -775,9 +770,10 @@ function Counter({
         <div style={{ fontSize: 13, fontWeight: 500, color: '#1C1917' }}>{label}</div>
         <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace' }}>{sub}</div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <button
           type="button"
+          aria-label={`Decrease ${label}`}
           onClick={() => onChange(Math.max(min, value - 1))}
           disabled={value <= min}
           style={counterBtnStyle(value <= min)}
@@ -797,6 +793,7 @@ function Counter({
         </span>
         <button
           type="button"
+          aria-label={`Increase ${label}`}
           onClick={() => onChange(Math.min(max, value + 1))}
           disabled={value >= max}
           style={counterBtnStyle(value >= max)}
@@ -809,16 +806,22 @@ function Counter({
 }
 
 const counterBtnStyle = (disabled: boolean): React.CSSProperties => ({
-  width: 30,
-  height: 30,
+  width: 44,
+  height: 44,
+  minWidth: 44,
+  minHeight: 44,
   borderRadius: '50%',
-  border: '1.5px solid #E2DDD6',
+  border: disabled ? '1.5px solid #E5E7EB' : '1.5px solid #1C1917',
   background: disabled ? '#F3F4F6' : '#fff',
-  color: disabled ? '#D1D5DB' : '#1C1917',
-  fontSize: 16,
+  color: disabled ? '#9CA3AF' : '#1C1917',
+  fontSize: 20,
+  fontWeight: 600,
   lineHeight: 1,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   cursor: disabled ? 'not-allowed' : 'pointer',
+  opacity: disabled ? 0.45 : 1,
+  boxShadow: disabled ? 'none' : '0 1px 2px rgba(28,25,23,0.08)',
+  WebkitTapHighlightColor: 'transparent',
 });

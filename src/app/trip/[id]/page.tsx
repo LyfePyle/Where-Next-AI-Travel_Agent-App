@@ -252,7 +252,15 @@ function TripDetailContent() {
               <div className="text-2xl font-bold text-black">
                 ${tripDetail.estimatedTotal.toLocaleString()}
               </div>
-              <div className="text-sm text-gray-600">per person</div>
+              <div className="text-sm text-gray-600">
+                est. total{adults + kids > 1 ? ` (${adults + kids} travellers)` : ''}
+              </div>
+              {adults + kids > 1 && (
+                <div className="text-xs text-gray-500 mt-0.5">
+                  ≈ ${Math.round(tripDetail.estimatedTotal / (adults + kids)).toLocaleString()} per person
+                </div>
+              )}
+              <p className="text-[10px] text-gray-400 mt-1">AI estimate — verify before booking</p>
             </div>
           </div>
         </div>
@@ -479,14 +487,23 @@ function TripDetailContent() {
                   <span className="font-medium">{adults + kids} people</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Budget</span>
+                  <span className="text-gray-600">Budget (your plan)</span>
                   <span className="font-medium">${budgetAmount.toLocaleString()}</span>
                 </div>
                 <hr className="my-3" />
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Estimated Total</span>
+                  <span className="text-gray-600">AI est. total</span>
                   <span className="font-semibold text-lg">${tripDetail.estimatedTotal.toLocaleString()}</span>
                 </div>
+                {adults + kids > 1 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Per person</span>
+                    <span className="text-gray-600">
+                      ≈ ${Math.round(tripDetail.estimatedTotal / (adults + kids)).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-400 pt-1">Estimates only — not live pricing</p>
               </div>
             </div>
 

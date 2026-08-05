@@ -23,6 +23,8 @@ export interface TripSuggestion {
   stops?: string[];
   /** Per-city preview content from AI (multi-stop trips) */
   stopPreviews?: StopPreview[];
+  /** 2–3 short day-preview lines for suggestion cards */
+  itineraryTeaser?: string[];
   currency?: string;
   exchangeRate?: number;
   exchangeSource?: 'live' | 'fallback';

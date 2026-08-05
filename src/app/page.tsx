@@ -403,12 +403,12 @@ export default function NewHomePage() {
     <div className="min-h-screen bg-white">
       
       {/* Chat-First Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-blue-50 via-white to-white py-16 md:py-24 lg:py-28">
-        <div className="absolute -top-24 right-0 h-64 w-64 rounded-full bg-purple-200/40 blur-3xl"></div>
-        <div className="absolute -bottom-24 left-0 h-64 w-64 rounded-full bg-blue-200/40 blur-3xl"></div>
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
-            <div className="text-left">
+      <section className="relative overflow-x-clip bg-gradient-to-b from-blue-50 via-white to-white py-12 sm:py-16 md:py-24 lg:py-28">
+        <div className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-purple-200/40 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-24 left-0 h-64 w-64 rounded-full bg-blue-200/40 blur-3xl max-sm:hidden" aria-hidden />
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative w-full min-w-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <div className="text-left min-w-0">
               <p className="inline-flex items-center gap-2 px-4 py-2 bg-white shadow-sm rounded-full text-sm font-semibold text-purple-700 border border-purple-100">
                 <MessageCircle className="h-4 w-4" />
                 Trip planning you can actually change
@@ -440,16 +440,16 @@ export default function NewHomePage() {
                     {isGenerating ? 'Planning...' : 'Plan my trip'}
                   </button>
                 </div>
-                <div className="mt-3 flex items-center gap-3 flex-wrap">
+                <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                   <Link
                     href="/auth/register"
-                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-md"
+                    className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-md shrink-0"
                   >
                     Sign up free →
                   </Link>
                   <Link
                     href="/auth/login"
-                    className="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
+                    className="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors py-1"
                   >
                     Already have an account? Sign in
                   </Link>
@@ -672,9 +672,9 @@ export default function NewHomePage() {
               {/* Removed stats row per request */}
             </div>
 
-            <div className="relative">
-              <div className="absolute -top-8 -left-6 h-24 w-24 rounded-2xl bg-purple-200/60 blur-2xl"></div>
-              <div className="absolute -bottom-10 right-0 h-32 w-32 rounded-full bg-blue-200/60 blur-3xl"></div>
+            <div className="relative min-w-0">
+              <div className="pointer-events-none absolute -top-8 left-0 h-24 w-24 rounded-2xl bg-purple-200/60 blur-2xl max-sm:hidden" aria-hidden />
+              <div className="pointer-events-none absolute -bottom-10 right-0 h-32 w-32 rounded-full bg-blue-200/60 blur-3xl max-sm:hidden" aria-hidden />
               <div className="relative space-y-4">
                 <div className="rounded-3xl border border-purple-100 bg-white/90 p-6 shadow-2xl shadow-purple-100/50">
                   <div className="flex items-center justify-between mb-4">

@@ -108,15 +108,19 @@ function isActive(href: string, pathname: string): boolean {
 // Logo
 // ---------------------------------------------------------------------------
 
-function Logo() {
+function Logo({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <Link href="/" className="flex items-center gap-2 group">
-      <div className="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-700 transition-colors" style={{ width: 28, height: 28 }}>
+    <Link
+      href="/"
+      onClick={onNavigate}
+      className="flex items-center gap-2 group min-w-0 no-underline"
+    >
+      <div className="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0 group-hover:bg-slate-700 transition-colors">
         <svg className="w-4 h-4 text-white" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
-      <span className="text-sm font-bold text-slate-900 tracking-tight">Where Next</span>
+      <span className="text-sm font-bold text-slate-900 tracking-tight whitespace-nowrap">Where Next</span>
     </Link>
   );
 }
@@ -229,14 +233,23 @@ export default function GlobalNav() {
     router.refresh();
   }
 
+  function closeMobileMenu() {
+    setMobileOpen(false);
+  }
+
   const visibleLinks = NAV_LINKS.filter(
     (l) => !l.authRequired || (l.authRequired && !!user)
   );
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 h-14 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-6">
+      <header
+        className={`fixed top-0 left-0 right-0 z-40 h-14 bg-white/90 backdrop-blur-md border-b border-slate-200/80 ${
+          mobileOpen ? 'max-md:invisible' : ''
+        }`}
+        aria-hidden={mobileOpen}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-4">
           <Logo />
 
           <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
@@ -285,9 +298,11 @@ export default function GlobalNav() {
           </div>
 
           <button
-            className="md:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            type="button"
+            className="md:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
+            aria-expanded={mobileOpen}
           >
             <IconMenu />
           </button>
@@ -295,32 +310,37 @@ export default function GlobalNav() {
       </header>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
+        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={closeMobileMenu}
+            tabIndex={-1}
+            aria-hidden="true"
           />
 
-          <div className="absolute top-0 left-0 right-0 bg-white rounded-b-3xl shadow-2xl pb-8 pt-4 px-4">
-            <div className="flex items-center justify-between mb-6">
-              <Logo />
+          <div className="absolute inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-y-auto">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <Logo onNavigate={closeMobileMenu} />
               <button
-                className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
-                onClick={() => setMobileOpen(false)}
+                type="button"
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                onClick={closeMobileMenu}
                 aria-label="Close menu"
               >
                 <IconClose />
               </button>
             </div>
 
-            <nav className="space-y-1" aria-label="Mobile navigation">
+            <nav className="flex-1 px-3 py-4 space-y-1" aria-label="Mobile navigation">
               {visibleLinks.map((link) => {
                 const active = isActive(link.href, pathname);
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    onClick={closeMobileMenu}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all ${
                       active
                         ? 'bg-slate-900 text-white'
                         : 'text-slate-700 hover:bg-slate-100'
@@ -335,15 +355,16 @@ export default function GlobalNav() {
               })}
             </nav>
 
-            <div className="mt-6 pt-5 border-t border-slate-100">
+            <div className="mt-auto px-4 py-5 border-t border-slate-100">
               {!mounted || !isInitialized ? (
                 <div className="h-20 rounded-xl bg-slate-100 animate-pulse" />
               ) : user ? (
                 <div className="space-y-1">
                   <p className="text-xs text-slate-400 px-4 mb-2 truncate">{(user as { email?: string }).email}</p>
                   <button
-                    onClick={onSignOut}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
+                    type="button"
+                    onClick={() => { closeMobileMenu(); onSignOut(); }}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
                   >
                     <IconLogout />
                     Sign out
@@ -353,13 +374,15 @@ export default function GlobalNav() {
                 <div className="flex flex-col gap-2">
                   <Link
                     href="/auth/register"
-                    className="w-full text-center bg-purple-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-purple-700 transition-colors"
+                    onClick={closeMobileMenu}
+                    className="w-full text-center bg-purple-600 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-purple-700 transition-colors"
                   >
                     Sign up free
                   </Link>
                   <Link
                     href="/auth/login"
-                    className="w-full text-center text-slate-700 py-3 rounded-xl text-sm font-medium hover:bg-slate-100 transition-colors"
+                    onClick={closeMobileMenu}
+                    className="w-full text-center text-slate-700 py-3.5 rounded-xl text-sm font-medium hover:bg-slate-100 transition-colors"
                   >
                     Sign in
                   </Link>
@@ -370,7 +393,7 @@ export default function GlobalNav() {
         </div>
       )}
 
-      <div className="h-14" aria-hidden="true" />
+      <div className="h-14 shrink-0" aria-hidden="true" />
     </>
   );
 }

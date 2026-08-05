@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 /* Comprehensive Tailwind CSS Recreation - Fixed Syntax */
 
 /* Base styles */
@@ -9,6 +11,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  overflow-x: clip;
 }
 
 :root {

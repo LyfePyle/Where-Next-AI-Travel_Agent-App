@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { geocodeCity } from '@/lib/geocode-city';
-import { deriveNightsFromStop, normalizeTripStopsFromRow } from '@/lib/trip-stops';
-import type { TripStop } from '@/types/trip';
+import {
+  deriveNightsFromStop,
+  geocodeContextForStop,
+  normalizeTripStopsFromRow,
+} from '@/lib/trip-stops';
 
 async function supabaseServer() {
   const cookieStore = await cookies();
@@ -18,14 +21,6 @@ async function supabaseServer() {
       },
     }
   );
-}
-
-function cityFromStop(stop: TripStop): string {
-  return stop.city || stop.destination.split(',')[0]?.trim() || stop.destination;
-}
-
-function countryFromStop(stop: TripStop): string | undefined {
-  return stop.country || stop.destination.split(',').pop()?.trim() || undefined;
 }
 
 /** GET — geocoded stop pins for whole-trip route map */
@@ -56,11 +51,14 @@ export async function GET(
     return NextResponse.json({ pins: [] });
   }
 
+  const siblingCountries = stops
+    .map((s) => s.country)
+    .filter((c): c is string => Boolean(c?.trim()));
+
   const pins = await Promise.all(
     stops.map(async (stop, index) => {
-      const city = cityFromStop(stop);
-      const country = countryFromStop(stop);
-      const coords = await geocodeCity(city, country);
+      const { city, country } = geocodeContextForStop(stop, stops);
+      const coords = await geocodeCity(city, country, siblingCountries);
       return {
         stopId: stop.id,
         city,

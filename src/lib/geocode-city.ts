@@ -4,6 +4,7 @@
  */
 
 import { resolvePlace } from '@/lib/geocode-place';
+import { resolveGeocodeCountry } from '@/lib/geocode-disambiguation';
 
 export interface CityCoords {
   lat: number;
@@ -35,22 +36,27 @@ function fallbackCoords(city: string, country?: string): CityCoords {
   };
 }
 
-export async function geocodeCity(city: string, country?: string): Promise<CityCoords> {
+export async function geocodeCity(
+  city: string,
+  country?: string,
+  siblingCountries: string[] = []
+): Promise<CityCoords> {
   const place = city.trim();
   if (!place) return fallbackCoords('Unknown');
 
-  const key = cacheKey(place, country);
+  const resolvedCountry = resolveGeocodeCountry(place, country, siblingCountries);
+  const key = cacheKey(place, resolvedCountry);
   const cached = coordsCache.get(key);
   const expires = cacheExpiry.get(key) ?? 0;
   if (cached && Date.now() < expires) return cached;
 
-  const resolved = await resolvePlace(place, country);
+  const resolved = await resolvePlace(place, resolvedCountry);
   if (resolved) {
     const result: CityCoords = {
       lat: resolved.lat,
       lon: resolved.lon,
       name: resolved.name,
-      country: resolved.country || country,
+      country: resolved.country || resolvedCountry,
       source: resolved.source,
     };
     coordsCache.set(key, result);
@@ -58,8 +64,10 @@ export async function geocodeCity(city: string, country?: string): Promise<CityC
     return result;
   }
 
-  console.warn(`geocodeCity: no results for "${place}"${country ? `, ${country}` : ''}`);
-  const fb = fallbackCoords(place, country);
+  console.warn(
+    `geocodeCity: no results for "${place}"${resolvedCountry ? `, ${resolvedCountry}` : ''}`
+  );
+  const fb = fallbackCoords(place, resolvedCountry);
   coordsCache.set(key, fb);
   cacheExpiry.set(key, Date.now() + CACHE_TTL_MS);
   return fb;

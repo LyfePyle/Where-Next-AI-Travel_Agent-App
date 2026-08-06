@@ -6,6 +6,11 @@
  */
 
 import type { TripStop } from '@/types/trip';
+import {
+  disambiguatedCountry,
+  isLikelyCountryName,
+  resolveGeocodeCountry,
+} from '@/lib/geocode-disambiguation';
 
 export interface TripRowLike {
   destination?: string | null;
@@ -29,8 +34,40 @@ function inferCountryFromDestination(destination: string): string | undefined {
   if (!d) return undefined;
   if (d.includes('→')) return undefined;
   const parts = d.split(',').map((p) => p.trim()).filter(Boolean);
-  if (parts.length >= 2) return parts[parts.length - 1];
-  return undefined;
+  if (parts.length >= 2) {
+    const last = parts[parts.length - 1];
+    if (isLikelyCountryName(last)) return last;
+    return disambiguatedCountry(parts[0]) ?? disambiguatedCountry(last);
+  }
+  return disambiguatedCountry(parts[0] ?? d);
+}
+
+/** Fill missing or invalid stop.country from disambiguation + sibling stops. */
+export function enrichStopCountries(stops: TripStop[]): TripStop[] {
+  const siblingCountries = stops
+    .map((s) => s.country)
+    .filter((c): c is string => Boolean(c?.trim()));
+
+  return stops.map((stop) => {
+    const city = stop.city || stop.destination.split(',')[0]?.trim() || stop.destination;
+    const resolved = resolveGeocodeCountry(city, stop.country, siblingCountries);
+    if (!resolved || resolved === stop.country) return stop;
+    return { ...stop, country: resolved };
+  });
+}
+
+/** City + resolved country for geocoding a stop within a trip. */
+export function geocodeContextForStop(
+  stop: TripStop,
+  allStops: TripStop[]
+): { city: string; country: string | undefined } {
+  const city = stop.city || stop.destination.split(',')[0]?.trim() || stop.destination;
+  const siblingCountries = allStops
+    .filter((s) => s.id !== stop.id)
+    .map((s) => s.country)
+    .filter((c): c is string => Boolean(c?.trim()));
+  const country = resolveGeocodeCountry(city, stop.country, siblingCountries);
+  return { city, country };
 }
 
 function inferCityFromDestination(destination: string): string | undefined {
@@ -119,13 +156,15 @@ export function normalizeTripStopsFromRow(row: TripRowLike): TripStop[] {
       .map((s, i) => normalizeStop(s, i, fallbackDates))
       .filter((s): s is TripStop => s !== null);
     if (normalized.length > 0) {
-      return normalized
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-        .map((s, i) => ({ ...s, order: s.order ?? i }));
+      return enrichStopCountries(
+        normalized
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map((s, i) => ({ ...s, order: s.order ?? i }))
+      );
     }
   }
 
-  return [legacyStopFromRow(row)];
+  return enrichStopCountries([legacyStopFromRow(row)]);
 }
 
 /** Prepare stops for trips.stops JSONB on insert/update. Returns null when empty. */

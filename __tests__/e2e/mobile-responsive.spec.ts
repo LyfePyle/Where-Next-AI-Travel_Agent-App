@@ -25,7 +25,7 @@ const BREAKPOINTS = {
 // Test critical pages for mobile experience
 const CRITICAL_PAGES = [
   { url: '/', name: 'Homepage' },
-  { url: '/ai-travel-agent', name: 'AI Travel Agent' },
+  { url: '/plan-trip', name: 'AI Travel Agent' },
   { url: '/plan-trip', name: 'Trip Planning' },
   { url: '/suggestions', name: 'Trip Suggestions' },
   { url: '/booking/flights', name: 'Flight Booking' },
@@ -66,7 +66,7 @@ MOBILE_DEVICES.forEach(device => {
     })
 
     test('Touch interactions should work properly', async ({ page }) => {
-      await page.goto('/ai-travel-agent')
+      await page.goto('/plan-trip')
       await page.waitForLoadState('networkidle')
       
       // Test tap interactions
@@ -177,7 +177,7 @@ MOBILE_DEVICES.forEach(device => {
     })
 
     test('Loading states should be mobile-optimized', async ({ page }) => {
-      await page.goto('/ai-travel-agent')
+      await page.goto('/plan-trip')
       
       // Check for loading indicators
       const loadingIndicators = page.locator(

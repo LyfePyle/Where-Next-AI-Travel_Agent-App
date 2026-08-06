@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test'
 const BROWSERS = ['chromium', 'firefox', 'webkit'] as const
 const CRITICAL_PAGES = [
   { url: '/', name: 'Homepage', features: ['navigation', 'images', 'responsive-layout'] },
-  { url: '/ai-travel-agent', name: 'AI Travel Agent', features: ['forms', 'ai-integration', 'interactions'] },
+  { url: '/plan-trip', name: 'AI Travel Agent', features: ['forms', 'ai-integration', 'interactions'] },
   { url: '/plan-trip', name: 'Trip Planning', features: ['forms', 'validation', 'autocomplete'] },
   { url: '/suggestions', name: 'Trip Suggestions', features: ['cards', 'interactions', 'buttons'] }
 ]

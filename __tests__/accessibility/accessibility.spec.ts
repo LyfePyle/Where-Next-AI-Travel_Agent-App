@@ -12,7 +12,7 @@ const WCAG_LEVELS = ['wcag2a', 'wcag2aa'] as const
 // Pages to test for accessibility
 const PAGES_TO_TEST = [
   { url: '/', name: 'Homepage' },
-  { url: '/ai-travel-agent', name: 'AI Travel Agent' },
+  { url: '/plan-trip', name: 'AI Travel Agent' },
   { url: '/plan-trip', name: 'Trip Planning' },
   { url: '/suggestions', name: 'Trip Suggestions' },
   { url: '/booking/flights', name: 'Flight Booking' },
@@ -368,7 +368,7 @@ test.describe('Accessibility Tests', () => {
   })
 
   test('ARIA attributes should be used correctly', async ({ page }) => {
-    await page.goto('/ai-travel-agent')
+    await page.goto('/plan-trip')
     await page.waitForLoadState('networkidle')
     
     // Check for proper ARIA usage

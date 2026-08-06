@@ -1151,7 +1151,6 @@ export default function NewHomePage() {
               <ul className="space-y-4 list-none p-0 m-0">
                 <li><Link href="/plan-trip" className="text-gray-300 hover:text-white transition-colors text-lg block">Trip Planning</Link></li>
                 <li><Link href="/budget" className="text-gray-300 hover:text-white transition-colors text-lg block">Budget Tracker</Link></li>
-                <li><Link href="/ai-travel-agent" className="text-gray-300 hover:text-white transition-colors text-lg block">AI Agent</Link></li>
               </ul>
             </div>
 

@@ -342,17 +342,6 @@ function PublicBudgetPageInner() {
               </div>
               <p className="text-gray-600">Get AI-powered itinerary recommendations</p>
             </Link>
-
-            <Link
-              href="/ai-travel-agent"
-              className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center mb-3">
-                <Calculator className="w-6 h-6 text-purple-600 mr-3" />
-                <h3 className="text-lg font-semibold">AI Travel Agent</h3>
-              </div>
-              <p className="text-gray-600">Get personalized travel advice and recommendations</p>
-            </Link>
           </div>
         </div>
       </div>

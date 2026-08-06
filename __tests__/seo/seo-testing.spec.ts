@@ -15,7 +15,7 @@ const SEO_PAGES = [
     shouldHaveStructuredData: true
   },
   { 
-    url: '/ai-travel-agent', 
+    url: '/plan-trip', 
     name: 'AI Travel Agent',
     expectedTitle: /ai.*travel.*agent/i,
     expectedDescription: /ai.*travel.*planning|smart.*travel/i,
@@ -475,7 +475,7 @@ test.describe('SEO and Meta Tags Tests', () => {
   })
 
   test('Content should be unique and not duplicated', async ({ page }) => {
-    const pages = ['/', '/ai-travel-agent', '/plan-trip']
+    const pages = ['/', '/plan-trip', '/suggestions']
     const pageTitles: string[] = []
     const pageDescriptions: string[] = []
     

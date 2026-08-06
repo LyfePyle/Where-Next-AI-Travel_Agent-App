@@ -9,13 +9,13 @@ import { test, expect } from '@playwright/test'
 const ANALYTICS_EVENTS = {
   PAGE_VIEWS: [
     { page: '/', event: 'page_view', properties: { page_title: /where.*next/i } },
-    { page: '/ai-travel-agent', event: 'page_view', properties: { page_title: /ai.*travel/i } },
+    { page: '/plan-trip', event: 'page_view', properties: { page_title: /ai.*travel/i } },
     { page: '/plan-trip', event: 'page_view', properties: { page_title: /plan.*trip/i } }
   ],
   
   USER_INTERACTIONS: [
     { action: 'trip_search_started', trigger: 'form submission', page: '/plan-trip' },
-    { action: 'ai_suggestion_requested', trigger: 'button click', page: '/ai-travel-agent' },
+    { action: 'ai_suggestion_requested', trigger: 'button click', page: '/plan-trip' },
     { action: 'trip_saved', trigger: 'save button', page: '/suggestions' },
     { action: 'booking_initiated', trigger: 'book button', page: '/booking/flights' }
   ],
@@ -215,7 +215,7 @@ test.describe('Analytics & Tracking Tests', () => {
       }
     })
     
-    await page.goto('/ai-travel-agent')
+    await page.goto('/plan-trip')
     await page.waitForLoadState('networkidle')
     
     // Trigger an error (try to access non-existent endpoint)
@@ -422,7 +422,7 @@ test.describe('Analytics & Tracking Tests', () => {
   })
 
   test('Performance and timing events tracking', async ({ page }) => {
-    await page.goto('/ai-travel-agent')
+    await page.goto('/plan-trip')
     await page.waitForLoadState('networkidle')
     
     // Track performance metrics

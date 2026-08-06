@@ -260,20 +260,12 @@ function SearchPageInner() {
                     <span className="truncate">{destination.bestTime.split(',')[0]}</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Link
-                    href={`/ai-travel-agent?destination=${encodeURIComponent(destination.name)}`}
-                    className="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    Get AI Tips
-                  </Link>
-                  <Link
-                    href={`/plan-trip?destination=${encodeURIComponent(destination.name)}`}
-                    className="flex-1 bg-gray-100 text-gray-700 text-center py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-                  >
-                    Plan Trip
-                  </Link>
-                </div>
+                <Link
+                  href={`/plan-trip?destination=${encodeURIComponent(destination.name)}`}
+                  className="block w-full bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Plan Trip
+                </Link>
               </div>
             </div>
           ))}
@@ -303,11 +295,11 @@ function SearchPageInner() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/ai-travel-agent"
+              href="/plan-trip"
               className="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-bold rounded-xl hover:bg-gray-100 transition-colors"
             >
               <Compass className="mr-3 h-6 w-6" />
-              Ask AI Travel Agent
+              Plan a Trip with AI
               <ArrowRight className="ml-3 h-6 w-6" />
             </Link>
             <Link

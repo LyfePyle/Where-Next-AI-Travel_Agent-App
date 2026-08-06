@@ -5,7 +5,7 @@ test.describe('API Integration', () => {
     // Test pages that make API calls
     const apiPages = [
       '/',
-      '/ai-travel-agent',
+      '/plan-trip',
       '/suggestions',
       '/my-trips'
     ];
@@ -28,7 +28,7 @@ test.describe('API Integration', () => {
 
   test('should handle API responses gracefully', async ({ page }) => {
     // Navigate to a page that likely makes API calls
-    await page.goto('/ai-travel-agent');
+    await page.goto('/plan-trip');
     
     // Wait for potential API calls to complete
     await page.waitForTimeout(2000);
@@ -55,7 +55,7 @@ test.describe('API Integration', () => {
     const navigationFlow = [
       '/plan-trip',
       '/suggestions', 
-      '/ai-travel-agent',
+      '/plan-trip',
       '/my-trips'
     ];
 

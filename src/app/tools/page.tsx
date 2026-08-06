@@ -22,13 +22,8 @@ export default function ToolsPage() {
           <a className="rounded-md border px-3 py-2 inline-block" href="/tours">Open</a>
         </li>
         <li className="rounded-xl border p-4">
-          <h3 className="font-semibold">AI Travel Agent</h3>
-          <p className="text-sm text-gray-600 mb-3">Get personalized recommendations.</p>
-          <a className="rounded-md border px-3 py-2 inline-block" href="/ai-travel-agent">Open</a>
-        </li>
-        <li className="rounded-xl border p-4">
           <h3 className="font-semibold">Trip Planner</h3>
-          <p className="text-sm text-gray-600 mb-3">Plan your perfect itinerary.</p>
+          <p className="text-sm text-gray-600 mb-3">Plan your perfect itinerary with AI.</p>
           <a className="rounded-md border px-3 py-2 inline-block" href="/plan-trip">Open</a>
         </li>
       </ul>

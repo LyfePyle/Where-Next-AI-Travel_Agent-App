@@ -22,7 +22,7 @@ test.describe('Trip Planning Flow', () => {
   });
 
   test('should display AI travel agent page', async ({ page }) => {
-    await page.goto('/ai-travel-agent');
+    await page.goto('/plan-trip');
     
     // Check for AI travel agent content
     await expect(page.locator('h1, h2')).toContainText(/travel|agent|plan|trip/i);

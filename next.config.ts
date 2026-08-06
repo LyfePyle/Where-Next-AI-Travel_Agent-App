@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
     return [
       { source: '/explore', destination: '/search', permanent: true },
       { source: '/explore/:path*', destination: '/search/:path*', permanent: true },
+      { source: '/ai-travel-agent', destination: '/plan-trip', permanent: true },
+      { source: '/ai-travel-agent/:path*', destination: '/plan-trip', permanent: true },
     ];
   },
 };

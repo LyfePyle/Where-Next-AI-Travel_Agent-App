@@ -91,7 +91,7 @@ export default function TravelImageCarousel() {
           <div
             key={image.id}
             className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentIndex ? 'opacity-100' : 'opacity-0'
+              index === currentIndex ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
           >
             <img

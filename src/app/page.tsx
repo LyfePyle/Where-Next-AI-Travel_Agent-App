@@ -408,7 +408,7 @@ export default function NewHomePage() {
         <div className="pointer-events-none absolute -bottom-24 left-0 h-64 w-64 rounded-full bg-blue-200/40 blur-3xl max-sm:hidden" aria-hidden />
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative w-full min-w-0">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div className="text-left min-w-0">
+            <div className="relative z-10 text-left min-w-0">
               <p className="inline-flex items-center gap-2 px-4 py-2 bg-white shadow-sm rounded-full text-sm font-semibold text-purple-700 border border-purple-100">
                 <MessageCircle className="h-4 w-4" />
                 Trip planning you can actually change
@@ -422,24 +422,64 @@ export default function NewHomePage() {
               </p>
 
               <form onSubmit={handlePromptSubmit} className="max-w-3xl">
-                <div className="flex flex-col sm:flex-row items-stretch gap-3 bg-white/95 backdrop-blur border border-gray-200 rounded-2xl p-2.5 shadow-2xl shadow-purple-100/50">
-                  <div className="relative flex-1">
-                    <Compass className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-purple-500/70" />
-                    <input
-                      value={prompt}
-                      onChange={(event) => setPrompt(event.target.value)}
-                      placeholder="e.g. 3 weeks in Indonesia and Thailand — temples, food, not too rushed"
-                      className="w-full pl-11 pr-4 py-3 text-base md:text-lg rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/40 placeholder:text-gray-400"
-                    />
+                <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-2xl p-2.5 shadow-2xl shadow-purple-100/50 space-y-3">
+                  <div className="flex flex-col sm:flex-row items-stretch gap-3">
+                    <div className="relative flex-1 min-w-0">
+                      <Compass className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-purple-500/70 pointer-events-none" />
+                      <input
+                        value={prompt}
+                        onChange={(event) => setPrompt(event.target.value)}
+                        placeholder="e.g. 3 weeks in Indonesia and Thailand — temples, food, not too rushed"
+                        className="w-full pl-11 pr-4 py-3 text-base md:text-lg rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/40 placeholder:text-gray-400"
+                      />
+                    </div>
+                    {isGenerating ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex items-center justify-center shrink-0 px-6 py-3 min-h-[44px] bg-purple-300 text-white text-base md:text-lg font-semibold rounded-xl cursor-not-allowed shadow-md shadow-purple-200/60"
+                      >
+                        Planning...
+                      </button>
+                    ) : prompt.trim() ? (
+                      <button
+                        type="submit"
+                        className="inline-flex items-center justify-center shrink-0 px-6 py-3 min-h-[44px] bg-purple-600 text-white text-base md:text-lg font-semibold rounded-xl hover:bg-purple-700 transition-colors shadow-md shadow-purple-200/60 touch-manipulation cursor-pointer"
+                      >
+                        Plan my trip
+                      </button>
+                    ) : (
+                      <Link
+                        href="/plan-trip"
+                        className="inline-flex items-center justify-center shrink-0 px-6 py-3 min-h-[44px] bg-purple-600 text-white text-base md:text-lg font-semibold rounded-xl hover:bg-purple-700 transition-colors shadow-md shadow-purple-200/60 touch-manipulation cursor-pointer no-underline"
+                      >
+                        Plan my trip
+                      </Link>
+                    )}
                   </div>
-                  <button
-                    type="submit"
-                    disabled={isGenerating || !prompt.trim()}
-                    className="px-6 py-3 bg-purple-600 text-white text-base md:text-lg font-semibold rounded-xl hover:bg-purple-700 transition-colors disabled:cursor-not-allowed disabled:bg-purple-300 shadow-md shadow-purple-200/60"
-                  >
-                    {isGenerating ? 'Planning...' : 'Plan my trip'}
-                  </button>
+                  <div className="flex flex-wrap gap-2 text-sm text-purple-700 px-0.5">
+                    {[
+                      'I don\'t know where to go yet — help me narrow it down',
+                      '6 countries in Southeast Asia, ~6 weeks, mid budget',
+                      'Swap one stop and keep the rest of the trip intact',
+                      'Add a yoga day in Denpasar on day 3',
+                    ].map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => setPrompt(chip)}
+                        className="px-4 py-2.5 min-h-[44px] rounded-full bg-white/95 border border-purple-100 hover:bg-purple-50 active:bg-purple-100 transition-colors shadow-sm touch-manipulation cursor-pointer text-left"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                {!prompt.trim() && !isGenerating && (
+                  <p className="mt-2 text-sm text-gray-500">
+                    Tap a suggestion above or type in the box — then Plan my trip runs AI here, or opens the full planner.
+                  </p>
+                )}
                 <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                   <Link
                     href="/auth/register"
@@ -455,24 +495,6 @@ export default function NewHomePage() {
                   </Link>
                 </div>
               </form>
-
-              <div className="mt-6 flex flex-wrap gap-2 text-sm text-purple-700">
-                {[
-                  'I don\'t know where to go yet — help me narrow it down',
-                  '6 countries in Southeast Asia, ~6 weeks, mid budget',
-                  'Swap one stop and keep the rest of the trip intact',
-                  'Add a yoga day in Denpasar on day 3',
-                ].map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => setPrompt(chip)}
-                    className="px-4 py-2 rounded-full bg-white/95 border border-purple-100 hover:bg-purple-50 transition-colors shadow-sm"
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
 
               {(aiResponse || aiError) && (
                 <div className="mt-10 max-w-5xl text-left">

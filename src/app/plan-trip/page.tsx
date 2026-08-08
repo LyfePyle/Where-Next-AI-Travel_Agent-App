@@ -61,8 +61,16 @@ export default function PlanTripPage() {
   ]);
 
   useEffect(() => {
-    const dest = new URLSearchParams(window.location.search).get('destination');
+    const params = new URLSearchParams(window.location.search);
+    const dest = params.get('destination');
     if (dest) setDestination(dest);
+
+    const vibesParam = params.get('vibes');
+    if (vibesParam) {
+      const parsed = vibesParam.split(',').map((v) => v.trim()).filter(Boolean);
+      const valid = parsed.filter((v) => VIBES.some((option) => option.value === v));
+      if (valid.length) setVibes(valid.slice(0, MAX_VIBES));
+    }
   }, []);
 
   const isSurprise = tripStyle === 'surprise';

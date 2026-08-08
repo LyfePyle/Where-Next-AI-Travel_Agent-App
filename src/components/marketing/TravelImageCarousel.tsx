@@ -1,77 +1,115 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import {
+  CURATED_DESTINATIONS,
+  planTripHref,
+  VIBE_LABELS,
+  type CuratedDestination,
+} from '@/data/curated-destinations';
 
-interface TravelImage {
-  id: string;
-  url: string;
-  alt: string;
-  destination: string;
+function DestinationCard({ dest }: { dest: CuratedDestination }) {
+  return (
+    <Link
+      href={planTripHref(dest)}
+      className="group block h-full rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-2xl shadow-purple-100/40 transition-all duration-300 hover:border-purple-200 hover:shadow-purple-200/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 touch-manipulation"
+      aria-label={`Plan a trip to ${dest.destination}`}
+    >
+      <div className="relative h-44 sm:h-52 md:h-56 overflow-hidden">
+        <img
+          src={dest.url}
+          alt={dest.alt}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+        <div className="absolute bottom-4 left-4 right-4 pointer-events-none">
+          <p className="text-xs font-semibold uppercase tracking-wide text-white/80 mb-1">
+            Curated pick
+          </p>
+          <h3 className="text-xl md:text-2xl font-bold text-white leading-tight">
+            {dest.destination}
+          </h3>
+          <p className="text-sm text-white/85 mt-0.5">{dest.country}</p>
+        </div>
+      </div>
+
+      <div className="p-5 md:p-6 space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {dest.highlights.slice(0, 3).map((highlight) => (
+            <span
+              key={highlight}
+              className="bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 px-3 py-1.5 rounded-full text-xs font-medium shadow-sm"
+            >
+              ✨ {highlight}
+            </span>
+          ))}
+        </div>
+
+        <div className="rounded-lg border border-stone-200 bg-stone-50/80 p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-stone-500 mb-2">
+            Sample itinerary
+          </div>
+          <ul className="space-y-1.5">
+            {dest.itineraryTeaser.map((line, index) => (
+              <li
+                key={`${dest.id}-teaser-${index}`}
+                className="text-sm text-stone-700 flex items-start gap-2"
+              >
+                <span className="text-purple-500 shrink-0">▸</span>
+                <span className="line-clamp-1">{line}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex flex-wrap gap-1.5">
+            {dest.vibes.map((vibe) => (
+              <span
+                key={vibe}
+                className="text-xs font-medium text-purple-700 bg-purple-50 border border-purple-100 px-2.5 py-1 rounded-full"
+              >
+                {VIBE_LABELS[vibe] ?? vibe}
+              </span>
+            ))}
+          </div>
+          <span className="inline-flex items-center text-sm font-semibold text-purple-700 group-hover:text-purple-800 shrink-0">
+            Plan this trip
+            <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
 }
-
-const travelImages: TravelImage[] = [
-  {
-    id: '1',
-    url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=600&fit=crop',
-    alt: 'Beautiful mountain landscape',
-    destination: 'Swiss Alps'
-  },
-  {
-    id: '2',
-    url: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=1200&h=600&fit=crop',
-    alt: 'Tropical beach paradise',
-    destination: 'Bali, Indonesia'
-  },
-  {
-    id: '3',
-    url: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1200&h=600&fit=crop',
-    alt: 'Tokyo cityscape at night',
-    destination: 'Tokyo, Japan'
-  },
-  {
-    id: '4',
-    url: 'https://images.unsplash.com/photo-1531592937781-3adf9db67025?w=1200&h=600&fit=crop',
-    alt: 'Santorini white buildings',
-    destination: 'Santorini, Greece'
-  },
-  {
-    id: '5',
-    url: 'https://images.unsplash.com/photo-1507525421304-6f5d2c8e8c8d?w=1200&h=600&fit=crop',
-    alt: 'Iceland northern lights',
-    destination: 'Iceland'
-  },
-  {
-    id: '6',
-    url: 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1200&h=600&fit=crop',
-    alt: 'Morocco desert landscape',
-    destination: 'Morocco'
-  }
-];
 
 export default function TravelImageCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
-  // Auto-rotate every 5 seconds
   useEffect(() => {
     if (!isAutoPlaying) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % travelImages.length);
-    }, 5000);
+      setCurrentIndex((prev) => (prev + 1) % CURATED_DESTINATIONS.length);
+    }, 7000);
 
     return () => clearInterval(interval);
   }, [isAutoPlaying]);
 
   const goToPrevious = () => {
     setIsAutoPlaying(false);
-    setCurrentIndex((prev) => (prev - 1 + travelImages.length) % travelImages.length);
+    setCurrentIndex(
+      (prev) => (prev - 1 + CURATED_DESTINATIONS.length) % CURATED_DESTINATIONS.length
+    );
   };
 
   const goToNext = () => {
     setIsAutoPlaying(false);
-    setCurrentIndex((prev) => (prev + 1) % travelImages.length);
+    setCurrentIndex((prev) => (prev + 1) % CURATED_DESTINATIONS.length);
   };
 
   const goToSlide = (index: number) => {
@@ -80,87 +118,84 @@ export default function TravelImageCarousel() {
   };
 
   return (
-    <div 
-      className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden rounded-2xl shadow-2xl"
+    <div
+      className="relative w-full"
       onMouseEnter={() => setIsAutoPlaying(false)}
       onMouseLeave={() => setIsAutoPlaying(true)}
     >
-      {/* Image Container */}
-      <div className="relative w-full h-full">
-        {travelImages.map((image, index) => (
+      <div className="relative min-h-[420px] sm:min-h-[460px] md:min-h-[480px]">
+        {CURATED_DESTINATIONS.map((dest, index) => (
           <div
-            key={image.id}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentIndex ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            key={dest.id}
+            className={`transition-opacity duration-500 ${
+              index === currentIndex
+                ? 'relative opacity-100 z-[1]'
+                : 'absolute inset-0 opacity-0 pointer-events-none z-0'
             }`}
+            aria-hidden={index !== currentIndex}
           >
-            <img
-              src={image.url}
-              alt={image.alt}
-              className="w-full h-full object-cover"
-              loading={index === 0 ? 'eager' : 'lazy'}
-            />
-            {/* Overlay gradient for better text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-            
-            {/* Destination Label */}
-            <div className="absolute bottom-8 left-8 right-8">
-              <div className="inline-block bg-white/90 backdrop-blur-sm px-6 py-3 rounded-full">
-                <p className="text-lg md:text-xl font-bold text-gray-900">
-                  ✈️ {image.destination}
-                </p>
-              </div>
-            </div>
+            <DestinationCard dest={dest} />
           </div>
         ))}
       </div>
 
-      {/* Navigation Arrows */}
       <button
-        onClick={goToPrevious}
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-sm p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-10"
-        aria-label="Previous image"
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          goToPrevious();
+        }}
+        className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white backdrop-blur-sm p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full shadow-lg transition-all duration-200 hover:scale-105 z-10 touch-manipulation"
+        aria-label="Previous destination"
       >
         <ChevronLeft className="h-6 w-6 text-gray-900" />
       </button>
-      
+
       <button
-        onClick={goToNext}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-sm p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-10"
-        aria-label="Next image"
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          goToNext();
+        }}
+        className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white backdrop-blur-sm p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full shadow-lg transition-all duration-200 hover:scale-105 z-10 touch-manipulation"
+        aria-label="Next destination"
       >
         <ChevronRight className="h-6 w-6 text-gray-900" />
       </button>
 
-      {/* Dots Indicator */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
-        {travelImages.map((_, index) => (
+      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
+        {CURATED_DESTINATIONS.map((dest, index) => (
           <button
-            key={index}
-            onClick={() => goToSlide(index)}
-            className={`transition-all duration-300 rounded-full ${
+            key={dest.id}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              goToSlide(index);
+            }}
+            className={`transition-all duration-300 rounded-full touch-manipulation ${
               index === currentIndex
-                ? 'w-8 h-3 bg-white'
-                : 'w-3 h-3 bg-white/50 hover:bg-white/75'
+                ? 'w-8 h-3 bg-purple-600'
+                : 'w-3 h-3 bg-purple-300 hover:bg-purple-400'
             }`}
-            aria-label={`Go to slide ${index + 1}`}
+            aria-label={`Show ${dest.destination}`}
+            aria-current={index === currentIndex ? 'true' : undefined}
           />
         ))}
       </div>
 
-      {/* Progress Bar */}
       {isAutoPlaying && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-100 rounded-b-2xl overflow-hidden z-[1] pointer-events-none">
           <div
-            className="h-full bg-white transition-all duration-5000 ease-linear"
-            style={{ width: `${((currentIndex + 1) / travelImages.length) * 100}%` }}
+            className="h-full bg-purple-500 transition-all duration-[7000ms] ease-linear"
+            style={{
+              width: `${((currentIndex + 1) / CURATED_DESTINATIONS.length) * 100}%`,
+            }}
           />
         </div>
       )}
     </div>
   );
 }
-
-
-
-

@@ -95,7 +95,6 @@ export default function NewHomePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [weatherData, setWeatherData] = useState<any>(null);
   const [currencyData, setCurrencyData] = useState<any>(null);
-  const [currentDestination, setCurrentDestination] = useState(0);
   const [currentWeatherCity, setCurrentWeatherCity] = useState(0);
   const [currentCurrencyPair, setCurrentCurrencyPair] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -125,135 +124,23 @@ export default function NewHomePage() {
     return [`Arrive ${d}`, `${d} core`, `Local gems`, `Wrap up`];
   }, [planHints.destination]);
 
-  // Rotating destinations data
-  const destinations = [
-    {
-      name: 'Bali, Indonesia',
-      emoji: '🏝️',
-      duration: '7 days',
-      price: 899,
-      tags: ['Beaches', 'Temples', 'Culture']
-    },
-    {
-      name: 'Tokyo, Japan',
-      emoji: '🏙️',
-      duration: '6 days',
-      price: 1199,
-      tags: ['Culture', 'Food', 'Technology']
-    },
-    {
-      name: 'Swiss Alps',
-      emoji: '🏔️',
-      duration: '5 days',
-      price: 1299,
-      tags: ['Mountains', 'Hiking', 'Views']
-    },
-    {
-      name: 'Santorini, Greece',
-      emoji: '🏛️',
-      duration: '6 days',
-      price: 1099,
-      tags: ['Islands', 'Sunset', 'Romance']
-    },
-    {
-      name: 'Iceland',
-      emoji: '🌋',
-      duration: '8 days',
-      price: 1399,
-      tags: ['Nature', 'Aurora', 'Adventure']
-    },
-    {
-      name: 'Morocco',
-      emoji: '🕌',
-      duration: '7 days',
-      price: 999,
-      tags: ['Culture', 'Markets', 'Desert']
-    }
-  ];
-
-  // Featured destinations with real photos (for Popular Destinations section)
-  const popularWithPhotos = [
-    { name: 'Bali, Indonesia', image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=80', duration: '7 days', price: 899, tags: ['Beaches', 'Temples', 'Culture'] },
-    { name: 'Tokyo, Japan', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=80', duration: '6 days', price: 1199, tags: ['Culture', 'Food', 'Technology'] },
-    { name: 'Santorini, Greece', image: 'https://images.unsplash.com/photo-1613395877344-13d4a8e0b49d?w=800&q=80', duration: '6 days', price: 1099, tags: ['Islands', 'Sunset', 'Romance'] },
-  ];
-
-  const inspirationTrips = [
-    {
-      id: 'insp-1',
-      title: 'Romantic Paris Getaway',
-      subtitle: '5 days • Couples',
-      destination: 'Paris, France',
-      image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200&h=800&fit=crop',
-    },
-    {
-      id: 'insp-2',
-      title: 'Tokyo Food & Culture',
-      subtitle: '6 days • Food lovers',
-      destination: 'Tokyo, Japan',
-      image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200&h=800&fit=crop',
-    },
-    {
-      id: 'insp-3',
-      title: 'Santorini Sunset Escape',
-      subtitle: '4 days • Beach',
-      destination: 'Santorini, Greece',
-      image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&h=800&fit=crop',
-    },
-    {
-      id: 'insp-4',
-      title: 'Swiss Alps Adventure',
-      subtitle: '7 days • Nature',
-      destination: 'Zurich, Switzerland',
-      image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&h=800&fit=crop',
-    },
-  ];
-
-  // Rotating weather cities
   const weatherCities = [
     { city: 'Paris', country: 'France' },
     { city: 'Tokyo', country: 'Japan' },
     { city: 'New York', country: 'USA' },
     { city: 'London', country: 'UK' },
     { city: 'Sydney', country: 'Australia' },
-    { city: 'Dubai', country: 'UAE' }
+    { city: 'Dubai', country: 'UAE' },
   ];
 
-  // Popular currency pairs
   const currencyPairs = [
     { from: 'USD', to: 'EUR', amount: 100 },
     { from: 'USD', to: 'GBP', amount: 100 },
     { from: 'USD', to: 'JPY', amount: 100 },
     { from: 'EUR', to: 'USD', amount: 100 },
     { from: 'CAD', to: 'USD', amount: 100 },
-    { from: 'AUD', to: 'USD', amount: 100 }
+    { from: 'AUD', to: 'USD', amount: 100 },
   ];
-
-  // Test API endpoints on component mount
-  useEffect(() => {
-    testAPIs();
-    
-    // Rotate destinations every 8 seconds (slower)
-    const destinationInterval = setInterval(() => {
-      setCurrentDestination(prev => (prev + 1) % destinations.length);
-    }, 8000);
-
-    // Weather: fetch once on mount via testAPIs() — no polling
-
-    // Rotate currency pairs every 6 seconds
-    const currencyInterval = setInterval(() => {
-      setCurrentCurrencyPair(prev => {
-        const newIndex = (prev + 1) % currencyPairs.length;
-        testCurrencyAPI(currencyPairs[newIndex]);
-        return newIndex;
-      });
-    }, 6000);
-
-    return () => {
-      clearInterval(destinationInterval);
-      clearInterval(currencyInterval);
-    };
-  }, []);
 
   const testWeatherAPI = async (cityData = weatherCities[currentWeatherCity]) => {
     try {
@@ -296,6 +183,22 @@ export default function NewHomePage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    testAPIs();
+
+    const currencyInterval = setInterval(() => {
+      setCurrentCurrencyPair(prev => {
+        const newIndex = (prev + 1) % currencyPairs.length;
+        testCurrencyAPI(currencyPairs[newIndex]);
+        return newIndex;
+      });
+    }, 6000);
+
+    return () => {
+      clearInterval(currencyInterval);
+    };
+  }, []);
 
   const handlePromptSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -755,7 +658,7 @@ export default function NewHomePage() {
                 Need a starting point?
               </h2>
               <p className="text-lg text-gray-600 max-w-2xl">
-                Pick a destination — we&apos;ll pre-fill the form, not pretend the trip is already built.
+                Pick a destination — we&apos;ll pre-fill the planner with highlights, sample days, and vibe tags. Not a finished trip, just a real head start.
               </p>
             </div>
             <Link
@@ -766,40 +669,8 @@ export default function NewHomePage() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </div>
-          <TravelImageCarousel />
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {inspirationTrips.map((trip) => (
-              <div
-                key={trip.id}
-                className="group rounded-3xl overflow-hidden bg-white border border-gray-100 shadow-lg shadow-purple-100/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:border-purple-200"
-              >
-                <div className="h-44 overflow-hidden relative">
-                  <img
-                    src={trip.image}
-                    alt={trip.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                  <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-700">
-                    Editor pick
-                  </div>
-                </div>
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold text-gray-900">{trip.title}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{trip.subtitle}</p>
-                  <div className="mt-4 flex items-center justify-between">
-                    <Link
-                      href={`/plan-trip?destination=${encodeURIComponent(trip.destination)}`}
-                      className="inline-flex items-center text-sm font-semibold text-purple-700 hover:text-purple-800"
-                    >
-                      Get inspired
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                    <span className="text-xs text-gray-500">Pre-fills destination</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="pb-12">
+            <TravelImageCarousel />
           </div>
         </div>
       </section>
@@ -965,92 +836,6 @@ export default function NewHomePage() {
 
       {/* Decorative Break */}
       <div className="h-16 bg-purple-100"></div>
-
-      {/* Popular Destinations - real Unsplash photos */}
-      <section className="py-20 lg:py-32 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 lg:mb-24">
-            <h2 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-4 lg:mb-6">
-              Popular Destinations
-            </h2>
-            <p className="text-lg lg:text-xl xl:text-2xl text-gray-600 max-w-3xl lg:max-w-4xl mx-auto leading-relaxed">
-              Discover amazing places with our curated travel packages
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
-            {popularWithPhotos.map((destination, index) => {
-              const isFeatured = index === 0;
-              return (
-                <div
-                  key={destination.name}
-                  className="group cursor-pointer transform transition-all duration-300 hover:scale-[1.02] flex flex-col"
-                >
-                  <div className={`relative overflow-hidden rounded-3xl shadow-lg transition-all duration-300 bg-white ${
-                    isFeatured ? 'ring-4 ring-purple-500/50 shadow-2xl shadow-purple-500/30' : ''
-                  } group-hover:ring-4 group-hover:ring-purple-500/50 group-hover:shadow-2xl group-hover:shadow-purple-500/30`}>
-                    <div className="h-64 lg:h-72 relative">
-                      <img
-                        src={destination.image}
-                        alt={destination.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/30" />
-                    </div>
-                    <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-xs lg:text-sm font-semibold text-gray-800 shadow-lg">
-                      {destination.duration}
-                    </div>
-                    <div className={`absolute top-4 left-4 px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-xs lg:text-sm font-semibold text-white shadow-lg ${
-                      isFeatured ? 'bg-purple-600 ring-2 ring-purple-400/50' : 'bg-purple-600'
-                    } group-hover:bg-purple-500`}>
-                      {isFeatured ? '⭐ Featured' : 'Popular'}
-                    </div>
-                  </div>
-
-                  <div className={`bg-white rounded-3xl p-6 lg:p-8 shadow-lg transition-all duration-300 -mt-6 relative z-10 border-4 border-white flex flex-col flex-grow min-h-[260px] lg:min-h-[300px] ${
-                    isFeatured ? 'shadow-purple-500/20' : ''
-                  } group-hover:shadow-2xl group-hover:shadow-purple-500/20`}>
-                    <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3 lg:mb-4">{destination.name}</h3>
-                    <p className="text-2xl lg:text-3xl font-bold text-purple-600 mb-4 lg:mb-6">From ${destination.price.toLocaleString()}</p>
-                    <div className="flex gap-2 lg:gap-3 flex-wrap mb-4 lg:mb-6 flex-grow">
-                      {destination.tags.map((tag, tagIndex) => (
-                        <span
-                          key={tagIndex}
-                          className="px-3 lg:px-4 py-1.5 lg:py-2 bg-purple-100 text-purple-700 rounded-full text-xs lg:text-sm font-semibold"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-auto">
-                      <Link
-                        href={`/trip-details/${destination.name.toLowerCase().replace(/[, ]+/g, '-')}?destination=${encodeURIComponent(destination.name)}&startDate=${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}&endDate=${new Date(Date.now() + (30 + parseInt(destination.duration, 10)) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}&adults=2&kids=0&budgetAmount=${destination.price}`}
-                        className="inline-flex items-center justify-center w-full h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
-                      >
-                        Book This Trip
-                        <ArrowRight className="ml-2 h-5 w-5" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="text-center mt-12 lg:mt-16">
-            <Link
-              href="/plan-trip"
-              className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              Plan Your Trip
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Decorative Break */}
-      <div className="h-20 bg-cyan-100"></div>
 
       {/* Secondary CTAs Section - Enhanced with Golden Ratio */}
       <section className="py-20 lg:py-32 bg-gray-50">

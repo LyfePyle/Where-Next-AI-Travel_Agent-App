@@ -70,6 +70,7 @@
     "@tailwindcss/postcss": "^4.1.13",
     "@types/mapbox-gl": "^3.4.1",
     "@types/uuid": "^10.0.0",
+    "@vercel/analytics": "^2.0.1",
     "ai": "^6.0.6",
     "amadeus": "^11.0.0",
     "class-variance-authority": "^0.7.1",

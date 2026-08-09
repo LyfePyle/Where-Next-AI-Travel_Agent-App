@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
       { source: '/explore/:path*', destination: '/search/:path*', permanent: true },
       { source: '/ai-travel-agent', destination: '/plan-trip', permanent: true },
       { source: '/ai-travel-agent/:path*', destination: '/plan-trip', permanent: true },
+      { source: '/pricing', destination: '/plan-trip', permanent: true },
+      { source: '/pricing/:path*', destination: '/plan-trip', permanent: true },
+      { source: '/tour', destination: '/walking-tour', permanent: false },
     ];
   },
 };

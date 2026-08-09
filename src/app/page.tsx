@@ -860,10 +860,10 @@ export default function NewHomePage() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             <Link
-              href="/pricing"
+              href="/plan-trip"
               className="inline-flex items-center justify-center w-48 h-12 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
             >
-              See Pricing
+              Plan a Trip
             </Link>
           </div>
 

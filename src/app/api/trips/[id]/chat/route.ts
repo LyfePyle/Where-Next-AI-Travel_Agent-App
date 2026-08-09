@@ -8,7 +8,7 @@ import {
   validateStopsForSave,
 } from '@/lib/trip-stops';
 import { applyToolCalls, type ToolCallInput } from '@/lib/trip-mutations';
-import { buildTripChatSystemPrompt, TRIP_CHAT_TOOLS } from '@/lib/trip-chat-tools';
+import { buildTripBudgetContextForPrompt, buildTripChatSystemPrompt, TRIP_CHAT_TOOLS } from '@/lib/trip-chat-tools';
 import { generateStopPreview } from '@/lib/generate-stop-preview';
 import {
   isMultiStopBlob,
@@ -312,7 +312,13 @@ export async function POST(
 
   const chatHistory = history ?? [];
 
-  const systemPrompt = buildTripChatSystemPrompt(stops, tripStart, itinerarySummary);
+  const budgetContext = buildTripBudgetContextForPrompt(trip, stops);
+  const systemPrompt = buildTripChatSystemPrompt(
+    stops,
+    tripStart,
+    itinerarySummary,
+    budgetContext
+  );
   const chatMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...(chatHistory).map((m) => ({

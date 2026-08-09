@@ -327,16 +327,8 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                     onClick={() => addBlock(day)}
                     disabled={savingDayId === day.id || day.blocks.length >= 6}
                     title="Add block"
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 6,
-                      border: '1px solid #EAE3D5',
-                      background: '#fff',
-                      cursor: 'pointer',
-                      fontSize: 16,
-                      lineHeight: 1,
-                    }}
+                    aria-label="Add block"
+                    className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center rounded-md border border-[#EAE3D5] bg-white text-lg leading-none touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     +
                   </button>
@@ -388,16 +380,8 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                         onClick={() => removeBlock(day, block.id)}
                         disabled={savingDayId === day.id}
                         title="Remove block"
-                        style={{
-                          alignSelf: 'flex-start',
-                          width: 24,
-                          height: 24,
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#A8A29E',
-                          cursor: 'pointer',
-                          fontSize: 14,
-                        }}
+                        aria-label="Remove block"
+                        className="self-start min-w-[44px] min-h-[44px] flex items-center justify-center border-0 bg-transparent text-[#A8A29E] text-xl touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed hover:text-[#78716C]"
                       >
                         ×
                       </button>

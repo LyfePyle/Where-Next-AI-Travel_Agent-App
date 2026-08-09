@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { MessageCircle, X } from 'lucide-react';
 import type { ChatMessageRow } from '@/app/api/trips/[id]/chat/route';
 
 interface TripChatPanelProps {
@@ -14,6 +15,132 @@ interface TripChatPanelProps {
 function isUndoExpired(expiresAt: string | null | undefined): boolean {
   if (!expiresAt) return true;
   return new Date(expiresAt).getTime() <= Date.now();
+}
+
+function ChatPanelBody({
+  messages,
+  sending,
+  error,
+  input,
+  setInput,
+  handleKeyDown,
+  handleSend,
+  handleUndo,
+  undoing,
+  undoAvailable,
+  undoExpiresAt,
+  bottomRef,
+  listRef,
+}: {
+  messages: ChatMessageRow[];
+  sending: boolean;
+  error: string | null;
+  input: string;
+  setInput: (v: string) => void;
+  handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  handleSend: () => void;
+  handleUndo: (messageId: string) => void;
+  undoing: boolean;
+  undoAvailable: boolean;
+  undoExpiresAt: string | null;
+  bottomRef: React.RefObject<HTMLDivElement | null>;
+  listRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <>
+      <div className="px-4 py-3.5 border-b border-[#EAE3D5] bg-[#FAFAF9] shrink-0">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-[#78716C] mb-1">
+          Trip assistant
+        </div>
+        <div className="text-sm font-medium text-[#1C1917]">
+          Edit your itinerary in plain English
+        </div>
+      </div>
+
+      <div
+        ref={listRef}
+        className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5 min-h-[200px] max-h-[min(420px,calc(100vh-16rem))] lg:max-h-[calc(100vh-220px)]"
+      >
+        {messages.length === 0 && (
+          <p className="text-[13px] text-[#78716C] leading-snug m-0">
+            Try: &ldquo;Give Bangkok 2 more nights&rdquo; or &ldquo;Swap Chiang Mai for Chiang
+            Rai&rdquo;
+          </p>
+        )}
+
+        {messages.map((msg) => {
+          const isUser = msg.role === 'user';
+          const canUndo =
+            !isUser &&
+            msg.metadata?.undo_available &&
+            !isUndoExpired(msg.metadata?.undo_expires_at ?? undoExpiresAt) &&
+            undoAvailable;
+
+          return (
+            <div
+              key={msg.id}
+              className={`max-w-[92%] ${isUser ? 'self-end' : 'self-start'}`}
+            >
+              <div
+                className={`px-3 py-2.5 text-[13px] leading-snug ${
+                  isUser
+                    ? 'rounded-[14px_14px_4px_14px] bg-[#1C1917] text-white'
+                    : 'rounded-[14px_14px_14px_4px] bg-[#F5F0E8] text-[#1C1917]'
+                }`}
+              >
+                {msg.content}
+              </div>
+              {canUndo && (
+                <button
+                  type="button"
+                  onClick={() => handleUndo(msg.id)}
+                  disabled={undoing}
+                  className="mt-1.5 font-mono text-[10px] uppercase tracking-wide px-2.5 py-1 rounded-md border border-[#EAE3D5] bg-white text-[#78716C] min-h-[44px] min-w-[44px] touch-manipulation disabled:cursor-not-allowed"
+                >
+                  {undoing ? 'Undoing…' : 'Undo'}
+                </button>
+              )}
+              {msg.metadata?.undo_available &&
+                isUndoExpired(msg.metadata?.undo_expires_at) && (
+                  <div className="mt-1 text-[10px] text-[#A8A29E] font-mono">Undo expired</div>
+                )}
+            </div>
+          );
+        })}
+
+        {sending && (
+          <div className="text-xs text-[#78716C] italic">Thinking…</div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {error && (
+        <div className="mx-3 mb-2 px-2.5 py-2 text-xs text-[#B91C1C] bg-[#FEF2F2] rounded-lg border border-[#FECACA]">
+          {error}
+        </div>
+      )}
+
+      <div className="px-3.5 py-3 border-t border-[#EAE3D5] bg-[#FAFAF9] shrink-0">
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Change nights, swap cities, add a stop…"
+          rows={2}
+          disabled={sending}
+          className="w-full resize-none px-3 py-2.5 rounded-[10px] border border-[#EAE3D5] text-[13px] outline-none mb-2 box-border"
+        />
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={sending || !input.trim()}
+          className="w-full py-2.5 min-h-[44px] rounded-[10px] border-0 font-mono text-[11px] uppercase tracking-wide touch-manipulation disabled:cursor-not-allowed disabled:bg-[#D6D3D1] bg-[#D97706] text-white enabled:hover:bg-[#B45309]"
+        >
+          {sending ? 'Sending…' : 'Send'}
+        </button>
+      </div>
+    </>
+  );
 }
 
 export default function TripChatPanel({
@@ -30,12 +157,24 @@ export default function TripChatPanel({
   const [undoAvailable, setUndoAvailable] = useState(initialUndoAvailable);
   const [undoExpiresAt, setUndoExpiresAt] = useState(initialUndoExpiresAt);
   const [error, setError] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sending]);
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
 
   const refreshChat = useCallback(async () => {
     try {
@@ -73,7 +212,13 @@ export default function TripChatPanel({
         body: JSON.stringify({ message: text }),
       });
 
-      let data: { error?: string; message?: ChatMessageRow; applied?: boolean; undoAvailable?: boolean; undoExpiresAt?: string } = {};
+      let data: {
+        error?: string;
+        message?: ChatMessageRow;
+        applied?: boolean;
+        undoAvailable?: boolean;
+        undoExpiresAt?: string;
+      } = {};
       try {
         data = await res.json();
       } catch {
@@ -95,7 +240,7 @@ export default function TripChatPanel({
       if (data.message) {
         setMessages((prev) => {
           const withoutTemp = prev.filter((m) => m.id !== optimisticUser.id);
-          return [...withoutTemp, optimisticUser, data.message];
+          return [...withoutTemp, optimisticUser, data.message!];
         });
       }
 
@@ -112,42 +257,45 @@ export default function TripChatPanel({
     }
   }, [input, sending, tripId, router]);
 
-  const handleUndo = useCallback(async (messageId: string) => {
-    if (undoing || !undoAvailable || isUndoExpired(undoExpiresAt)) return;
+  const handleUndo = useCallback(
+    async (messageId: string) => {
+      if (undoing || !undoAvailable || isUndoExpired(undoExpiresAt)) return;
 
-    setUndoing(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/trips/${tripId}/chat/undo`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Could not undo');
-        return;
+      setUndoing(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/trips/${tripId}/chat/undo`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'Could not undo');
+          return;
+        }
+
+        setUndoAvailable(false);
+        setUndoExpiresAt(null);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  metadata: { ...m.metadata, undo_available: false },
+                }
+              : m
+          )
+        );
+
+        if (data.trip) {
+          await refreshChat();
+          router.refresh();
+        }
+      } catch {
+        setError('Network error during undo');
+      } finally {
+        setUndoing(false);
       }
-
-      setUndoAvailable(false);
-      setUndoExpiresAt(null);
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId
-            ? {
-                ...m,
-                metadata: { ...m.metadata, undo_available: false },
-              }
-            : m
-        )
-      );
-
-      if (data.trip) {
-        await refreshChat();
-        router.refresh();
-      }
-    } catch {
-      setError('Network error during undo');
-    } finally {
-      setUndoing(false);
-    }
-  }, [undoing, undoAvailable, undoExpiresAt, tripId, router, refreshChat]);
+    },
+    [undoing, undoAvailable, undoExpiresAt, tripId, router, refreshChat]
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -156,205 +304,69 @@ export default function TripChatPanel({
     }
   };
 
+  const bodyProps = {
+    messages,
+    sending,
+    error,
+    input,
+    setInput,
+    handleKeyDown,
+    handleSend,
+    handleUndo,
+    undoing,
+    undoAvailable,
+    undoExpiresAt,
+    bottomRef,
+    listRef,
+  };
+
   return (
-    <aside
-      style={{
-        width: 360,
-        flexShrink: 0,
-        position: 'sticky',
-        top: 24,
-        alignSelf: 'flex-start',
-        maxHeight: 'calc(100vh - 48px)',
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#fff',
-        border: '1px solid #EAE3D5',
-        borderRadius: 16,
-        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        style={{
-          padding: '14px 16px',
-          borderBottom: '1px solid #EAE3D5',
-          background: '#FAFAF9',
-        }}
+    <>
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed bottom-6 left-6 z-30 flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-full bg-[#D97706] text-white text-sm font-semibold shadow-lg touch-manipulation"
+        aria-label="Open trip assistant chat"
       >
+        <MessageCircle className="h-5 w-5" />
+        Chat
+      </button>
+
+      {mobileOpen && (
         <div
-          style={{
-            fontFamily: 'monospace',
-            fontSize: 10,
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            color: '#78716C',
-            marginBottom: 4,
-          }}
+          className="lg:hidden fixed inset-0 z-50 flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Trip assistant"
         >
-          Trip assistant
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 500, color: '#1C1917' }}>
-          Edit your itinerary in plain English
-        </div>
-      </div>
-
-      <div
-        ref={listRef}
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '12px 14px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-          minHeight: 280,
-          maxHeight: 'calc(100vh - 220px)',
-        }}
-      >
-        {messages.length === 0 && (
-          <p style={{ fontSize: 13, color: '#78716C', lineHeight: 1.5, margin: 0 }}>
-            Try: &ldquo;Give Bangkok 2 more nights&rdquo; or &ldquo;Swap Chiang Mai for Chiang
-            Rai&rdquo;
-          </p>
-        )}
-
-        {messages.map((msg) => {
-          const isUser = msg.role === 'user';
-          const canUndo =
-            !isUser &&
-            msg.metadata?.undo_available &&
-            !isUndoExpired(msg.metadata?.undo_expires_at ?? undoExpiresAt) &&
-            undoAvailable;
-
-          return (
-            <div
-              key={msg.id}
-              style={{
-                alignSelf: isUser ? 'flex-end' : 'flex-start',
-                maxWidth: '92%',
-              }}
-            >
-              <div
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                  background: isUser ? '#1C1917' : '#F5F0E8',
-                  color: isUser ? '#fff' : '#1C1917',
-                  fontSize: 13,
-                  lineHeight: 1.45,
-                }}
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close chat"
+          />
+          <div className="relative mt-14 flex flex-col flex-1 min-h-0 bg-white border-t border-[#EAE3D5] shadow-2xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#EAE3D5] shrink-0">
+              <span className="text-sm font-semibold text-[#1C1917]">Trip assistant</span>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[#78716C] hover:bg-[#F5F0E8] touch-manipulation"
+                aria-label="Close chat panel"
               >
-                {msg.content}
-              </div>
-              {canUndo && (
-                <button
-                  type="button"
-                  onClick={() => handleUndo(msg.id)}
-                  disabled={undoing}
-                  style={{
-                    marginTop: 6,
-                    fontFamily: 'monospace',
-                    fontSize: 10,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    border: '1px solid #EAE3D5',
-                    background: '#fff',
-                    color: '#78716C',
-                    cursor: undoing ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {undoing ? 'Undoing…' : 'Undo'}
-                </button>
-              )}
-              {msg.metadata?.undo_available &&
-                isUndoExpired(msg.metadata?.undo_expires_at) && (
-                  <div
-                    style={{
-                      marginTop: 4,
-                      fontSize: 10,
-                      color: '#A8A29E',
-                      fontFamily: 'monospace',
-                    }}
-                  >
-                    Undo expired
-                  </div>
-                )}
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          );
-        })}
-
-        {sending && (
-          <div style={{ fontSize: 12, color: '#78716C', fontStyle: 'italic' }}>Thinking…</div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {error && (
-        <div
-          style={{
-            margin: '0 12px 8px',
-            padding: '8px 10px',
-            fontSize: 12,
-            color: '#B91C1C',
-            background: '#FEF2F2',
-            borderRadius: 8,
-            border: '1px solid #FECACA',
-          }}
-        >
-          {error}
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <ChatPanelBody {...bodyProps} />
+            </div>
+          </div>
         </div>
       )}
 
-      <div
-        style={{
-          padding: '12px 14px',
-          borderTop: '1px solid #EAE3D5',
-          background: '#FAFAF9',
-        }}
-      >
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Change nights, swap cities, add a stop…"
-          rows={2}
-          disabled={sending}
-          style={{
-            width: '100%',
-            resize: 'none',
-            padding: '10px 12px',
-            borderRadius: 10,
-            border: '1px solid #EAE3D5',
-            fontSize: 13,
-            fontFamily: 'inherit',
-            outline: 'none',
-            marginBottom: 8,
-            boxSizing: 'border-box',
-          }}
-        />
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={sending || !input.trim()}
-          style={{
-            width: '100%',
-            padding: '10px 14px',
-            borderRadius: 10,
-            border: 'none',
-            background: sending || !input.trim() ? '#D6D3D1' : '#D97706',
-            color: '#fff',
-            fontFamily: 'monospace',
-            fontSize: 11,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            cursor: sending || !input.trim() ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {sending ? 'Sending…' : 'Send'}
-        </button>
-      </div>
-    </aside>
+      <aside className="hidden lg:flex w-full max-w-[360px] shrink-0 sticky top-20 self-start max-h-[calc(100vh-5.5rem)] flex-col bg-white border border-[#EAE3D5] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
+        <ChatPanelBody {...bodyProps} />
+      </aside>
+    </>
   );
 }

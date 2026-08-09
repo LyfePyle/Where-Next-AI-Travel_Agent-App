@@ -369,10 +369,10 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
 
   return (
     <div
+      className="min-h-screen overflow-x-clip"
       style={{
         fontFamily: "Georgia, 'Times New Roman', serif",
         background: '#F5F0E8',
-        minHeight: '100vh',
         color: '#1C1917',
       }}
     >
@@ -612,17 +612,8 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
         </div>
       )}
 
-      <div style={{ background: '#fff', borderBottom: '1px solid #EAE3D5' }}>
-        <div
-          style={{
-            maxWidth: 760,
-            margin: '0 auto',
-            display: 'flex',
-            gap: 8,
-            padding: '10px 12px',
-            overflowX: 'auto',
-          }}
-        >
+      <div className="sticky top-14 z-30 bg-white border-b border-[#EAE3D5]">
+        <div className="max-w-[760px] mx-auto flex gap-2 px-3 py-2.5 overflow-x-auto scrollbar-thin">
           {TABS.map((tab) => {
             const isTabActive = activeTab === tab.id;
             return (
@@ -631,24 +622,11 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 aria-current={isTabActive ? 'page' : undefined}
-                style={{
-                  padding: '10px 18px',
-                  fontSize: 14,
-                  border: 'none',
-                  borderRadius: 10,
-                  background: isTabActive ? '#1C1917' : 'transparent',
-                  cursor: 'pointer',
-                  color: isTabActive ? '#fff' : '#78716C',
-                  fontWeight: isTabActive ? 700 : 500,
-                  whiteSpace: 'nowrap',
-                  transition: 'background 0.15s, color 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isTabActive) e.currentTarget.style.background = '#F5F1E8';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isTabActive) e.currentTarget.style.background = 'transparent';
-                }}
+                className={`shrink-0 min-h-[44px] px-4 py-2.5 text-sm border-0 rounded-[10px] whitespace-nowrap transition-colors touch-manipulation ${
+                  isTabActive
+                    ? 'bg-[#1C1917] text-white font-bold'
+                    : 'bg-transparent text-[#78716C] font-medium hover:bg-[#F5F1E8]'
+                }`}
               >
                 {tab.label}
               </button>
@@ -657,8 +635,8 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
         </div>
       </div>
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '2rem 1.5rem', display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 0, maxWidth: 760 }}>
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8 w-full min-w-0 box-border flex flex-col lg:flex-row gap-6 items-start overflow-x-clip">
+        <div className="flex-1 min-w-0 w-full max-w-[760px]">
         {activeTab === 'overview' && (
           <>
             {isConfirmed && booking && (

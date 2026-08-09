@@ -32,28 +32,37 @@ export function useWalkingTour() {
   const [state, setState] = useState<WalkingTourState>(initialState);
 
   const generate = useCallback(
-    async (city: string, country: string, preferences?: string, tripId?: string) => {
+    async (
+      city: string,
+      country: string,
+      preferences?: string,
+      tripId?: string,
+      options?: { requireAuth?: boolean }
+    ) => {
+      const requireAuth = options?.requireAuth !== false;
       setState((s) => ({ ...s, loading: true, error: null, stops: [], title: null, activeIndex: 0 }));
 
       try {
-        const supabase = createClient();
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-        if (!accessToken) {
-          setState((s) => ({ ...s, loading: false, error: 'Please sign in to generate a tour' }));
-          return;
-        }
-
         const body: Record<string, unknown> = { city, country };
         if (preferences) body.preferences = preferences;
         if (tripId) body.trip_id = tripId;
 
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+        if (requireAuth) {
+          const supabase = createClient();
+          const { data: sessionData } = await supabase.auth.getSession();
+          const accessToken = sessionData?.session?.access_token;
+          if (!accessToken) {
+            setState((s) => ({ ...s, loading: false, error: 'Please sign in to generate a tour' }));
+            return;
+          }
+          headers.Authorization = `Bearer ${accessToken}`;
+        }
+
         const res = await fetch('/api/tour/generate', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
+          headers,
           body: JSON.stringify(body),
         });
 

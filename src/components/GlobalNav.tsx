@@ -90,7 +90,7 @@ const NAV_LINKS: NavLink[] = [
   { href: '/search',    label: 'Search',      icon: <IconSearch /> },
   { href: '/plan-trip', label: 'Plan Trip',   icon: <IconPlan /> },
   { href: '/saved',     label: 'Saved Trips', icon: <IconSaved />,    authRequired: true },
-  { href: '/tour',      label: 'Walking Tour', icon: <IconTour />,   authRequired: true },
+  { href: '/walking-tour', label: 'Walking Tour', icon: <IconTour /> },
   { href: '/dashboard', label: 'Dashboard',   icon: <IconDashboard />, authRequired: true },
   { href: '/profile',   label: 'Account',     icon: <IconAccount />,  authRequired: true },
 ];

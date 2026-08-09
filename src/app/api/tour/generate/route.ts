@@ -26,9 +26,8 @@ export type TourGenerateResponse = {
 
 /**
  * POST /api/tour/generate
- * Requires session (Authorization: Bearer <access_token>).
- * Body: { city, country, preferences?, trip_id? }
- * Returns 6–8 stops with coordinates. If trip_id provided, saves tour to Supabase.
+ * Auth optional. Body: { city, country, preferences?, trip_id? }
+ * Returns 6–8 stops with coordinates. Saves to Supabase only when trip_id + signed-in user.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -43,16 +42,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'OpenAI not configured' }, { status: 500 });
     }
 
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: userData } = await supabase.auth.getUser(authHeader.slice(7));
-    const userId = userData?.user?.id;
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const authHeader = req.headers.get('authorization');
+    let userId: string | null = null;
+
+    if (authHeader?.startsWith('Bearer ')) {
+      const { data: userData } = await supabase.auth.getUser(authHeader.slice(7));
+      userId = userData?.user?.id ?? null;
     }
 
     const body = await req.json();
@@ -110,7 +107,7 @@ Output only valid JSON, no markdown or extra text.`;
     const stops = Array.isArray(parsed.stops) ? parsed.stops : [];
     const title = typeof parsed.title === 'string' ? parsed.title : `Walking tour: ${city}`;
 
-    if (trip_id) {
+    if (trip_id && userId) {
       const tourId = `tour_${Date.now()}`;
       const { error } = await supabase.from('walking_tours').insert({
         id: tourId,

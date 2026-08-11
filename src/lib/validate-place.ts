@@ -2,7 +2,9 @@
  * Server-side place validation: OpenWeather geocoding, Nominatim fallback.
  */
 
-import { resolvePlace } from '@/lib/geocode-place';
+import { parseDestinationParts } from '@/lib/parse-destination';
+import { disambiguatedCountry, normalizePlaceKey } from '@/lib/geocode-disambiguation';
+import { searchPlaceCandidates, type PlaceCandidate, resolvePlace } from '@/lib/geocode-place';
 
 export interface ValidatedPlace {
   place: string;
@@ -10,10 +12,66 @@ export interface ValidatedPlace {
   countryCode?: string;
 }
 
+export type ValidatePlaceResult =
+  | { ok: true; validated: ValidatedPlace }
+  | { ok: false; error: string; ambiguous?: false; candidates?: undefined }
+  | { ok: false; error: string; ambiguous: true; candidates: ValidatedPlace[] };
+
+const CONFIDENT_SCORE_GAP = 80;
+const CLOSE_SCORE_MARGIN = 40;
+
+function toValidated(candidate: PlaceCandidate): ValidatedPlace {
+  return {
+    place: candidate.name,
+    country: candidate.country,
+    countryCode: candidate.countryCode,
+  };
+}
+
+function countryKeys(candidates: PlaceCandidate[]): Set<string> {
+  const keys = new Set<string>();
+  for (const c of candidates) {
+    const key = (c.countryCode ?? c.country).trim().toLowerCase();
+    if (key) keys.add(key.slice(0, 2));
+  }
+  return keys;
+}
+
+function pickConfidentMatch(
+  city: string,
+  candidates: PlaceCandidate[]
+): { type: 'single'; candidate: PlaceCandidate } | { type: 'ambiguous'; candidates: PlaceCandidate[] } | { type: 'none' } {
+  if (candidates.length === 0) return { type: 'none' };
+
+  const sorted = [...candidates].sort((a, b) => b.score - a.score);
+  const forcedCountry = disambiguatedCountry(city);
+  if (forcedCountry) {
+    const forced = sorted.find(
+      (c) => c.country.toLowerCase() === forcedCountry.toLowerCase()
+    );
+    if (forced) return { type: 'single', candidate: forced };
+  }
+
+  const top = sorted[0];
+  const second = sorted[1];
+  if (!second) return { type: 'single', candidate: top };
+
+  if (top.score - second.score >= CONFIDENT_SCORE_GAP) {
+    return { type: 'single', candidate: top };
+  }
+
+  const close = sorted.filter((c) => c.score >= top.score - CLOSE_SCORE_MARGIN);
+  if (countryKeys(close).size <= 1) {
+    return { type: 'single', candidate: top };
+  }
+
+  return { type: 'ambiguous', candidates: close.slice(0, 5) };
+}
+
 export async function validatePlace(
   place: string,
   country: string
-): Promise<{ ok: true; validated: ValidatedPlace } | { ok: false; error: string }> {
+): Promise<ValidatePlaceResult> {
   const city = place.trim();
   const countryName = country.trim();
   if (!city || !countryName) {
@@ -35,5 +93,51 @@ export async function validatePlace(
       country: resolved.country || countryName,
       countryCode: resolved.countryCode,
     },
+  };
+}
+
+/** Resolve a free-text destination ("Berlin" or "Paris, France") via geocoding. */
+export async function validateDestinationInput(
+  destination: string
+): Promise<ValidatePlaceResult> {
+  const trimmed = destination.trim();
+  if (!trimmed) {
+    return { ok: false, error: 'Enter a destination.' };
+  }
+
+  const { city, country } = parseDestinationParts(trimmed);
+  if (!city) {
+    return { ok: false, error: 'Enter a destination.' };
+  }
+
+  if (country) {
+    return validatePlace(city, country);
+  }
+
+  const candidates = await searchPlaceCandidates(city);
+  const relevant = candidates.filter(
+    (c) =>
+      normalizePlaceKey(c.name) === normalizePlaceKey(city) ||
+      normalizePlaceKey(c.name).includes(normalizePlaceKey(city)) ||
+      normalizePlaceKey(city).includes(normalizePlaceKey(c.name))
+  );
+  const pool = relevant.length > 0 ? relevant : candidates;
+
+  const picked = pickConfidentMatch(city, pool);
+  if (picked.type === 'single') {
+    return { ok: true, validated: toValidated(picked.candidate) };
+  }
+  if (picked.type === 'ambiguous') {
+    return {
+      ok: false,
+      ambiguous: true,
+      candidates: picked.candidates.map(toValidated),
+      error: `Which ${city} did you mean? Pick one or add a country (e.g. "${city}, France").`,
+    };
+  }
+
+  return {
+    ok: false,
+    error: `Could not find "${city}" — try adding a country (e.g. "${city}, Germany").`,
   };
 }

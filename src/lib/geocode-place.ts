@@ -18,6 +18,27 @@ export interface GeocodeResult {
   source: 'openweather' | 'nominatim';
 }
 
+export interface PlaceCandidate extends GeocodeResult {
+  score: number;
+}
+
+const regionDisplay =
+  typeof Intl !== 'undefined' ? new Intl.DisplayNames(['en'], { type: 'region' }) : null;
+
+function displayCountry(country: string, countryCode?: string): string {
+  if (country.trim().length > 2) return country.trim();
+  const code = (countryCode ?? (country.length === 2 ? country : '')).toUpperCase();
+  if (code && regionDisplay) {
+    return regionDisplay.of(code) ?? country;
+  }
+  return country;
+}
+
+function candidateKey(name: string, country: string, countryCode?: string): string {
+  const code = (countryCode ?? country).toLowerCase();
+  return `${normalizePlaceKey(name)}|${code.slice(0, 2)}`;
+}
+
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org/search';
 const NOMINATIM_USER_AGENT = 'WhereNext-Travel-App/1.0';
 
@@ -260,4 +281,131 @@ export async function resolvePlace(
   const ow = await geocodeOpenWeather(place, resolvedCountry);
   if (ow) return ow;
   return geocodeNominatim(place, resolvedCountry);
+}
+
+async function searchOpenWeatherCandidates(
+  place: string,
+  country?: string
+): Promise<PlaceCandidate[]> {
+  const city = place.trim();
+  if (!city) return [];
+
+  const apiKey = process.env.OPENWEATHER_API_KEY;
+  if (!apiKey) return [];
+
+  const resolvedCountry = country?.trim() || disambiguatedCountry(city);
+  const query = resolvedCountry ? `${city},${resolvedCountry}` : city;
+  const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${apiKey}`;
+
+  try {
+    const res = await fetch(url, { next: { revalidate: 86400 } });
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as Array<{
+      name: string;
+      country: string;
+      lat: number;
+      lon: number;
+    }>;
+    if (!Array.isArray(data) || data.length === 0) return [];
+
+    return data.map((row) => {
+      const countryCode = row.country.length === 2 ? row.country : undefined;
+      const countryName = displayCountry(
+        resolvedCountry || row.country,
+        countryCode
+      );
+      return {
+        name: row.name,
+        country: countryName,
+        countryCode,
+        lat: row.lat,
+        lon: row.lon,
+        source: 'openweather' as const,
+        score: openWeatherScore(row, city, resolvedCountry),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function searchNominatimCandidates(
+  place: string,
+  country?: string
+): Promise<PlaceCandidate[]> {
+  const city = place.trim();
+  if (!city) return [];
+
+  const resolvedCountry = country?.trim() || disambiguatedCountry(city);
+  const query = resolvedCountry ? `${city}, ${resolvedCountry}` : city;
+  const url = `${NOMINATIM_BASE}?q=${encodeURIComponent(query)}&format=json&limit=8&addressdetails=1`;
+
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': NOMINATIM_USER_AGENT },
+      next: { revalidate: 86400 },
+    });
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as NominatimRow[];
+    if (!Array.isArray(data) || data.length === 0) return [];
+
+    const countryTrimmed = resolvedCountry;
+    const filtered =
+      countryTrimmed && isLikelyCountryName(countryTrimmed)
+        ? data.filter((row) =>
+            countryMatches(countryTrimmed, row.address?.country, row.address?.country_code)
+          )
+        : data;
+
+    const candidates = filtered.length > 0 ? filtered : data;
+    return candidates.map((row) => {
+      const addr = row.address;
+      const name = nameFromNominatim(row, city);
+      const countryName = displayCountry(
+        addr?.country ?? countryTrimmed ?? '',
+        addr?.country_code?.toUpperCase()
+      );
+      return {
+        name,
+        country: countryName,
+        countryCode: addr?.country_code?.toUpperCase(),
+        lat: parseFloat(row.lat),
+        lon: parseFloat(row.lon),
+        source: 'nominatim' as const,
+        score: nominatimScore(row, city, countryTrimmed),
+      };
+    });
+  } catch (err) {
+    console.warn(`searchNominatimCandidates failed for "${query}":`, err);
+    return [];
+  }
+}
+
+/** Search geocoders and merge ranked place candidates (for bare-city disambiguation). */
+export async function searchPlaceCandidates(
+  place: string,
+  country?: string
+): Promise<PlaceCandidate[]> {
+  const city = place.trim();
+  if (!city) return [];
+
+  const resolvedCountry = country?.trim() || disambiguatedCountry(city);
+  const [ow, nom] = await Promise.all([
+    searchOpenWeatherCandidates(city, resolvedCountry),
+    searchNominatimCandidates(city, resolvedCountry),
+  ]);
+
+  const merged = new Map<string, PlaceCandidate>();
+  for (const candidate of [...ow, ...nom]) {
+    if (candidate.score < 40) continue;
+    const key = candidateKey(candidate.name, candidate.country, candidate.countryCode);
+    const existing = merged.get(key);
+    if (!existing || candidate.score > existing.score) {
+      merged.set(key, candidate);
+    }
+  }
+
+  return [...merged.values()].sort((a, b) => b.score - a.score);
 }

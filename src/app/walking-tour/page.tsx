@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useMemo, Suspense, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { parseDestinationParts } from '@/lib/parse-destination';
 import {
   useWalkingTour,
   TOUR_STOP_CATEGORIES,
@@ -60,6 +59,9 @@ function WalkingTourPageInner() {
   const [country, setCountry] = useState('');
   const [preferences, setPreferences] = useState('');
   const [validateError, setValidateError] = useState<string | null>(null);
+  const [placeCandidates, setPlaceCandidates] = useState<
+    Array<{ place: string; country: string }>
+  >([]);
   const [categoryFilter, setCategoryFilter] = useState<TourStopCategory | null>(null);
 
   const visibleStops = useMemo(() => {
@@ -129,41 +131,56 @@ function WalkingTourPageInner() {
     [goNextVisible, goPrevVisible]
   );
 
+  const generateTourForPlace = useCallback(
+    async (validatedCity: string, validatedCountry: string) => {
+      setCity(validatedCity);
+      setCountry(validatedCountry);
+      setPlaceCandidates([]);
+      await generate(validatedCity, validatedCountry, preferences.trim() || undefined, undefined, {
+        requireAuth: false,
+      });
+    },
+    [generate, preferences]
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidateError(null);
+    setPlaceCandidates([]);
 
     const trimmed = destination.trim();
     if (!trimmed) return;
-
-    const parsed = parseDestinationParts(trimmed);
-    if (!parsed.city || !parsed.country) {
-      setValidateError('Enter city and country, e.g. "Paris, France".');
-      return;
-    }
 
     try {
       const res = await fetch('/api/places/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ place: parsed.city, country: parsed.country }),
+        body: JSON.stringify({ destination: trimmed }),
       });
       const data = await res.json();
+      if (res.status === 409 && data.ambiguous && Array.isArray(data.candidates)) {
+        setPlaceCandidates(data.candidates);
+        setValidateError(
+          data.error || 'Multiple places match — pick one or add a country to be specific.'
+        );
+        return;
+      }
       if (!res.ok || !data.ok) {
         setValidateError(data.error || 'Could not find that place — try being more specific.');
         return;
       }
 
-      const validatedCity = data.validated.place;
-      const validatedCountry = data.validated.country;
-      setCity(validatedCity);
-      setCountry(validatedCountry);
-      await generate(validatedCity, validatedCountry, preferences.trim() || undefined, undefined, {
-        requireAuth: false,
-      });
+      await generateTourForPlace(data.validated.place, data.validated.country);
     } catch {
       setValidateError('Could not validate place — try again.');
     }
+  };
+
+  const handlePickCandidate = async (place: string, country: string) => {
+    setValidateError(null);
+    setPlaceCandidates([]);
+    setDestination(`${place}, ${country}`);
+    await generateTourForPlace(place, country);
   };
 
   const handleReset = () => {
@@ -172,6 +189,7 @@ function WalkingTourPageInner() {
     setCountry('');
     setValidateError(null);
     setCategoryFilter(null);
+    setPlaceCandidates([]);
   };
 
   if (hasStops && !loading) {
@@ -412,12 +430,18 @@ function WalkingTourPageInner() {
               id="destination"
               type="text"
               value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              placeholder="e.g. Paris, France"
+              onChange={(e) => {
+                setDestination(e.target.value);
+                setPlaceCandidates([]);
+                setValidateError(null);
+              }}
+              placeholder="e.g. Berlin or Paris, France"
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
-            <p className="text-xs text-gray-400 mt-1">City and country help us find the right place.</p>
+            <p className="text-xs text-gray-400 mt-1">
+              City name is enough for well-known places — add a country when needed.
+            </p>
           </div>
           <div>
             <label htmlFor="preferences" className="block text-sm font-medium text-gray-700 mb-1">
@@ -434,6 +458,25 @@ function WalkingTourPageInner() {
           </div>
           {(validateError || error) && (
             <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{validateError || error}</p>
+          )}
+          {placeCandidates.length > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+                Did you mean
+              </p>
+              <div className="flex flex-col gap-2">
+                {placeCandidates.map((candidate) => (
+                  <button
+                    key={`${candidate.place}-${candidate.country}`}
+                    type="button"
+                    onClick={() => handlePickCandidate(candidate.place, candidate.country)}
+                    className="w-full text-left px-3 py-2 rounded-lg border border-amber-200 bg-white hover:bg-amber-50 text-sm font-medium text-gray-900"
+                  >
+                    {candidate.place}, {candidate.country}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
           <button
             type="submit"

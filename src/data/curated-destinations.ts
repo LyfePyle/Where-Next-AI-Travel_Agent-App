@@ -61,7 +61,7 @@ export const CURATED_DESTINATIONS: CuratedDestination[] = [
     id: 'santorini',
     destination: 'Santorini, Greece',
     country: 'Greece',
-    url: 'https://images.unsplash.com/photo-1570077186670-a43a3404a077?w=1200&h=600&fit=crop',
+    url: 'https://images.unsplash.com/photo-1660506392556-e51e04fc8cac?w=1200&h=600&fit=crop',
     alt: 'White buildings and blue domes in Santorini',
     highlights: ['Oia sunsets', 'Caldera views', 'Akrotiri ruins'],
     itineraryTeaser: [
@@ -75,7 +75,7 @@ export const CURATED_DESTINATIONS: CuratedDestination[] = [
     id: 'iceland',
     destination: 'Iceland',
     country: 'Iceland',
-    url: 'https://images.unsplash.com/photo-1531168556467-80abce272c35?w=1200&h=600&fit=crop',
+    url: 'https://images.unsplash.com/photo-1635705896256-0651a510ebe8?w=1200&h=600&fit=crop',
     alt: 'Northern lights over an Icelandic landscape',
     highlights: ['Golden Circle', 'Blue Lagoon', 'Waterfall hikes'],
     itineraryTeaser: [

@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { parseDestinationToStops } from '@/lib/stop-parser';
 import { serializeStopsForDb, stopSetFingerprint, fingerprintFromStopsJson } from '@/lib/trip-stops';
-import { buildMultiStopSuggestionsBlob, isStoredSuggestionsEmpty } from '@/lib/trip-preview';
+import { buildMultiStopSuggestionsBlobAsync, isStoredSuggestionsEmpty } from '@/lib/trip-preview';
 
 interface SavedTrip {
   id: string;
@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
 
     // Persist AI preview content (including per-stop previews for multi-city trips)
     // so trip hub / trip-details render fully when reopened by ID.
-    const suggestionsBlob = buildMultiStopSuggestionsBlob(
+    const suggestionsBlob = await buildMultiStopSuggestionsBlobAsync(
       body.suggestion ?? {},
       stops,
       body

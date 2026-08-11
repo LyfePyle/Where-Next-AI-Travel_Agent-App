@@ -9,7 +9,12 @@ import {
 } from '@/lib/suggestion-drilldown';
 import type { CompareSummary } from '@/lib/compare-summary';
 import type { TripSuggestion } from '@/hooks/useStreamingSuggestions';
+import {
+  buildMultiStopSelectionPreview,
+  type MultiStopSelectionPreview as PreviewData,
+} from '@/lib/suggestion-drilldown';
 import SuggestionCityCard from '@/components/suggestions/SuggestionCityCard';
+import MultiStopSelectionPreview from '@/components/suggestions/MultiStopSelectionPreview';
 
 interface SuggestionsDrillDownProps {
   mode: DrillDownMode;
@@ -21,6 +26,9 @@ interface SuggestionsDrillDownProps {
   onToggleCity: (cityId: string) => void;
   onSaveSelected: () => void;
   isSavingSelection: boolean;
+  tripStart: string;
+  tripEnd: string;
+  travelerCount: number;
 }
 
 function SaveSelectedBar({
@@ -52,6 +60,17 @@ function SaveSelectedBar({
   );
 }
 
+function SelectionPreviewBlock({
+  preview,
+  travelerCount,
+}: {
+  preview: PreviewData | null;
+  travelerCount: number;
+}) {
+  if (!preview) return null;
+  return <MultiStopSelectionPreview preview={preview} travelerCount={travelerCount} />;
+}
+
 export default function SuggestionsDrillDown({
   mode,
   countryGroups,
@@ -62,10 +81,33 @@ export default function SuggestionsDrillDown({
   onToggleCity,
   onSaveSelected,
   isSavingSelection,
+  tripStart,
+  tripEnd,
+  travelerCount,
 }: SuggestionsDrillDownProps) {
   const citiesByCountry = useMemo(
     () => citiesForGroups(countryGroups, primarySuggestion),
     [countryGroups, primarySuggestion]
+  );
+
+  const selectionPreview = useMemo(
+    () =>
+      selectedCityIds.size >= 2
+        ? buildMultiStopSelectionPreview(
+            countryGroups,
+            selectedCityIds,
+            primarySuggestion,
+            tripStart,
+            tripEnd
+          )
+        : null,
+    [
+      countryGroups,
+      selectedCityIds,
+      primarySuggestion,
+      tripStart,
+      tripEnd,
+    ]
   );
 
   const allCountryNames = countryGroups.map((g) => g.country);
@@ -142,6 +184,7 @@ export default function SuggestionsDrillDown({
             />
           ))}
         </div>
+        <SelectionPreviewBlock preview={selectionPreview} travelerCount={travelerCount} />
         <SaveSelectedBar
           count={selectedCityIds.size}
           onSave={onSaveSelected}
@@ -222,6 +265,7 @@ export default function SuggestionsDrillDown({
         })}
       </div>
 
+      <SelectionPreviewBlock preview={selectionPreview} travelerCount={travelerCount} />
       <SaveSelectedBar
         count={selectedCityIds.size}
         onSave={onSaveSelected}

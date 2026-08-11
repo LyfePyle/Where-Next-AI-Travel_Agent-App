@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useRef, useCallback, Suspense } from 'react';
+import { useState, useRef, useCallback, useMemo, Suspense, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { parseDestinationParts } from '@/lib/parse-destination';
-import { useWalkingTour } from '@/hooks/useWalkingTour';
+import {
+  useWalkingTour,
+  TOUR_STOP_CATEGORIES,
+  type TourStopCategory,
+} from '@/hooks/useWalkingTour';
 import WalkingTourChatPanel from '@/components/walkingTour/WalkingTourChatPanel';
 import { MapPin, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 
@@ -12,6 +16,29 @@ const TourMap = dynamic(() => import('@/components/TourMap'), { ssr: false });
 function buildMapsUrl(lat: number, lng: number, label?: string) {
   const q = label ? `${encodeURIComponent(label)}` : `${lat},${lng}`;
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
+}
+
+const CATEGORY_LABELS: Record<TourStopCategory, string> = {
+  food: 'Food',
+  scenic: 'Scenic',
+  historic: 'Historic',
+  'kid-friendly': 'Kid-friendly',
+};
+
+function categoryChipClass(category: TourStopCategory, active: boolean) {
+  const base = active ? 'ring-2 ring-indigo-500 ring-offset-1 ' : '';
+  switch (category) {
+    case 'food':
+      return `${base}bg-orange-100 text-orange-800`;
+    case 'scenic':
+      return `${base}bg-emerald-100 text-emerald-800`;
+    case 'historic':
+      return `${base}bg-amber-100 text-amber-900`;
+    case 'kid-friendly':
+      return `${base}bg-sky-100 text-sky-800`;
+    default:
+      return `${base}bg-gray-100 text-gray-700`;
+  }
 }
 
 function WalkingTourPageInner() {
@@ -24,8 +51,6 @@ function WalkingTourPageInner() {
     activeStop,
     hasStops,
     generate,
-    goNext,
-    goPrev,
     setActiveIndex,
     reset,
   } = useWalkingTour();
@@ -35,7 +60,59 @@ function WalkingTourPageInner() {
   const [country, setCountry] = useState('');
   const [preferences, setPreferences] = useState('');
   const [validateError, setValidateError] = useState<string | null>(null);
-  const [mobilePanel, setMobilePanel] = useState<'map' | 'stops'>('map');
+  const [categoryFilter, setCategoryFilter] = useState<TourStopCategory | null>(null);
+
+  const visibleStops = useMemo(() => {
+    if (!categoryFilter) return stops;
+    return stops.filter((stop) => stop.categories?.includes(categoryFilter));
+  }, [stops, categoryFilter]);
+
+  const visibleActiveIndex = useMemo(() => {
+    const current = stops[activeIndex];
+    if (!current || visibleStops.length === 0) return 0;
+    const idx = visibleStops.findIndex(
+      (stop) => stop.order === current.order && stop.name === current.name
+    );
+    return idx >= 0 ? idx : 0;
+  }, [visibleStops, stops, activeIndex]);
+
+  useEffect(() => {
+    if (!categoryFilter || visibleStops.length === 0) return;
+    const current = stops[activeIndex];
+    if (!current) return;
+    const inVisible = visibleStops.some(
+      (stop) => stop.order === current.order && stop.name === current.name
+    );
+    if (!inVisible) {
+      const first = visibleStops[0];
+      const idx = stops.findIndex(
+        (stop) => stop.order === first.order && stop.name === first.name
+      );
+      if (idx >= 0) setActiveIndex(idx);
+    }
+  }, [categoryFilter, visibleStops, stops, activeIndex, setActiveIndex]);
+
+  const selectVisibleStop = useCallback(
+    (visibleIdx: number) => {
+      const stop = visibleStops[visibleIdx];
+      if (!stop) return;
+      const originalIndex = stops.findIndex(
+        (s) => s.order === stop.order && s.name === stop.name
+      );
+      if (originalIndex >= 0) setActiveIndex(originalIndex);
+    },
+    [visibleStops, stops, setActiveIndex]
+  );
+
+  const goNextVisible = useCallback(() => {
+    if (visibleStops.length <= 1) return;
+    selectVisibleStop(Math.min(visibleActiveIndex + 1, visibleStops.length - 1));
+  }, [visibleStops.length, visibleActiveIndex, selectVisibleStop]);
+
+  const goPrevVisible = useCallback(() => {
+    if (visibleStops.length <= 1) return;
+    selectVisibleStop(Math.max(visibleActiveIndex - 1, 0));
+  }, [visibleActiveIndex, selectVisibleStop]);
 
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = useCallback((e: React.TouchEvent) => {
@@ -46,10 +123,10 @@ function WalkingTourPageInner() {
       if (touchStartX.current == null) return;
       const dx = e.changedTouches[0].clientX - touchStartX.current;
       touchStartX.current = null;
-      if (dx > 50) goPrev();
-      else if (dx < -50) goNext();
+      if (dx > 50) goPrevVisible();
+      else if (dx < -50) goNextVisible();
     },
-    [goNext, goPrev]
+    [goNextVisible, goPrevVisible]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,128 +171,167 @@ function WalkingTourPageInner() {
     setCity('');
     setCountry('');
     setValidateError(null);
-  };
-
-  const selectStopAndShowMap = (index: number) => {
-    setActiveIndex(index);
-    setMobilePanel('map');
+    setCategoryFilter(null);
   };
 
   if (hasStops && !loading) {
+    const detailStop = activeStop;
+
     return (
       <div className="min-h-screen bg-gray-50 pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-6xl mx-auto px-3 md:px-6 py-4 md:py-6">
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
             <div className="flex-1 min-w-0">
-              <div className="sticky top-0 z-20 md:static flex md:hidden flex-col gap-2 pb-2 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 mb-2">
-                <div className="flex items-start justify-between gap-2 pt-1">
-                  <div className="min-w-0 flex-1">
-                    <h1 className="text-base font-bold text-gray-900 truncate">{title ?? 'Walking tour'}</h1>
-                    <p className="text-xs text-gray-500 truncate">
-                      {[city, country].filter(Boolean).join(', ')}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex rounded-lg bg-gray-200/90 p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setMobilePanel('map')}
-                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md ${
-                          mobilePanel === 'map' ? 'bg-white shadow-sm' : 'text-gray-600'
-                        }`}
-                      >
-                        Map
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMobilePanel('stops')}
-                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md ${
-                          mobilePanel === 'stops' ? 'bg-white shadow-sm' : 'text-gray-600'
-                        }`}
-                      >
-                        Stops
-                      </button>
-                    </div>
-                    <button type="button" onClick={handleReset} className="text-xs font-medium text-indigo-600">
-                      New
-                    </button>
-                  </div>
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="min-w-0">
+                  <h1 className="text-lg md:text-xl font-bold text-gray-900 truncate">
+                    {title ?? 'Walking tour'}
+                  </h1>
+                  <p className="text-xs md:text-sm text-gray-500 truncate">
+                    {[city, country].filter(Boolean).join(', ')}
+                  </p>
                 </div>
-              </div>
-
-              <div className="hidden md:flex items-center justify-between mb-4">
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">{title ?? 'Walking tour'}</h1>
-                  <p className="text-sm text-gray-500">{[city, country].filter(Boolean).join(', ')}</p>
-                </div>
-                <button type="button" onClick={handleReset} className="text-sm text-indigo-600 underline">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="text-xs md:text-sm font-medium text-indigo-600 shrink-0"
+                >
                   New tour
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 md:gap-4">
-                <aside className="hidden md:block md:col-span-1 bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <ul className="divide-y divide-gray-100">
-                    {stops.map((stop, i) => (
-                      <li key={i}>
-                        <button
-                          type="button"
-                          onClick={() => setActiveIndex(i)}
-                          className={`w-full text-left px-4 py-3 flex items-center gap-3 ${
-                            i === activeIndex ? 'bg-indigo-50 text-indigo-800' : 'hover:bg-gray-50'
-                          }`}
-                        >
-                          <span className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium">
-                            {stop.order}
-                          </span>
-                          <span className="font-medium truncate">{stop.name}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </aside>
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm mb-3">
+                <div className="h-52 sm:h-64 md:h-72">
+                  <TourMap
+                    stops={visibleStops}
+                    activeIndex={visibleActiveIndex}
+                    onSelectStop={selectVisibleStop}
+                  />
+                </div>
+              </div>
 
-                <div className="md:col-span-2 flex flex-col md:bg-white md:rounded-xl md:border md:border-gray-200 md:p-6">
-                  <div className={`border-b border-gray-200 md:border-b-0 ${mobilePanel === 'stops' ? 'hidden md:block' : 'block'}`}>
-                    <TourMap stops={stops} activeIndex={activeIndex} onSelectStop={setActiveIndex} />
-                  </div>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilter(null)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                    categoryFilter === null
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-gray-700 border border-gray-200'
+                  }`}
+                >
+                  All
+                </button>
+                {TOUR_STOP_CATEGORIES.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() =>
+                      setCategoryFilter((prev) => (prev === category ? null : category))
+                    }
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${categoryChipClass(
+                      category,
+                      categoryFilter === category
+                    )}`}
+                  >
+                    {CATEGORY_LABELS[category]}
+                  </button>
+                ))}
+              </div>
 
-                  <div className={mobilePanel === 'stops' ? 'md:hidden' : 'hidden'}>
-                    <ul className="divide-y divide-gray-100 bg-white">
-                      {stops.map((stop, i) => (
-                        <li key={i}>
+              {visibleStops.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-4 text-sm text-gray-600">
+                  No stops match this filter — try another category or show all stops.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 md:gap-4">
+                  <aside className="md:col-span-1 bg-white rounded-xl border border-gray-200 overflow-hidden mb-3 md:mb-0">
+                    <div className="px-3 py-2 border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Stops ({visibleStops.length})
+                    </div>
+                    <ul className="divide-y divide-gray-100 max-h-48 md:max-h-none overflow-y-auto">
+                      {visibleStops.map((stop, i) => (
+                        <li key={`${stop.order}-${stop.name}`}>
                           <button
                             type="button"
-                            onClick={() => selectStopAndShowMap(i)}
-                            className={`w-full text-left px-3 py-3.5 flex items-center gap-3 ${
-                              i === activeIndex ? 'bg-indigo-50 text-indigo-800' : ''
+                            onClick={() => selectVisibleStop(i)}
+                            className={`w-full text-left px-3 md:px-4 py-3 flex items-center gap-3 ${
+                              i === visibleActiveIndex
+                                ? 'bg-indigo-50 text-indigo-800'
+                                : 'hover:bg-gray-50'
                             }`}
                           >
-                            <span className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold">
+                            <span className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium shrink-0">
                               {stop.order}
                             </span>
-                            <span className="font-medium text-sm">{stop.name}</span>
+                            <span className="font-medium truncate text-sm">{stop.name}</span>
                           </button>
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </aside>
 
                   <div
-                    className={`flex-1 px-3 py-3 md:px-0 md:py-4 bg-white ${mobilePanel === 'stops' ? 'hidden md:block' : 'block'}`}
+                    className="md:col-span-2 bg-white rounded-xl border border-gray-200 p-4 md:p-6"
                     onTouchStart={onTouchStart}
                     onTouchEnd={onTouchEnd}
                   >
-                    {activeStop ? (
+                    {detailStop ? (
                       <>
-                        <h2 className="text-lg font-bold text-gray-900 mb-2">{activeStop.name}</h2>
-                        <p className="text-gray-600 mb-4 text-sm md:text-base">{activeStop.description}</p>
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+                          <h2 className="text-lg font-bold text-gray-900">{detailStop.name}</h2>
+                          {detailStop.categories && detailStop.categories.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {detailStop.categories.map((category) => (
+                                <span
+                                  key={`${detailStop.order}-${category}`}
+                                  className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${categoryChipClass(
+                                    category as TourStopCategory,
+                                    false
+                                  )}`}
+                                >
+                                  {CATEGORY_LABELS[category as TourStopCategory] ?? category}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <p className="text-gray-600 mb-4 text-sm md:text-base">{detailStop.description}</p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                          {detailStop.known_for && (
+                            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">
+                                Known for
+                              </p>
+                              <p className="text-sm text-gray-800">{detailStop.known_for}</p>
+                            </div>
+                          )}
+                          {detailStop.best_time && (
+                            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">
+                                Best time
+                              </p>
+                              <p className="text-sm text-gray-800">{detailStop.best_time}</p>
+                            </div>
+                          )}
+                          {detailStop.time_to_spend && (
+                            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">
+                                Time to spend
+                              </p>
+                              <p className="text-sm text-gray-800">{detailStop.time_to_spend}</p>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-4">
                           <p className="text-xs font-medium text-amber-900 mb-1">Local tip</p>
-                          <p className="text-sm text-amber-800">{activeStop.local_tip}</p>
+                          <p className="text-sm text-amber-800">{detailStop.local_tip}</p>
                         </div>
                         <a
-                          href={buildMapsUrl(activeStop.lat, activeStop.lng, activeStop.name)}
+                          href={buildMapsUrl(detailStop.lat, detailStop.lng, detailStop.name)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600"
@@ -230,20 +346,20 @@ function WalkingTourPageInner() {
                     <div className="pt-4 mt-4 border-t border-gray-100 flex items-center justify-between">
                       <button
                         type="button"
-                        onClick={goPrev}
-                        disabled={activeIndex === 0}
+                        onClick={goPrevVisible}
+                        disabled={visibleActiveIndex === 0}
                         className="flex items-center gap-1 text-sm text-gray-600 disabled:opacity-40"
                       >
                         <ChevronLeft className="w-5 h-5" />
                         Previous
                       </button>
                       <span className="text-sm text-gray-500">
-                        {activeIndex + 1} / {stops.length}
+                        {visibleActiveIndex + 1} / {visibleStops.length}
                       </span>
                       <button
                         type="button"
-                        onClick={goNext}
-                        disabled={activeIndex === stops.length - 1}
+                        onClick={goNextVisible}
+                        disabled={visibleActiveIndex === visibleStops.length - 1}
                         className="flex items-center gap-1 text-sm text-gray-600 disabled:opacity-40"
                       >
                         Next
@@ -252,7 +368,7 @@ function WalkingTourPageInner() {
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {city && country && (

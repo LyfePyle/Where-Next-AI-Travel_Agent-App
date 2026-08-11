@@ -143,7 +143,7 @@ export function parseStoredSuggestions(raw: unknown): {
     const stopPreviews = raw.stopPreviews
       .map((sp) =>
         buildStopPreview(
-          sp && typeof sp === 'object' ? (sp as Record<string, unknown>) : { destination: '' }
+          sp && typeof sp === 'object' ? (sp as unknown as Record<string, unknown>) : { destination: '' }
         )
       )
       .filter((sp) => sp.destination);
@@ -188,6 +188,16 @@ export function getStopPreviewForDestination(
   return undefined;
 }
 
+/** Neutral per-city preview when AI stopPreviews are missing (no borrowed overview content). */
+export function neutralStopPreview(destination: string): StopPreview {
+  const cityLabel = destination.split(',')[0]?.trim() || destination.trim() || 'this city';
+  return {
+    destination: destination.trim() || cityLabel,
+    description: `Explore ${cityLabel} on your multi-city itinerary.`,
+    highlights: [`Discover ${cityLabel}`],
+  };
+}
+
 /**
  * Build the suggestions blob for persistence. Multi-stop trips get a structured blob
  * with per-stop previews; single-stop trips stay a flat TripPreview for compatibility.
@@ -222,40 +232,66 @@ export function buildMultiStopSuggestionsBlob(
       });
     });
   } else {
-    const cityNames = Array.isArray(suggestion?.stops)
-      ? (suggestion!.stops as unknown[]).map((n) => str(n) ?? '').filter(Boolean)
-      : [];
-    const highlights = overview.highlights ?? [];
-
-    stopPreviews = resolvedStops.map((dest, i) => {
-      const cityLabel = cityNames[i] ?? dest.split(',')[0]?.trim() ?? dest;
-      const sliceStart = i * 2;
-      const stopHighlights = highlights.slice(sliceStart, sliceStart + 2);
-      if (stopHighlights.length === 0 && highlights.length) {
-        stopHighlights.push(highlights[i % highlights.length]!);
-      }
-
-      return {
-        destination: dest,
-        description: overview.description
-          ? `${cityLabel}: ${overview.description}`
-          : `Explore ${cityLabel} on your multi-city itinerary.`,
-        whyItFits: overview.whyItFits,
-        highlights:
-          stopHighlights.length > 0 ? stopHighlights : [`Discover ${cityLabel}`, 'Local culture', 'Hidden gems'],
-        crowdLevel: overview.crowdLevel,
-        seasonality: overview.seasonality,
-        weatherTemp: overview.weatherTemp,
-        weatherIcon: overview.weatherIcon,
-        hotelBand: overview.hotelBand,
-      };
-    });
+    stopPreviews = resolvedStops.map((dest) => neutralStopPreview(dest));
   }
 
   return {
     multiStop: true,
     overview,
     stopPreviews,
+  };
+}
+
+/**
+ * Async builder: when AI stopPreviews are missing, generate destination-specific
+ * previews per stop instead of cloning trip overview content.
+ */
+export async function buildMultiStopSuggestionsBlobAsync(
+  suggestion: Record<string, unknown> | null | undefined,
+  stops: Array<{ destination: string; city?: string; country?: string }>,
+  extra?: Record<string, unknown>
+): Promise<StoredSuggestions> {
+  const resolvedStops = stops.map((s) => s.destination?.trim()).filter(Boolean);
+  if (resolvedStops.length <= 1) {
+    return buildMultiStopSuggestionsBlob(suggestion, stops, extra);
+  }
+
+  const aiStopPreviews = suggestion?.stopPreviews;
+  if (Array.isArray(aiStopPreviews) && aiStopPreviews.length > 0) {
+    return buildMultiStopSuggestionsBlob(suggestion, stops, extra);
+  }
+
+  const { generateStopPreview } = await import('@/lib/generate-stop-preview');
+  const overview = buildTripPreview({ ...(suggestion ?? {}), ...(extra ?? {}) });
+
+  const stopPreviews = await Promise.all(
+    stops.map(async (stop) => {
+      const dest = stop.destination?.trim();
+      if (!dest) return neutralStopPreview('');
+
+      const parts = dest.split(',').map((p) => p.trim()).filter(Boolean);
+      const city = stop.city || parts[0] || dest;
+      const country = stop.country || (parts.length > 1 ? parts[parts.length - 1] : '');
+
+      if (!country) {
+        return neutralStopPreview(dest);
+      }
+
+      try {
+        return await generateStopPreview(city, country, {
+          vibe: str(extra?.vibe),
+          budgetAmount: num(extra?.budgetAmount),
+        });
+      } catch {
+        return neutralStopPreview(dest);
+      }
+    })
+  );
+
+  return {
+    multiStop: true,
+    overview,
+    stopPreviews: stopPreviews.filter((sp) => sp.destination),
   };
 }
 

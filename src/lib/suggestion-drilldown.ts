@@ -7,6 +7,7 @@ import type { CompareSummary } from '@/lib/compare-summary';
 import type { StopPreview } from '@/lib/trip-preview';
 import {
   assignDatesAcrossStops,
+  deriveNightsFromStop,
   groupStopsByCountry,
   normalizeStop,
   type CountryStopGroup,
@@ -362,6 +363,91 @@ export function buildStopsFromSelection(
   }
 
   return assignDatesAcrossStops(rawStops, tripStart, tripEnd);
+}
+
+export interface MultiStopSelectionPreview {
+  stops: TripStop[];
+  routeTitle: string;
+  estimatedTotal: number;
+  currency: string;
+  fitScore?: number;
+  crowdLevel?: string;
+  seasonality?: string;
+  weather?: { icon?: string; temp?: number };
+  nightSplit: Array<{ city: string; nights: number; country?: string }>;
+  sampleDays: string[];
+  highlights: string[];
+  whyItFits?: string;
+  flightBand?: TripSuggestion['flightBand'];
+  hotelBand?: TripSuggestion['hotelBand'];
+}
+
+/** Client-side composite preview for multi-stop selection (no extra API). */
+export function buildMultiStopSelectionPreview(
+  countryGroups: CountryStopGroup[],
+  selectedCityIds: Set<string>,
+  primary: TripSuggestion | null,
+  tripStart: string,
+  tripEnd: string
+): MultiStopSelectionPreview | null {
+  if (selectedCityIds.size < 2 || !primary) return null;
+
+  const builtStops = buildStopsFromSelection(
+    countryGroups,
+    selectedCityIds,
+    primary,
+    tripStart,
+    tripEnd
+  );
+  if (!builtStops || builtStops.length < 2) return null;
+
+  const payload = suggestionPayloadForSelection(primary, builtStops) as TripSuggestion;
+  const previews = payload.stopPreviews ?? primary.stopPreviews ?? [];
+
+  const nightSplit = builtStops.map((stop) => ({
+    city: stop.city || stop.destination.split(',')[0].trim(),
+    nights: deriveNightsFromStop(stop),
+    country: stop.country,
+  }));
+
+  const sampleDays = builtStops.map((stop, index) => {
+    const city = stop.city || stop.destination.split(',')[0].trim();
+    const nights = deriveNightsFromStop(stop);
+    const preview = previewForCity(previews, city, index);
+    if (preview?.highlights?.[0]) {
+      return `${city} (${nights}n): ${preview.highlights[0]}`;
+    }
+    if (preview?.description) {
+      return `${city} (${nights}n): ${preview.description}`;
+    }
+    return `${city} — ${nights} ${nights === 1 ? 'night' : 'nights'}`;
+  });
+
+  const highlights = previews
+    .flatMap((preview) => preview.highlights ?? [])
+    .filter(Boolean)
+    .slice(0, 6);
+
+  const routeTitle = builtStops
+    .map((stop) => stop.city || stop.destination.split(',')[0].trim())
+    .join(' → ');
+
+  return {
+    stops: builtStops,
+    routeTitle,
+    estimatedTotal: primary.estimatedTotal ?? 0,
+    currency: primary.currency ?? 'USD',
+    fitScore: primary.fitScore,
+    crowdLevel: primary.crowdLevel,
+    seasonality: primary.seasonality,
+    weather: primary.weather,
+    nightSplit,
+    sampleDays,
+    highlights: highlights.length > 0 ? highlights : primary.highlights.slice(0, 4),
+    whyItFits: primary.whyItFits,
+    flightBand: primary.flightBand,
+    hotelBand: primary.hotelBand,
+  };
 }
 
 /** Narrow primary suggestion stopPreviews to selected cities for storage. */

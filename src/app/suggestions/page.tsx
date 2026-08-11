@@ -94,6 +94,18 @@ function SuggestionsContent() {
   const adults = parseInt(searchParams.get('adults') || '2', 10);
   const kids = parseInt(searchParams.get('kids') || '0', 10);
   const travelerCount = Math.max(adults + kids, 1);
+  const effectiveEndDate = useMemo(
+    () =>
+      endDate ||
+      (startDate && tripDuration
+        ? (() => {
+            const d = new Date(`${startDate}T12:00:00`);
+            d.setDate(d.getDate() + tripDuration);
+            return d.toISOString().split('T')[0];
+          })()
+        : ''),
+    [endDate, startDate, tripDuration]
+  );
   const tripTypeParam = searchParams.get('tripType');
   const tripType =
     tripTypeParam === 'multi-city' || tripTypeParam === 'multi-country'
@@ -572,6 +584,9 @@ function SuggestionsContent() {
             onToggleCity={toggleCitySelection}
             onSaveSelected={handleSaveSelected}
             isSavingSelection={isSavingSelection}
+            tripStart={startDate}
+            tripEnd={effectiveEndDate}
+            travelerCount={travelerCount}
           />
         )}
 

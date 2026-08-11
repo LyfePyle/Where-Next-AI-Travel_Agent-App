@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import {
-  buildMultiStopSuggestionsBlob,
+  buildMultiStopSuggestionsBlobAsync,
   isStoredSuggestionsEmpty,
 } from '@/lib/trip-preview';
 import { distributeStops } from '@/lib/stop-parser';
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
 
     // Persist AI preview content (including per-stop previews for multi-city trips)
     // into trips.suggestions so reopening by ID shows full content — not URL-only.
-    const suggestionsBlob = buildMultiStopSuggestionsBlob(suggestion, resolvedStops, {
+    const suggestionsBlob = await buildMultiStopSuggestionsBlobAsync(suggestion, resolvedStops, {
       from: body.from,
       reason: suggestion.whyItFits,
       bestTime: suggestion.seasonality,

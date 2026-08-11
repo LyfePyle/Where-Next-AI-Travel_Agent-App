@@ -3,10 +3,23 @@
 import { useState, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
+export type TourStopCategory = 'food' | 'scenic' | 'historic' | 'kid-friendly';
+
+export const TOUR_STOP_CATEGORIES: TourStopCategory[] = [
+  'food',
+  'scenic',
+  'historic',
+  'kid-friendly',
+];
+
 export type TourStop = {
   name: string;
   description: string;
   local_tip: string;
+  known_for?: string;
+  best_time?: string;
+  time_to_spend?: string;
+  categories?: TourStopCategory[];
   lat: number;
   lng: number;
   order: number;

@@ -9,8 +9,10 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      { source: '/explore', destination: '/search', permanent: true },
-      { source: '/explore/:path*', destination: '/search/:path*', permanent: true },
+      { source: '/explore', destination: '/plan-trip', permanent: true },
+      { source: '/explore/:path*', destination: '/plan-trip', permanent: true },
+      { source: '/search', destination: '/plan-trip', permanent: true },
+      { source: '/search/:path*', destination: '/plan-trip', permanent: true },
       { source: '/ai-travel-agent', destination: '/plan-trip', permanent: true },
       { source: '/ai-travel-agent/:path*', destination: '/plan-trip', permanent: true },
       { source: '/pricing', destination: '/plan-trip', permanent: true },

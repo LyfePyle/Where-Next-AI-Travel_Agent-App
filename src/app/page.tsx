@@ -235,7 +235,7 @@ export default function NewHomePage() {
 
   const handleOpenRouteMap = () => {
     const q = planHints.destination === 'Your trip' ? prompt.slice(0, 60) || 'travel' : planHints.destination;
-    router.push(`/search?q=${encodeURIComponent(q)}`);
+    router.push(`/plan-trip?destination=${encodeURIComponent(q)}`);
   };
 
   async function handleSaveTrip() {
@@ -662,10 +662,10 @@ export default function NewHomePage() {
               </p>
             </div>
             <Link
-              href="/search"
+              href="/plan-trip"
               className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-purple-200 text-purple-700 font-semibold hover:bg-purple-50 transition-colors"
             >
-              View all destinations
+              Start planning
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </div>

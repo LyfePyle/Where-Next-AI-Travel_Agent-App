@@ -9,6 +9,8 @@ import {
 } from '@/hooks/useWalkingTour';
 import WalkingTourChatPanel from '@/components/walkingTour/WalkingTourChatPanel';
 import WalkingTourSampleCard from '@/components/walkingTour/WalkingTourSampleCard';
+import WalkingTourStopPhoto from '@/components/walkingTour/WalkingTourStopPhoto';
+import AffiliateLink from '@/components/AffiliateLink';
 import { CURATED_WALKING_CITIES, type CuratedWalkingCity } from '@/data/curated-walking-cities';
 import {
   getCachedTourSample,
@@ -460,6 +462,15 @@ function WalkingTourPageInner() {
                           )}
                         </div>
 
+                        {city && (
+                          <WalkingTourStopPhoto
+                            stopName={detailStop.name}
+                            city={city}
+                            country={country || undefined}
+                            categories={detailStop.categories}
+                          />
+                        )}
+
                         <p className="text-gray-600 mb-4 text-sm md:text-base">{detailStop.description}</p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
@@ -493,6 +504,19 @@ function WalkingTourPageInner() {
                           <p className="text-xs font-medium text-amber-900 mb-1">Local tip</p>
                           <p className="text-sm text-amber-800">{detailStop.local_tip}</p>
                         </div>
+
+                        {city && (
+                          <AffiliateLink
+                            type="tours"
+                            destination={[detailStop.name, city, country].filter(Boolean).join(', ')}
+                            className="mb-4 inline-flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+                          >
+                            <span aria-hidden>🎭</span>
+                            Find tours &amp; activities near here
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </AffiliateLink>
+                        )}
+
                         <a
                           href={buildMapsUrl(detailStop.lat, detailStop.lng, detailStop.name)}
                           target="_blank"

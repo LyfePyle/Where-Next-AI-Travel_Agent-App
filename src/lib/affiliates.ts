@@ -251,6 +251,20 @@ export function tourLink(dest: string): AffiliateLink {
   return IDS.viator ? viatorLink(dest) : expediaTourLink(dest);
 }
 
+/** Location-scoped tour search for a walking-tour stop (category page, not a fake product). */
+export function viatorStopLink(
+  stopName: string,
+  city: string,
+  country?: string
+): AffiliateLink {
+  const location = [stopName, city, country].filter(Boolean).join(', ');
+  const base = tourLink(location);
+  return {
+    ...base,
+    label: `Tours & activities near ${stopName}`,
+  };
+}
+
 export function experienceLink(dest: string): AffiliateLink {
   return IDS.gyg ? gygLink(dest) : expediaActivityLink(dest);
 }

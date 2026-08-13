@@ -342,6 +342,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
       
+      localStorage.removeItem('demo_mode');
       const supabase = createClient();
       const { data, error } = await supabase.auth.signInWithPassword({
         email,

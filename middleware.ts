@@ -30,6 +30,14 @@ const AUTH_ROUTES = [
   '/auth/reset-password'
 ];
 
+function redirectWithSessionCookies(url: URL, sessionResponse: NextResponse) {
+  const redirectResponse = NextResponse.redirect(url);
+  sessionResponse.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie);
+  });
+  return redirectResponse;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
@@ -51,7 +59,7 @@ export async function middleware(request: NextRequest) {
                      !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   // Create Supabase client with cookie handling for session refresh
-  const response = NextResponse.next({
+  let sessionResponse = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -62,31 +70,20 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
+        getAll() {
+          return request.cookies.getAll();
         },
-        set(name: string, value: string, options: any) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
           });
-          response.cookies.set({
-            name,
-            value,
-            ...options,
+          sessionResponse = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
           });
-        },
-        remove(name: string, options: any) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
+          cookiesToSet.forEach(({ name, value, options }) => {
+            sessionResponse.cookies.set(name, value, options);
           });
         },
       },
@@ -94,10 +91,6 @@ export async function middleware(request: NextRequest) {
   );
   
   try {
-    // Refresh session if expired - this is important for @supabase/ssr
-    await supabase.auth.getUser();
-    
-    // Get user session
     const { data: { user }, error } = await supabase.auth.getUser();
     const isAuthenticated = !!user && !error;
 
@@ -108,7 +101,7 @@ export async function middleware(request: NextRequest) {
         // Redirect to login with return URL
         const loginUrl = new URL('/auth/login', request.url);
         loginUrl.searchParams.set('redirectTo', pathname);
-        return NextResponse.redirect(loginUrl);
+        return redirectWithSessionCookies(loginUrl, sessionResponse);
       }
     }
 
@@ -137,19 +130,19 @@ export async function middleware(request: NextRequest) {
           request.nextUrl.searchParams.get('next');
         const destination =
           redirectTo && redirectTo.startsWith('/') ? redirectTo : '/dashboard';
-        return NextResponse.redirect(new URL(destination, request.url));
+        return redirectWithSessionCookies(new URL(destination, request.url), sessionResponse);
       }
     }
 
     // Handle root redirect
     if (pathname === '/') {
       if (isAuthenticated) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        return redirectWithSessionCookies(new URL('/dashboard', request.url), sessionResponse);
       }
       // Let the homepage handle the unauthenticated state
     }
 
-    return response;
+    return sessionResponse;
 
   } catch (error) {
     console.error('Middleware error:', error);

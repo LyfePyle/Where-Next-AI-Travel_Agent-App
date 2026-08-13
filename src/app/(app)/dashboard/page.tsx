@@ -257,7 +257,7 @@ function TabBar({
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useApp();
+  const { user, isInitialized } = useApp();
 
   const [trips, setTrips] = useState<PlannedTrip[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -273,7 +273,7 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/dashboard/planned-trips', { credentials: 'include' });
       if (res.status === 401) {
-        router.push('/auth/login?redirect=/dashboard');
+        router.push('/auth/login?redirectTo=/dashboard');
         return;
       }
       if (!res.ok) throw new Error('Failed to load planned trips');
@@ -296,12 +296,13 @@ export default function DashboardPage() {
   }, [user, router]);
 
   useEffect(() => {
+    if (!isInitialized) return;
     if (!user) {
-      router.push('/auth/login?redirect=/dashboard');
+      router.push('/auth/login?redirectTo=/dashboard');
       return;
     }
     fetchData();
-  }, [user, fetchData, router]);
+  }, [user, isInitialized, fetchData, router]);
 
   const upcoming = trips.filter((t) => t.isUpcoming);
   const past = trips.filter((t) => !t.isUpcoming);

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { createClient } from '@/utils/supabase/client';
 import {
   destinationAfterPendingSave,
   resumePendingTripSaveOnce,
@@ -26,24 +26,31 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const redirectStarted = useRef(false);
   
-  const { handleSignIn, handleSignInWithOAuth, user, isInitialized } = useApp();
-  const router = useRouter();
+  const { handleSignIn, handleSignInWithOAuth } = useApp();
 
   async function finishLoginRedirect() {
+    if (redirectStarted.current) return;
+    redirectStarted.current = true;
+
+    // Only redirect when middleware can also see the session (avoids client/server bounce).
+    const { data: { session } } = await createClient().auth.getSession();
+    if (!session) {
+      redirectStarted.current = false;
+      throw new Error('Sign-in succeeded but the session was not saved. Please try again.');
+    }
+
     const pendingResult = await resumePendingTripSaveOnce();
     const pendingDest = destinationAfterPendingSave(pendingResult);
     if (pendingDest) {
-      window.location.href = pendingDest;
+      window.location.assign(pendingDest);
       return;
     }
-    window.location.href = getPostLoginPath(window.location.search);
+    window.location.assign(getPostLoginPath(window.location.search));
   }
 
-  useEffect(() => {
-    if (!isInitialized || !user) return;
-    void finishLoginRedirect();
-  }, [isInitialized, user, router]);
+  // Already-authenticated users are redirected server-side by middleware.
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +62,7 @@ export default function LoginPage() {
 
       await finishLoginRedirect();
     } catch (error: any) {
+      redirectStarted.current = false;
       // Display the actual error message
       setError(error.message || 'Invalid email or password. Please try again.');
       console.error('Login error:', error);
@@ -78,6 +86,7 @@ export default function LoginPage() {
         await finishLoginRedirect();
       }
     } catch (error: any) {
+      redirectStarted.current = false;
       setError(error.message || 'Demo login failed. Please try again.');
       console.error('Demo login error:', error);
       setIsLoading(false);

@@ -8,6 +8,13 @@ import {
   type TourStopCategory,
 } from '@/hooks/useWalkingTour';
 import WalkingTourChatPanel from '@/components/walkingTour/WalkingTourChatPanel';
+import WalkingTourSampleCard from '@/components/walkingTour/WalkingTourSampleCard';
+import { CURATED_WALKING_CITIES, type CuratedWalkingCity } from '@/data/curated-walking-cities';
+import {
+  getCachedTourSample,
+  setCachedTourSample,
+} from '@/lib/walking-tour-sample-cache';
+import type { TourStop } from '@/hooks/useWalkingTour';
 import { MapPin, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 
 const TourMap = dynamic(() => import('@/components/TourMap'), { ssr: false });
@@ -40,6 +47,45 @@ function categoryChipClass(category: TourStopCategory, active: boolean) {
   }
 }
 
+type CuratedCardState = CuratedWalkingCity & {
+  title?: string;
+  stops?: TourStop[];
+  loading: boolean;
+  error?: string;
+};
+
+type SearchTourOption = {
+  title: string;
+  summary: string;
+  theme: string;
+  stops: TourStop[];
+};
+
+async function fetchTourSample(
+  city: string,
+  country: string,
+  preferences: string
+): Promise<{ title: string; stops: TourStop[] }> {
+  const cached = getCachedTourSample(city, country, preferences);
+  if (cached) return { title: cached.title, stops: cached.stops };
+
+  const res = await fetch('/api/tour/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ city, country, preferences }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json?.error ?? `Failed to load ${city} sample`);
+  }
+  const title = typeof json?.data?.title === 'string' ? json.data.title : `${city} walking tour`;
+  const stops = Array.isArray(json?.data?.stops) ? json.data.stops : [];
+  if (!stops.length) throw new Error(`No stops returned for ${city}`);
+
+  setCachedTourSample(city, country, { title, stops }, preferences);
+  return { title, stops };
+}
+
 function WalkingTourPageInner() {
   const {
     loading,
@@ -49,7 +95,8 @@ function WalkingTourPageInner() {
     activeIndex,
     activeStop,
     hasStops,
-    generate,
+    generateOptions,
+    loadTour,
     setActiveIndex,
     reset,
   } = useWalkingTour();
@@ -63,6 +110,11 @@ function WalkingTourPageInner() {
     Array<{ place: string; country: string }>
   >([]);
   const [categoryFilter, setCategoryFilter] = useState<TourStopCategory | null>(null);
+  const [curatedCards, setCuratedCards] = useState<CuratedCardState[]>(() =>
+    CURATED_WALKING_CITIES.map((city) => ({ ...city, loading: true }))
+  );
+  const [searchOptions, setSearchOptions] = useState<SearchTourOption[]>([]);
+  const [browsePhase, setBrowsePhase] = useState<'landing' | 'picking'>('landing');
 
   const visibleStops = useMemo(() => {
     if (!categoryFilter) return stops;
@@ -93,6 +145,46 @@ function WalkingTourPageInner() {
       if (idx >= 0) setActiveIndex(idx);
     }
   }, [categoryFilter, visibleStops, stops, activeIndex, setActiveIndex]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCurated() {
+      await Promise.all(
+        CURATED_WALKING_CITIES.map(async (entry) => {
+          try {
+            const sample = await fetchTourSample(entry.city, entry.country, entry.preferences);
+            if (cancelled) return;
+            setCuratedCards((prev) =>
+              prev.map((card) =>
+                card.id === entry.id
+                  ? { ...card, loading: false, title: sample.title, stops: sample.stops }
+                  : card
+              )
+            );
+          } catch (err) {
+            if (cancelled) return;
+            setCuratedCards((prev) =>
+              prev.map((card) =>
+                card.id === entry.id
+                  ? {
+                      ...card,
+                      loading: false,
+                      error: err instanceof Error ? err.message : 'Failed to load',
+                    }
+                  : card
+              )
+            );
+          }
+        })
+      );
+    }
+
+    void loadCurated();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectVisibleStop = useCallback(
     (visibleIdx: number) => {
@@ -131,16 +223,67 @@ function WalkingTourPageInner() {
     [goNextVisible, goPrevVisible]
   );
 
+  const openTour = useCallback(
+    (payload: {
+      tourTitle: string;
+      tourStops: TourStop[];
+      tourCity: string;
+      tourCountry: string;
+    }) => {
+      setCity(payload.tourCity);
+      setCountry(payload.tourCountry);
+      setPlaceCandidates([]);
+      setValidateError(null);
+      setSearchOptions([]);
+      setBrowsePhase('landing');
+      loadTour({ title: payload.tourTitle, stops: payload.tourStops });
+    },
+    [loadTour]
+  );
+
+  const handlePickCurated = useCallback(
+    (card: CuratedCardState) => {
+      if (!card.stops?.length || !card.title) return;
+      openTour({
+        tourTitle: card.title,
+        tourStops: card.stops,
+        tourCity: card.city,
+        tourCountry: card.country,
+      });
+    },
+    [openTour]
+  );
+
+  const handlePickSearchOption = useCallback(
+    (option: SearchTourOption) => {
+      openTour({
+        tourTitle: option.title,
+        tourStops: option.stops,
+        tourCity: city,
+        tourCountry: country,
+      });
+    },
+    [openTour, city, country]
+  );
+
   const generateTourForPlace = useCallback(
     async (validatedCity: string, validatedCountry: string) => {
       setCity(validatedCity);
       setCountry(validatedCountry);
       setPlaceCandidates([]);
-      await generate(validatedCity, validatedCountry, preferences.trim() || undefined, undefined, {
-        requireAuth: false,
-      });
+      setSearchOptions([]);
+      setBrowsePhase('picking');
+
+      const result = await generateOptions(
+        validatedCity,
+        validatedCountry,
+        preferences.trim() || undefined
+      );
+      if (result.ok) {
+        setSearchOptions(result.options);
+      }
     },
-    [generate, preferences]
+    [generateOptions, preferences]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -190,6 +333,8 @@ function WalkingTourPageInner() {
     setValidateError(null);
     setCategoryFilter(null);
     setPlaceCandidates([]);
+    setSearchOptions([]);
+    setBrowsePhase('landing');
   };
 
   if (hasStops && !loading) {
@@ -407,21 +552,89 @@ function WalkingTourPageInner() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
         <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-        <p className="mt-4 text-gray-600">Building your walking tour…</p>
+        <p className="mt-4 text-gray-600">
+          {browsePhase === 'picking'
+            ? 'Finding tour options for your destination…'
+            : 'Building your walking tour…'}
+        </p>
+      </div>
+    );
+  }
+
+  if (browsePhase === 'picking' && searchOptions.length > 0) {
+    const locationLabel = [city, country].filter(Boolean).join(', ');
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+        <div className="mx-auto max-w-5xl">
+          <button
+            type="button"
+            onClick={() => {
+              setSearchOptions([]);
+              setBrowsePhase('landing');
+            }}
+            className="mb-4 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+          >
+            ← Back to browse
+          </button>
+          <h1 className="mb-1 text-2xl font-bold text-gray-900">Pick a walking tour</h1>
+          <p className="mb-6 text-sm text-gray-600">
+            Sample routes for {locationLabel} — choose one to open the full map and stop guide.
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {searchOptions.map((option) => (
+              <WalkingTourSampleCard
+                key={`${option.title}-${option.theme}`}
+                title={option.title}
+                location={locationLabel}
+                summary={option.summary || option.theme}
+                theme={option.theme}
+                stops={option.stops}
+                onSelect={() => handlePickSearchOption(option)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Walking tour</h1>
-        <p className="text-gray-600 text-sm mb-6">
-          Enter a destination to generate a self-guided walking tour — no account needed. Ask the place
-          guide about history, food, and tips.
+      <div className="mx-auto max-w-5xl">
+        <h1 className="mb-2 text-2xl font-bold text-gray-900">Walking tour</h1>
+        <p className="mb-6 text-sm text-gray-600">
+          Browse sample routes in top tour cities, or search any destination for AI-generated options
+          to pick from — no account needed.
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+        <section className="mb-8">
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Popular tour cities</h2>
+              <p className="text-xs text-gray-500">
+                Curated samples — cached for a few hours after first load.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {curatedCards.map((card) => (
+              <WalkingTourSampleCard
+                key={card.id}
+                title={card.title ?? `${card.label} walking tour`}
+                location={`${card.city}, ${card.country}`}
+                summary={card.error ?? card.blurb}
+                theme={card.tier === 'budget' ? 'Budget-friendly' : 'Top tours'}
+                stops={card.stops ?? []}
+                loading={card.loading}
+                onSelect={() => handlePickCurated(card)}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-gray-900">Search any destination</h2>
+          <form onSubmit={handleSubmit} className="mx-auto max-w-lg space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div>
             <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
               Destination
@@ -482,9 +695,10 @@ function WalkingTourPageInner() {
             type="submit"
             className="w-full py-3 px-4 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700"
           >
-            Generate tour
+            Find tour options
           </button>
         </form>
+        </section>
       </div>
     </div>
   );

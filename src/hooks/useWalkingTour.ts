@@ -138,6 +138,63 @@ export function useWalkingTour() {
     setState(initialState);
   }, []);
 
+  const loadTour = useCallback(
+    (payload: {
+      title: string;
+      stops: TourStop[];
+    }) => {
+      setState({
+        loading: false,
+        error: null,
+        title: payload.title,
+        stops: payload.stops,
+        activeIndex: payload.stops.length ? 0 : 0,
+      });
+    },
+    []
+  );
+
+  const generateOptions = useCallback(
+    async (
+      city: string,
+      country: string,
+      preferences?: string
+    ): Promise<
+      | { ok: true; options: Array<{ title: string; summary: string; theme: string; stops: TourStop[] }> }
+      | { ok: false; error: string }
+    > => {
+      setState((s) => ({ ...s, loading: true, error: null, stops: [], title: null, activeIndex: 0 }));
+
+      try {
+        const body: Record<string, unknown> = { city, country };
+        if (preferences) body.preferences = preferences;
+
+        const res = await fetch('/api/tour/generate-options', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        const json = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          const message = json?.error ?? `Request failed (${res.status})`;
+          setState((s) => ({ ...s, loading: false, error: message }));
+          return { ok: false, error: message };
+        }
+
+        const options = Array.isArray(json?.data?.options) ? json.data.options : [];
+        setState((s) => ({ ...s, loading: false }));
+        return { ok: true, options };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Something went wrong';
+        setState((s) => ({ ...s, loading: false, error: message }));
+        return { ok: false, error: message };
+      }
+    },
+    []
+  );
+
   const loadSavedTour = useCallback(async (tourId: string) => {
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
@@ -183,6 +240,8 @@ export function useWalkingTour() {
     ...state,
     activeStop,
     generate,
+    generateOptions,
+    loadTour,
     goNext,
     goPrev,
     setActiveIndex,

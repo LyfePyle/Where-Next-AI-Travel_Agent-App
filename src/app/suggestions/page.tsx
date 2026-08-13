@@ -16,6 +16,7 @@ import {
   buildStopsFromSelection,
   suggestionPayloadForSelection,
 } from '@/lib/suggestion-drilldown';
+import { redirectToLoginForTripSave } from '@/lib/pending-trip-save';
 
 function getItineraryTeaser(suggestion: TripSuggestion): string[] {
   if (suggestion.itineraryTeaser?.length) {
@@ -246,30 +247,32 @@ function SuggestionsContent() {
     const title = `${countryTitle} Trip`;
     const suggestionPayload = suggestionPayloadForSelection(primarySuggestion, serialized);
 
+    const saveBody = {
+      destination,
+      title,
+      budgetAmount,
+      estimatedCost: primarySuggestion?.estimatedTotal ?? budgetAmount,
+      reason: primarySuggestion?.whyItFits,
+      fitScore: primarySuggestion?.fitScore,
+      bestTime: primarySuggestion?.seasonality,
+      source: 'suggestions',
+      tripDuration,
+      travelers: adults + kids,
+      adults,
+      kids,
+      startDate,
+      endDate: effectiveEndDate,
+      vibe: vibe || vibes[0] || undefined,
+      suggestion: suggestionPayload,
+      stops: serialized,
+    };
+
     setIsSavingSelection(true);
     try {
       const response = await fetch('/api/trips/saved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          destination,
-          title,
-          budgetAmount,
-          estimatedCost: primarySuggestion?.estimatedTotal ?? budgetAmount,
-          reason: primarySuggestion?.whyItFits,
-          fitScore: primarySuggestion?.fitScore,
-          bestTime: primarySuggestion?.seasonality,
-          source: 'suggestions',
-          tripDuration,
-          travelers: adults + kids,
-          adults,
-          kids,
-          startDate,
-          endDate: effectiveEndDate,
-          vibe: vibe || vibes[0] || undefined,
-          suggestion: suggestionPayload,
-          stops: serialized,
-        }),
+        body: JSON.stringify(saveBody),
       });
 
       if (response.ok) {
@@ -278,8 +281,10 @@ function SuggestionsContent() {
       }
 
       if (response.status === 401) {
-        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/auth/login?next=${returnUrl}`;
+        redirectToLoginForTripSave(
+          window.location.pathname + window.location.search,
+          saveBody
+        );
         return;
       }
 
@@ -816,27 +821,28 @@ function SuggestionsContent() {
                           startDate || '',
                           endDate || ''
                         );
+                        const saveBody = {
+                          destination: suggestion.destination,
+                          budgetAmount,
+                          estimatedCost: suggestion.estimatedTotal,
+                          reason: suggestion.whyItFits,
+                          fitScore: suggestion.fitScore,
+                          bestTime: suggestion.seasonality,
+                          source: 'suggestions',
+                          tripDuration,
+                          travelers: adults + kids,
+                          adults,
+                          kids,
+                          startDate: startDate || undefined,
+                          endDate: endDate || undefined,
+                          vibe: vibe || vibes[0] || undefined,
+                          suggestion,
+                          stops: resolvedStops,
+                        };
                         const response = await fetch('/api/trips/saved', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            destination: suggestion.destination,
-                            budgetAmount,
-                            estimatedCost: suggestion.estimatedTotal,
-                            reason: suggestion.whyItFits,
-                            fitScore: suggestion.fitScore,
-                            bestTime: suggestion.seasonality,
-                            source: 'suggestions',
-                            tripDuration,
-                            travelers: adults + kids,
-                            adults,
-                            kids,
-                            startDate: startDate || undefined,
-                            endDate: endDate || undefined,
-                            vibe: vibe || vibes[0] || undefined,
-                            suggestion,
-                            stops: resolvedStops,
-                          }),
+                          body: JSON.stringify(saveBody),
                         });
 
                         if (response.ok) {
@@ -850,8 +856,10 @@ function SuggestionsContent() {
                             window.location.href = '/saved';
                           }, 1000);
                         } else if (response.status === 401) {
-                          const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-                          window.location.href = `/auth/login?next=${returnUrl}`;
+                          redirectToLoginForTripSave(
+                            window.location.pathname + window.location.search,
+                            saveBody
+                          );
                         } else if (response.status === 429) {
                           const errorData = await response.json().catch(() => ({}));
                           alert(`🚫 ${errorData.error || 'Save limit reached. Please try again later.'}\n\nUpgrade to Pro to save unlimited trips!`);

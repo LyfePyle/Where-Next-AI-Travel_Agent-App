@@ -6,6 +6,7 @@ import TripCartDrawer from "@/components/TripCartDrawer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppProvider } from "@/contexts/AppContext";
 import GlobalNav from "@/components/GlobalNav";
+import PendingTripSaveResume from "@/components/auth/PendingTripSaveResume";
 import { Analytics } from "@vercel/analytics/react";
 
 const geistSans = Geist({
@@ -42,6 +43,7 @@ export default function RootLayout({
           <AppProvider>
             <GlobalNav />
             <TripCartProvider>
+              <PendingTripSaveResume />
               {children}
               <TripCartDrawer />
             </TripCartProvider>

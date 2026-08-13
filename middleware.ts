@@ -131,11 +131,12 @@ export async function middleware(request: NextRequest) {
     // Handle auth routes (redirect if already authenticated)
     if (AUTH_ROUTES.some(route => pathname.startsWith(route))) {
       if (isAuthenticated) {
-        // Check for redirect parameter
-        const redirectTo = request.nextUrl.searchParams.get('redirectTo');
-        const destination = redirectTo && redirectTo.startsWith('/') 
-          ? redirectTo 
-          : '/dashboard';
+        const redirectTo =
+          request.nextUrl.searchParams.get('redirectTo') ||
+          request.nextUrl.searchParams.get('redirect') ||
+          request.nextUrl.searchParams.get('next');
+        const destination =
+          redirectTo && redirectTo.startsWith('/') ? redirectTo : '/dashboard';
         return NextResponse.redirect(new URL(destination, request.url));
       }
     }

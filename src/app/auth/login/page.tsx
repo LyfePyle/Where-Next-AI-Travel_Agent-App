@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import {
+  destinationAfterPendingSave,
+  resumePendingTripSaveOnce,
+} from '@/lib/pending-trip-save';
 
 function getPostLoginPath(search: string) {
   const params = new URLSearchParams(search);
@@ -26,9 +30,19 @@ export default function LoginPage() {
   const { handleSignIn, handleSignInWithOAuth, user, isInitialized } = useApp();
   const router = useRouter();
 
+  async function finishLoginRedirect() {
+    const pendingResult = await resumePendingTripSaveOnce();
+    const pendingDest = destinationAfterPendingSave(pendingResult);
+    if (pendingDest) {
+      window.location.href = pendingDest;
+      return;
+    }
+    window.location.href = getPostLoginPath(window.location.search);
+  }
+
   useEffect(() => {
     if (!isInitialized || !user) return;
-    router.replace(getPostLoginPath(window.location.search));
+    void finishLoginRedirect();
   }, [isInitialized, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,7 +53,7 @@ export default function LoginPage() {
     try {
       await handleSignIn(email, password);
 
-      window.location.href = getPostLoginPath(window.location.search);
+      await finishLoginRedirect();
     } catch (error: any) {
       // Display the actual error message
       setError(error.message || 'Invalid email or password. Please try again.');
@@ -56,12 +70,12 @@ export default function LoginPage() {
       // Try new test account first, fallback to legacy demo account
       try {
         await handleSignIn('test@wherenext.app', 'TestPassword2024!');
-        window.location.href = getPostLoginPath(window.location.search);
+        await finishLoginRedirect();
       } catch (firstError: any) {
         console.log('First account failed, trying demo account...', firstError.message);
         // Fallback to legacy demo account
         await handleSignIn('demo@example.com', 'password123');
-        window.location.href = getPostLoginPath(window.location.search);
+        await finishLoginRedirect();
       }
     } catch (error: any) {
       setError(error.message || 'Demo login failed. Please try again.');

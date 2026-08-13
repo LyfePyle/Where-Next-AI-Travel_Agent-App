@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { redirectToLoginForTripSave } from '@/lib/pending-trip-save';
 
 export interface TripDetailsEnhancedProps {
   tripId: string;
@@ -101,33 +102,35 @@ export default function TripDetailsEnhanced({
   async function handleSave() {
     setSaving(true);
     try {
+      const saveBody = {
+        destination,
+        estimatedCost: estTotal,
+        reason: whyItFits,
+        fitScore,
+        source: 'trip-details',
+        adults: travelers.adults,
+        kids: travelers.kids,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        vibe: vibe || undefined,
+        title: `${destination.split(',')[0]?.trim() || destination} Trip`,
+        // Persist the AI preview content so the saved trip renders fully on reopen.
+        description: description || undefined,
+        highlights: highlights && highlights.length ? highlights : undefined,
+        whyItFits: whyItFits || undefined,
+        crowdLevel: crowdLevel || undefined,
+        seasonality: seasonality || undefined,
+        weatherTemp: weatherTemp ?? undefined,
+        weatherIcon: weatherIcon || undefined,
+        flightBand: flightBand || undefined,
+        hotelBand: hotelBand || undefined,
+      };
+
       const res = await fetch('/api/trips/saved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          destination,
-          estimatedCost: estTotal,
-          reason: whyItFits,
-          fitScore,
-          source: 'trip-details',
-          adults: travelers.adults,
-          kids: travelers.kids,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          vibe: vibe || undefined,
-          title: `${destination.split(',')[0]?.trim() || destination} Trip`,
-          // Persist the AI preview content so the saved trip renders fully on reopen.
-          description: description || undefined,
-          highlights: highlights && highlights.length ? highlights : undefined,
-          whyItFits: whyItFits || undefined,
-          crowdLevel: crowdLevel || undefined,
-          seasonality: seasonality || undefined,
-          weatherTemp: weatherTemp ?? undefined,
-          weatherIcon: weatherIcon || undefined,
-          flightBand: flightBand || undefined,
-          hotelBand: hotelBand || undefined,
-        }),
+        body: JSON.stringify(saveBody),
       });
 
       if (res.status === 401) {
@@ -135,7 +138,7 @@ export default function TripDetailsEnhanced({
           typeof window !== 'undefined'
             ? `${window.location.pathname}${window.location.search}`
             : `/trip-details/${tripId}`;
-        router.push(`/auth/login?redirectTo=${encodeURIComponent(returnPath)}`);
+        redirectToLoginForTripSave(returnPath, saveBody);
         return;
       }
       if (res.status === 409) {

@@ -440,8 +440,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       console.log(`Attempting ${provider} OAuth sign in...`);
-      
-      const redirectTo = `${window.location.origin}/auth/callback`;
+
+      const params = new URLSearchParams(window.location.search);
+      const returnPath =
+        params.get('redirectTo') ||
+        params.get('redirect') ||
+        params.get('next') ||
+        '/dashboard';
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnPath)}`;
       
       const supabase = createClient();
       const { data, error } = await supabase.auth.signInWithOAuth({

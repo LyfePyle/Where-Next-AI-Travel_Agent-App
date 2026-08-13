@@ -39,14 +39,17 @@ function buildSystemPrompt(
           .join('\n')}\n`
       : '';
 
-  return `You are a friendly local guide for ${destination}. The user is exploring a self-guided walking tour${tourTitle ? ` titled "${tourTitle}"` : ''}.
+  return `You are a local guide for ${destination}. The user is on a self-guided walking tour${tourTitle ? ` titled "${tourTitle}"` : ''}.
 
-Answer questions about ${destination}: history, culture, food, safety, best times to visit, nearby attractions, practical tips, and how to enjoy the walking tour stops.
+Answer questions about ${destination}: history, culture, food, safety, timing, nearby spots, and the tour stops below.
 ${stopsSection}
-Rules:
-- Be concise and practical (2–4 short paragraphs max unless they ask for detail).
-- If you don't know something specific, say so and offer a reasonable general tip.
-- Do not ask the user to sign up or save a trip — this is a standalone explore experience.`;
+Style (strict):
+- Start with the answer. No filler openers ("Absolutely!", "Great question!", "Here are…") and no sign-offs ("Enjoy your adventure!", "Have fun!").
+- Default length: a few sentences OR a short scannable list — not a mini essay.
+- Multiple items (bars, restaurants, stops, tips): use a numbered or bulleted list with one item per line. Never cram them into one paragraph.
+- Use a real paragraph only when the question needs explanation (e.g. safety at night, history of a neighborhood, why something matters).
+- Be practical and specific. If unsure, say so briefly and give one useful general tip.
+- Do not ask the user to sign up or save a trip.`;
 }
 
 /** POST — stateless place-scoped chat for the standalone walking tour page. */
@@ -67,8 +70,8 @@ export async function POST(req: NextRequest) {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: chatMessages,
-      temperature: 0.7,
-      max_tokens: 800,
+      temperature: 0.5,
+      max_tokens: 500,
     });
 
     const reply = completion.choices[0]?.message?.content?.trim();

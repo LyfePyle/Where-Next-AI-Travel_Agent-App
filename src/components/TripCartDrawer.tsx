@@ -2,6 +2,10 @@
 
 import { useState, useContext, createContext } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+/** Routes where trip cart actions are irrelevant — hide the FAB instead of overlapping page controls. */
+const CART_HIDDEN_PREFIXES = ['/walking-tour'];
 
 // Types for cart items
 export interface CartItem {
@@ -68,6 +72,10 @@ export function useTripCart() {
 export default function TripCartDrawer() {
   const { items, removeItem, totalPrice } = useTripCart();
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const hideFab = CART_HIDDEN_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
 
   const getItemIcon = (type: string) => {
     switch (type) {
@@ -89,7 +97,8 @@ export default function TripCartDrawer() {
 
   return (
     <>
-      {/* Floating Action Button */}
+      {/* Floating Action Button — hidden on walking tour (no cart actions; avoids crowding mobile controls) */}
+      {!hideFab && (
       <button
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 z-50 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
@@ -105,6 +114,7 @@ export default function TripCartDrawer() {
           )}
         </div>
       </button>
+      )}
 
       {/* Drawer Overlay */}
       {isOpen && (

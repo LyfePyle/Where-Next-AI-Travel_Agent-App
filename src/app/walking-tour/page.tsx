@@ -341,7 +341,7 @@ function WalkingTourPageInner() {
     const detailStop = activeStop;
 
     return (
-      <div className="min-h-screen bg-gray-50 pb-[env(safe-area-inset-bottom)]">
+      <div className="min-h-screen bg-gray-50 pb-28 lg:pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-6xl mx-auto px-3 md:px-6 py-4 md:py-6">
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
             <div className="flex-1 min-w-0">
@@ -506,7 +506,7 @@ function WalkingTourPageInner() {
                       </>
                     ) : null}
 
-                    <div className="pt-4 mt-4 border-t border-gray-100 flex items-center justify-between">
+                    <div className="hidden md:flex pt-4 mt-4 border-t border-gray-100 items-center justify-between">
                       <button
                         type="button"
                         onClick={goPrevVisible}
@@ -544,6 +544,37 @@ function WalkingTourPageInner() {
             )}
           </div>
         </div>
+
+        {visibleStops.length > 0 && (
+          <div
+            className="lg:hidden fixed inset-x-0 z-30 px-4 pointer-events-none"
+            style={{ bottom: 'max(5.25rem, calc(env(safe-area-inset-bottom) + 4.5rem))' }}
+          >
+            <div className="pointer-events-auto mx-auto flex max-w-lg items-center justify-between gap-3 rounded-full border border-gray-200 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur">
+              <button
+                type="button"
+                onClick={goPrevVisible}
+                disabled={visibleActiveIndex === 0}
+                className="flex min-h-[44px] items-center gap-1 rounded-full px-2 text-sm font-medium text-gray-700 disabled:opacity-40"
+              >
+                <ChevronLeft className="h-5 w-5" />
+                Prev
+              </button>
+              <span className="text-sm font-medium text-gray-500 tabular-nums">
+                {visibleActiveIndex + 1} / {visibleStops.length}
+              </span>
+              <button
+                type="button"
+                onClick={goNextVisible}
+                disabled={visibleActiveIndex === visibleStops.length - 1}
+                className="flex min-h-[44px] items-center gap-1 rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                Next
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

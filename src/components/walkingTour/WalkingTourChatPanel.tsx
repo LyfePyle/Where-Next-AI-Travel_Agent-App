@@ -106,7 +106,7 @@ function ChatBody({
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`max-w-[92%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
+            className={`max-w-[92%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
               msg.role === 'user'
                 ? 'self-end bg-[#D97706] text-white'
                 : 'self-start bg-[#F5F0E8] text-[#1C1917] border border-[#EAE3D5]'

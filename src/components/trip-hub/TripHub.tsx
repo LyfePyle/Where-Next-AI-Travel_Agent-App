@@ -4,7 +4,7 @@
  * Travel command center for one saved trip — /my-trip/[id]
  */
 
-import { useState, Suspense, useCallback } from 'react';
+import { useState, Suspense, useCallback, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getAffiliateLinks, type AffiliateLink as AffiliateLinkData } from '@/lib/affiliates';
@@ -17,6 +17,7 @@ import { useToast, ToastContainer } from '@/hooks/useToast';
 import TripHubStopsSection from '@/components/trip-hub/TripHubStopsSection';
 import TripChatPanel from '@/components/trip-hub/TripChatPanel';
 import TripItineraryTab from '@/components/trip-hub/TripItineraryTab';
+import TripBudgetTab from '@/components/trip-hub/TripBudgetTab';
 import TripRouteMap from '@/components/trip-hub/TripRouteMap';
 import { useTripEditState } from '@/components/trip-hub/useTripEditState';
 import type { ChatMessageRow } from '@/app/api/trips/[id]/chat/route';
@@ -56,7 +57,7 @@ export interface Booking {
   traveler_email?: string;
 }
 
-type TabId = 'overview' | 'book' | 'documents' | 'itinerary';
+type TabId = 'overview' | 'book' | 'documents' | 'itinerary' | 'budget';
 
 interface TripHubProps {
   trip: Trip;
@@ -205,30 +206,52 @@ function DocSlot({ icon, label }: { icon: string; label: string }) {
   );
 }
 
-function UtilBtn({ href, icon, label }: { href: string; icon: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 5,
-        padding: '14px 8px',
-        borderRadius: 8,
-        background: '#fff',
-        border: '1px solid #EAE3D5',
-        textDecoration: 'none',
-        color: '#44403C',
-        fontSize: 11,
-        fontFamily: 'monospace',
-        textTransform: 'uppercase',
-        letterSpacing: '0.04em',
-        textAlign: 'center',
-      }}
-    >
+function UtilBtn({
+  href,
+  onClick,
+  icon,
+  label,
+}: {
+  href?: string;
+  onClick?: () => void;
+  icon: string;
+  label: string;
+}) {
+  const style: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 5,
+    padding: '14px 8px',
+    borderRadius: 8,
+    background: '#fff',
+    border: '1px solid #EAE3D5',
+    textDecoration: 'none',
+    color: '#44403C',
+    fontSize: 11,
+    fontFamily: 'monospace',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    textAlign: 'center',
+    cursor: 'pointer',
+    width: '100%',
+  };
+  const inner = (
+    <>
       <span style={{ fontSize: '1.4rem' }}>{icon}</span>
       {label}
+    </>
+  );
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} style={style}>
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <Link href={href ?? '#'} style={style}>
+      {inner}
     </Link>
   );
 }
@@ -238,6 +261,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'book', label: '🔗 Book' },
   { id: 'documents', label: '📄 Documents' },
   { id: 'itinerary', label: '📅 Itinerary' },
+  { id: 'budget', label: '💰 Budget' },
 ];
 
 function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = false, undoExpiresAt = null }: TripHubProps) {
@@ -870,7 +894,7 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
                   gap: 8,
                 }}
               >
-                <UtilBtn href={`/budget?tripId=${trip.id}`} icon="💰" label="Budget" />
+                <UtilBtn onClick={() => setActiveTab('budget')} icon="💰" label="Budget" />
                 <UtilBtn
                   href={`/utilities/weather?destination=${toolDestEnc}&tripId=${trip.id}`}
                   icon="🌤"
@@ -1006,6 +1030,15 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
 
         {activeTab === 'itinerary' && (
           <TripItineraryTab tripId={trip.id} stops={stops} active={activeTab === 'itinerary'} />
+        )}
+
+        {activeTab === 'budget' && (
+          <TripBudgetTab
+            tripId={trip.id}
+            budgetAmount={trip.budget_amount}
+            startDate={trip.start_date}
+            stops={stops}
+          />
         )}
         </div>
 

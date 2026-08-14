@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { DollarSign, Calculator, Save, ArrowRight, Users, Calendar, MapPin } from 'lucide-react';
 import { tripDurationDays } from '@/lib/parse-destination';
 import { shortTripDestinationSummary } from '@/lib/place-names';
+import { getBudgetMode } from '@/lib/trip-budget';
+import TravelingExpenseTracker from '@/components/trip-hub/TravelingExpenseTracker';
 
 function PublicBudgetPageInner() {
   const searchParams = useSearchParams();
@@ -17,17 +19,35 @@ function PublicBudgetPageInner() {
   const [travelers, setTravelers] = useState(2);
   const [budgetStyle, setBudgetStyle] = useState<'budget' | 'comfortable' | 'luxury'>('comfortable');
   const [tripTitle, setTripTitle] = useState<string | null>(null);
+  const [savedTrip, setSavedTrip] = useState<{
+    start_date: string | null;
+    stops: Array<{ startDate?: string | null; order?: number }>;
+    budget_amount: number | null;
+  } | null>(null);
+  const [tripLoadState, setTripLoadState] = useState<'loading' | 'done'>(
+    tripId ? 'loading' : 'done'
+  );
 
   useEffect(() => {
-    if (!tripId) return;
+    if (!tripId) {
+      setTripLoadState('done');
+      return;
+    }
     let cancelled = false;
 
     async function loadTrip() {
+      setTripLoadState('loading');
       try {
         const res = await fetch(`/api/trips/${tripId}`);
-        if (!res.ok || cancelled) return;
+        if (!res.ok || cancelled) {
+          if (!cancelled) setTripLoadState('done');
+          return;
+        }
         const { trip } = await res.json();
-        if (cancelled || !trip) return;
+        if (cancelled || !trip) {
+          if (!cancelled) setTripLoadState('done');
+          return;
+        }
 
         setTripTitle(trip.title || trip.destination);
         if (Array.isArray(trip.stops) && trip.stops.length > 0) {
@@ -42,8 +62,18 @@ function PublicBudgetPageInner() {
         const kids = trip.kids ?? trip.travelers?.kids ?? 0;
         setTravelers(Math.max(1, adults + kids));
         setTripDuration(tripDurationDays(trip.start_date, trip.end_date));
+        setSavedTrip({
+          start_date: trip.start_date ?? null,
+          stops: Array.isArray(trip.stops) ? trip.stops : [],
+          budget_amount:
+            typeof trip.budget_amount === 'number' && Number.isFinite(trip.budget_amount)
+              ? trip.budget_amount
+              : null,
+        });
       } catch {
         /* keep defaults */
+      } finally {
+        if (!cancelled) setTripLoadState('done');
       }
     }
 
@@ -95,6 +125,39 @@ function PublicBudgetPageInner() {
     Math.round((totalBudget * currentBreakdown.accommodation) / safeTripDuration)
   );
   const destinationParam = destination.trim() || 'Madrid, Spain';
+  const isTraveling =
+    Boolean(tripId) &&
+    savedTrip != null &&
+    getBudgetMode(savedTrip.start_date, savedTrip.stops) === 'traveling';
+
+  if (tripId && tripLoadState === 'loading') {
+    return <div className="min-h-screen bg-gray-50" />;
+  }
+
+  if (isTraveling && tripId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="mx-auto max-w-3xl px-4 py-8">
+          <Link
+            href={`/my-trip/${tripId}?tab=budget`}
+            className="mb-4 inline-block text-sm text-indigo-600 hover:underline"
+          >
+            ← Back to trip
+          </Link>
+          <h1 className="mb-2 text-3xl font-bold text-black">
+            {tripTitle ? `Spending · ${tripTitle}` : 'Trip spending'}
+          </h1>
+          <p className="mb-6 text-gray-600">
+            Your trip has started — log expenses against your saved budget.
+          </p>
+          <TravelingExpenseTracker
+            tripId={tripId}
+            budgetAmount={savedTrip?.budget_amount}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -8,7 +8,7 @@ import { normalizeTripStopsFromRow } from '@/lib/trip-stops';
 
 export const metadata: Metadata = {
   title: 'Trip Hub — Where Next',
-  description: 'Your travel command center — flights, hotels, documents and itinerary in one place.',
+  description: 'Your travel command center — flights, hotels, documents, itinerary and budget in one place.',
 };
 
 export default async function MyTripPage({

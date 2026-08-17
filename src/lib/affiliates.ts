@@ -126,18 +126,36 @@ export function skyscannerFlightLink(
   };
 }
 
-// Tours
+/**
+ * Viator affiliate links must be an *active* viator.com page plus tracking params:
+ *   ?pid=P000xxxxx&mcid=42383&medium=link
+ * PID is a 9-character account id like P00049694 (from the partner dashboard).
+ * Do not invent destination slugs or IDs (e.g. /en-GB/foo/d0-ttd) — those 404.
+ * Search is the reliable category landing for arbitrary stop/city names.
+ * @see https://partnerresources.viator.com/blog/attribution/
+ */
 export function viatorLink(dest: string): AffiliateLink {
-  const slug = dest.toLowerCase().replace(/[\s,]+/g, '-');
-  const p = new URLSearchParams({ mcid: '42383', medium: 'api' });
+  const query = dest.trim();
+  const p = new URLSearchParams({
+    text: query,
+    mcid: '42383',
+    medium: 'link',
+    campaign: 'where-next',
+  });
   if (IDS.viator) p.set('pid', IDS.viator);
+
+  const url = `https://www.viator.com/searchResults/all?${p.toString()}`;
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[viatorLink]', query, url);
+  }
+
   return {
     type: 'tours',
     partner: 'Viator',
     label: `Tours in ${dest}`,
     sublabel: 'via Viator',
     emoji: '🎭',
-    url: `https://www.viator.com/en-GB/${slug}/d0-ttd?${p}`,
+    url,
   };
 }
 

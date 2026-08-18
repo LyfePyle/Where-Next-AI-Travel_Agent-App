@@ -7,6 +7,8 @@ export const TRIP_CHAT_FOCUS_EVENT = 'where-next:focus-trip-chat';
 export interface TripChatFocusDetail {
   /** Prefill only when the composer is empty. */
   draft?: string;
+  /** Itinerary day id injected into the existing chat system prompt. */
+  focusDayId?: string;
 }
 
 export function focusTripChat(detail: TripChatFocusDetail = {}): void {

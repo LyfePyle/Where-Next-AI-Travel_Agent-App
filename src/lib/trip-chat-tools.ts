@@ -307,6 +307,22 @@ export function buildTripBudgetContextForPrompt(trip: TripBudgetRow, stops: Trip
   return JSON.stringify(payload, null, 2);
 }
 
+/** Mark which itinerary day the user is looking at (Trip Hub "Change this day in chat"). */
+export function withFocusedItineraryDay(
+  summary: string,
+  focus: {
+    city: string;
+    dayIndex: number;
+    dayId: string;
+    stopId: string;
+  } | null
+): string {
+  if (!focus) return summary;
+  return `${summary}
+
+Currently viewing: Day ${focus.dayIndex} in ${focus.city} (id: ${focus.dayId}, stop_id: ${focus.stopId}). When the user says "this day", "today's plan", or does not name a day, apply regenerate_day / add_itinerary_block / remove_itinerary_block to this day.`;
+}
+
 export function buildTripChatSystemPrompt(
   stops: TripStop[],
   tripStart: string,

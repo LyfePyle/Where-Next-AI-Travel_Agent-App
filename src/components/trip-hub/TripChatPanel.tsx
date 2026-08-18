@@ -162,6 +162,7 @@ export default function TripChatPanel({
   const [undoExpiresAt, setUndoExpiresAt] = useState(initialUndoExpiresAt);
   const [error, setError] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [focusDayId, setFocusDayId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -169,6 +170,7 @@ export default function TripChatPanel({
     const onFocusChat = (event: Event) => {
       const detail = (event as CustomEvent<TripChatFocusDetail>).detail ?? {};
       setMobileOpen(true);
+      if (detail.focusDayId) setFocusDayId(detail.focusDayId);
       if (detail.draft) {
         setInput((current) => (current.trim() ? current : detail.draft!));
       }
@@ -234,7 +236,10 @@ export default function TripChatPanel({
       const res = await fetch(`/api/trips/${tripId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          ...(focusDayId ? { focusDayId } : {}),
+        }),
       });
 
       let data: {
@@ -280,7 +285,7 @@ export default function TripChatPanel({
     } finally {
       setSending(false);
     }
-  }, [input, sending, tripId, router]);
+  }, [input, sending, tripId, router, focusDayId]);
 
   const handleUndo = useCallback(
     async (messageId: string) => {

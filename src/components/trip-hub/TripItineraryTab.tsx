@@ -210,7 +210,10 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
     const stop = stops.find((s) => s.id === day.stop_id);
     const city = stop ? stopLabel(stop) : 'this stop';
     setSelectedDayId(day.id);
-    focusTripChat({ draft: itineraryDayChatDraft(city, day.day_index) });
+    focusTripChat({
+      draft: itineraryDayChatDraft(city, day.day_index),
+      focusDayId: day.id,
+    });
   };
 
   const highlightedPointId = (() => {

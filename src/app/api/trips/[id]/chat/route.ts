@@ -8,7 +8,7 @@ import {
   validateStopsForSave,
 } from '@/lib/trip-stops';
 import { applyToolCalls, type ToolCallInput } from '@/lib/trip-mutations';
-import { buildTripBudgetContextForPrompt, buildTripChatSystemPrompt, TRIP_CHAT_TOOLS } from '@/lib/trip-chat-tools';
+import { buildTripBudgetContextForPrompt, buildTripChatSystemPrompt, TRIP_CHAT_TOOLS, withFocusedItineraryDay } from '@/lib/trip-chat-tools';
 import { generateStopPreview } from '@/lib/generate-stop-preview';
 import {
   isMultiStopBlob,
@@ -284,7 +284,7 @@ export async function POST(
     return NextResponse.json({ error: 'OpenAI not configured' }, { status: 503 });
   }
 
-  let body: { message?: string };
+  let body: { message?: string; focusDayId?: string };
   try {
     body = await request.json();
   } catch {
@@ -301,7 +301,25 @@ export async function POST(
   const tripStart = tripStartDate(stops) || String(trip.start_date ?? '');
   const itineraryContext = extractTripItineraryContext(trip);
   const itineraryDays = await fetchItineraryDays(supabase, id);
-  const itinerarySummary = buildItinerarySummaryForPrompt(stops, itineraryDays);
+  const focusDayId = typeof body.focusDayId === 'string' ? body.focusDayId.trim() : '';
+  const focusDay = focusDayId
+    ? itineraryDays.find((d) => d.id === focusDayId) ?? null
+    : null;
+  const focusStop = focusDay ? stops.find((s) => s.id === focusDay.stop_id) : null;
+  const itinerarySummary = withFocusedItineraryDay(
+    buildItinerarySummaryForPrompt(stops, itineraryDays),
+    focusDay && focusStop
+      ? {
+          city:
+            focusStop.city ||
+            focusStop.destination.split(',')[0]?.trim() ||
+            focusStop.destination,
+          dayIndex: focusDay.day_index,
+          dayId: focusDay.id,
+          stopId: focusDay.stop_id,
+        }
+      : null
+  );
 
   const { data: history } = await supabase
     .from('trip_chat_messages')

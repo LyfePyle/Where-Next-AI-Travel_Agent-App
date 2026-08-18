@@ -3,13 +3,12 @@
  */
 
 import OpenAI from 'openai';
-import type { GeneratedItineraryDay, ItineraryBlock, TimeOfDay } from '@/types/itinerary';
+import { parseItineraryBlock } from '@/lib/itinerary-blocks';
+import type { GeneratedItineraryDay, ItineraryBlock } from '@/types/itinerary';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
-
-const VALID_TIMES: TimeOfDay[] = ['morning', 'afternoon', 'evening'];
 
 export interface StopGenerationInput {
   city: string;
@@ -38,6 +37,8 @@ RULES
 - Generate exactly the requested number of days.
 - Each day gets 2-3 blocks. Never more than 3. A quiet arrival day or a slow last day can have just 1-2.
 - Each block has a time_of_day (morning, afternoon, or evening), a short title (5-8 words, concrete), and a 1-2 sentence description that's specific but short.
+- Each block MUST include a "place" — a real, geocodable named location in this city (landmark, neighborhood, market, museum, park, or a specific restaurant/street). Never "the area", "downtown", or the city name alone.
+- Each block MUST include numeric "lat" and "lng" (WGS84) for that place. Prefer the actual site, not the city centroid.
 - No filler language. Never write "explore the vibrant streets of" or "discover the magic of".
 - Don't repeat the same activity type two days running unless the place genuinely calls for it.
 - Day 1 should account for arrival (lighter); if this is the last stop, the final day should account for departure.
@@ -53,7 +54,10 @@ OUTPUT — strict JSON, no prose, no markdown fences:
         {
           "time_of_day": "morning",
           "title": "string",
-          "description": "string"
+          "description": "string",
+          "place": "string",
+          "lat": 0,
+          "lng": 0
         }
       ]
     }
@@ -79,10 +83,13 @@ function buildUserPrompt(input: StopGenerationInput): string {
 function buildRegenerateUserPrompt(input: RegenerateDayInput): string {
   const base = buildUserPrompt({ ...input, nights: 1 });
   const current = JSON.stringify(
-    input.currentBlocks.map(({ time_of_day, title, description }) => ({
+    input.currentBlocks.map(({ time_of_day, title, description, place, lat, lng }) => ({
       time_of_day,
       title,
       description,
+      ...(place ? { place } : {}),
+      ...(typeof lat === 'number' ? { lat } : {}),
+      ...(typeof lng === 'number' ? { lng } : {}),
     }))
   );
   return [
@@ -97,26 +104,16 @@ function buildRegenerateUserPrompt(input: RegenerateDayInput): string {
     .join('\n');
 }
 
-function normalizeTimeOfDay(raw: unknown, index: number): TimeOfDay {
-  const s = typeof raw === 'string' ? raw.toLowerCase().trim() : '';
-  if (VALID_TIMES.includes(s as TimeOfDay)) return s as TimeOfDay;
-  return VALID_TIMES[index % VALID_TIMES.length];
-}
-
 function normalizeBlocks(raw: unknown): Omit<ItineraryBlock, 'id'>[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .slice(0, 3)
-    .map((b, i) => {
-      const o = b && typeof b === 'object' ? (b as Record<string, unknown>) : {};
-      const title = typeof o.title === 'string' ? o.title.trim() : '';
-      const description = typeof o.description === 'string' ? o.description.trim() : '';
-      if (!title) return null;
-      return {
-        time_of_day: normalizeTimeOfDay(o.time_of_day, i),
-        title,
-        description: description || title,
-      };
+    .map((b) => {
+      const parsed = parseItineraryBlock(b);
+      if (!parsed?.title) return null;
+      const { id: _id, ...rest } = parsed;
+      if (!rest.description) rest.description = rest.title;
+      return rest;
     })
     .filter((b): b is Omit<ItineraryBlock, 'id'> => b !== null);
 }
@@ -211,7 +208,7 @@ async function callOpenAI(userPrompt: string, expectedDays: number): Promise<Gen
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o',
     temperature: 0.6,
-    max_tokens: 2000,
+    max_tokens: 3000,
     messages: [
       { role: 'system', content: buildSystemPrompt() },
       { role: 'user', content: userPrompt },

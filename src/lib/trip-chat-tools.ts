@@ -130,6 +130,12 @@ export const TRIP_CHAT_TOOLS = [
               time_of_day: { type: 'string', enum: ['morning', 'afternoon', 'evening'] },
               title: { type: 'string' },
               description: { type: 'string' },
+              place: {
+                type: 'string',
+                description: 'Named venue, neighborhood, or landmark to geocode',
+              },
+              lat: { type: 'number', description: 'Optional WGS84 latitude' },
+              lng: { type: 'number', description: 'Optional WGS84 longitude' },
             },
             required: ['time_of_day', 'title', 'description'],
           },

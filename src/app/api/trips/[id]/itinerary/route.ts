@@ -9,6 +9,7 @@ import {
   itineraryIsComplete,
 } from '@/lib/trip-itinerary';
 import type { ItineraryBlock } from '@/types/itinerary';
+import { parseItineraryBlock } from '@/lib/itinerary-blocks';
 
 async function supabaseServer() {
   const cookieStore = await cookies();
@@ -117,25 +118,7 @@ export async function PATCH(
   }
 
   const blocks: ItineraryBlock[] = body.blocks
-    .map((b) => {
-      if (!b || typeof b !== 'object') return null;
-      const o = b as Record<string, unknown>;
-      const blockId =
-        typeof o.id === 'string' && o.id.trim()
-          ? o.id.trim()
-          : `blk-${Math.random().toString(36).slice(2, 10)}`;
-      const time = typeof o.time_of_day === 'string' ? o.time_of_day : 'afternoon';
-      const time_of_day =
-        time === 'morning' || time === 'afternoon' || time === 'evening'
-          ? time
-          : 'afternoon';
-      return {
-        id: blockId,
-        time_of_day,
-        title: typeof o.title === 'string' ? o.title : '',
-        description: typeof o.description === 'string' ? o.description : '',
-      };
-    })
+    .map((b) => parseItineraryBlock(b))
     .filter((b): b is ItineraryBlock => b !== null)
     .slice(0, 6);
 

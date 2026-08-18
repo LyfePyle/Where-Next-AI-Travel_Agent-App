@@ -6,6 +6,61 @@ const TIME_ORDER: Record<TimeOfDay, number> = {
   evening: 2,
 };
 
+export function parseBlockCoords(
+  raw: Record<string, unknown>
+): { lat: number; lng: number } | undefined {
+  const lat = Number(raw.lat ?? raw.latitude);
+  const lng = Number(raw.lng ?? raw.lon ?? raw.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return undefined;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return undefined;
+  if (lat === 0 && lng === 0) return undefined;
+  return { lat, lng };
+}
+
+export function hasBlockCoords(
+  block: Pick<ItineraryBlock, 'lat' | 'lng'>
+): block is ItineraryBlock & { lat: number; lng: number } {
+  return (
+    Number.isFinite(block.lat) &&
+    Number.isFinite(block.lng) &&
+    Math.abs(block.lat as number) <= 90 &&
+    Math.abs(block.lng as number) <= 180
+  );
+}
+
+/**
+ * Allowlisted itinerary block parse. Extra JSON fields are dropped; lat/lng/place
+ * are kept so map coords survive PATCH and chat edits.
+ */
+export function parseItineraryBlock(raw: unknown): ItineraryBlock | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const id =
+    typeof o.id === 'string' && o.id.trim()
+      ? o.id.trim()
+      : `blk-${Math.random().toString(36).slice(2, 10)}`;
+  const time = typeof o.time_of_day === 'string' ? o.time_of_day.toLowerCase().trim() : '';
+  const time_of_day: TimeOfDay =
+    time === 'morning' || time === 'afternoon' || time === 'evening' ? time : 'afternoon';
+  const title = typeof o.title === 'string' ? o.title.trim() : '';
+  const description = typeof o.description === 'string' ? o.description.trim() : '';
+  const place = typeof o.place === 'string' ? o.place.trim() : '';
+  const coords = parseBlockCoords(o);
+
+  const block: ItineraryBlock = {
+    id,
+    time_of_day,
+    title,
+    description,
+  };
+  if (place) block.place = place;
+  if (coords) {
+    block.lat = coords.lat;
+    block.lng = coords.lng;
+  }
+  return block;
+}
+
 /** Display order: morning → afternoon → evening (self-heals any write order). */
 export function sortBlocksByTimeOfDay(blocks: ItineraryBlock[]): ItineraryBlock[] {
   return [...blocks].sort(

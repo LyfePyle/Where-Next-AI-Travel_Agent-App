@@ -93,6 +93,9 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
       if (cancelled) return;
       setLoading(false);
 
+      // Incomplete = missing days. Do not regenerate complete trips that
+      // merely lack lat/lng — those keep a city-pin fallback until the user
+      // regenerates a day or the whole plan.
       if (data && !data.complete && stops.length > 0) {
         await triggerGenerate();
       }

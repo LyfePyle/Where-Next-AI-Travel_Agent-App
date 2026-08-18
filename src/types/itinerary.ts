@@ -5,6 +5,12 @@ export interface ItineraryBlock {
   time_of_day: TimeOfDay;
   title: string;
   description: string;
+  /** Named venue/neighborhood/landmark used to geocode this block. */
+  place?: string;
+  /** WGS84 latitude. Omitted on older saved trips until regenerated. */
+  lat?: number;
+  /** WGS84 longitude. Omitted on older saved trips until regenerated. */
+  lng?: number;
 }
 
 export interface TripItineraryDay {

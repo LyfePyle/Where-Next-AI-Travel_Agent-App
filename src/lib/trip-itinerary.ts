@@ -9,6 +9,7 @@ import {
   regenerateItineraryDay,
   withBlockIds,
 } from '@/lib/generate-itinerary-days';
+import { attachCoordsToBlocks, attachCoordsToGeneratedDays } from '@/lib/geocode-itinerary-block';
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
 import type { ToolCallInput } from '@/lib/trip-mutations';
@@ -17,6 +18,7 @@ import {
   dayHasSimilarBlock,
   findRecentlyRemovedTitles,
   parseRequestedActivities,
+  parseItineraryBlock,
   sortBlocksByTimeOfDay,
   type ChatHistoryRow,
 } from '@/lib/itinerary-blocks';
@@ -55,22 +57,7 @@ function normalizeRow(raw: Record<string, unknown>): TripItineraryDay | null {
   let blocks: ItineraryBlock[] = [];
   if (Array.isArray(raw.blocks)) {
     blocks = raw.blocks
-      .map((b) => {
-        if (!b || typeof b !== 'object') return null;
-        const o = b as Record<string, unknown>;
-        const blockId = str(o.id) || `blk-${Math.random().toString(36).slice(2, 10)}`;
-        const time = str(o.time_of_day);
-        const time_of_day =
-          time === 'morning' || time === 'afternoon' || time === 'evening'
-            ? time
-            : 'afternoon';
-        return {
-          id: blockId,
-          time_of_day,
-          title: str(o.title),
-          description: str(o.description),
-        };
-      })
+      .map((b) => parseItineraryBlock(b))
       .filter((b): b is ItineraryBlock => b !== null);
   }
 
@@ -219,16 +206,20 @@ export async function generateItineraryForStop(
   const stopIndex = options?.stopIndex ?? 0;
   const stopCount = options?.stopCount ?? 1;
 
-  const generated = withBlockIds(
-    await generateItineraryDaysForStop({
-      city: cityFromStop(stop),
-      country: countryFromStop(stop),
-      nights,
-      vibes: context.vibes,
-      additionalDetails: context.additionalDetails,
-      isFirstStop: stopIndex === 0,
-      isLastStop: stopIndex === stopCount - 1,
-    })
+  const generated = await attachCoordsToGeneratedDays(
+    withBlockIds(
+      await generateItineraryDaysForStop({
+        city: cityFromStop(stop),
+        country: countryFromStop(stop),
+        nights,
+        vibes: context.vibes,
+        additionalDetails: context.additionalDetails,
+        isFirstStop: stopIndex === 0,
+        isLastStop: stopIndex === stopCount - 1,
+      })
+    ),
+    cityFromStop(stop),
+    countryFromStop(stop)
   );
 
   await deleteItineraryForStop(supabase, tripId, stop.id);
@@ -389,7 +380,16 @@ async function restoreRequestedBlocks(
       const restored = blockToRestore(req, removed);
       if (!restored || dayHasSimilarBlock(blocks, restored.title)) continue;
 
-      blocks = sortBlocksByTimeOfDay([...blocks, restored]).slice(0, 6);
+      const stop = stops.find((s) => s.id === stopId);
+      const [located] = stop
+        ? await attachCoordsToBlocks(
+            [restored],
+            cityFromStop(stop),
+            countryFromStop(stop)
+          )
+        : [restored];
+
+      blocks = sortBlocksByTimeOfDay([...blocks, located]).slice(0, 6);
 
       if (day) {
         await supabase
@@ -397,12 +397,11 @@ async function restoreRequestedBlocks(
           .update({ blocks, updated_at: new Date().toISOString() })
           .eq('id', day.id);
       } else {
-        const stop = stops.find((s) => s.id === stopId);
         if (!stop) continue;
         await upsertDayRows(supabase, tripId, stop, [{ day_index: dayIndex, blocks }]);
       }
 
-      summaries.push(`Restored "${restored.title}" to day ${dayIndex}`);
+      summaries.push(`Restored "${located.title}" to day ${dayIndex}`);
       current = await fetchItineraryDays(supabase, tripId);
       day = current.find((d) => d.stop_id === stopId && d.day_index === dayIndex);
       blocks = [...(day?.blocks ?? [])];
@@ -445,20 +444,24 @@ export async function applyItineraryToolCalls(
 
         const existing = current.find((d) => d.stop_id === stopId && d.day_index === dayIndex);
         const idx = stops.findIndex((s) => s.id === stopId);
-        const regen = withBlockIds([
-          await regenerateItineraryDay({
-            city: cityFromStop(stop),
-            country: countryFromStop(stop),
-            nights: deriveNightsFromStop(stop),
-            vibes: context.vibes,
-            additionalDetails: context.additionalDetails,
-            isFirstStop: idx === 0,
-            isLastStop: idx === stops.length - 1,
-            dayIndex,
-            currentBlocks: existing?.blocks ?? [],
-            guidance,
-          }),
-        ])[0];
+        const [regen] = await attachCoordsToGeneratedDays(
+          withBlockIds([
+            await regenerateItineraryDay({
+              city: cityFromStop(stop),
+              country: countryFromStop(stop),
+              nights: deriveNightsFromStop(stop),
+              vibes: context.vibes,
+              additionalDetails: context.additionalDetails,
+              isFirstStop: idx === 0,
+              isLastStop: idx === stops.length - 1,
+              dayIndex,
+              currentBlocks: existing?.blocks ?? [],
+              guidance,
+            }),
+          ]),
+          cityFromStop(stop),
+          countryFromStop(stop)
+        );
 
         if (existing) {
           await supabase
@@ -487,17 +490,17 @@ export async function applyItineraryToolCalls(
           return { ok: false, error: 'block is required' };
         }
         const o = blockRaw as Record<string, unknown>;
-        const block: ItineraryBlock = {
-          id: str(o.id) || `blk-${Math.random().toString(36).slice(2, 10)}`,
-          time_of_day:
-            str(o.time_of_day) === 'morning' ||
-            str(o.time_of_day) === 'afternoon' ||
-            str(o.time_of_day) === 'evening'
-              ? (str(o.time_of_day) as ItineraryBlock['time_of_day'])
-              : 'afternoon',
-          title: str(o.title) || 'New activity',
-          description: str(o.description),
-        };
+        const parsed = parseItineraryBlock(o);
+        if (!parsed) {
+          return { ok: false, error: 'block is required' };
+        }
+        if (!parsed.title) parsed.title = 'New activity';
+        const stopForBlock = stops.find((s) => s.id === stopId);
+        const [block] = await attachCoordsToBlocks(
+          [parsed],
+          stopForBlock ? cityFromStop(stopForBlock) : '',
+          stopForBlock ? countryFromStop(stopForBlock) : ''
+        );
 
         const day = current.find((d) => d.stop_id === stopId && d.day_index === dayIndex);
         const existingBlocks = day?.blocks ?? [];

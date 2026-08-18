@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { newBlankBlock } from '@/lib/generate-itinerary-days';
 import { sortBlocksByTimeOfDay } from '@/lib/itinerary-blocks';
 import { shortStopLabel } from '@/lib/place-names';
-import TripItineraryMap, { useActiveStopObserver } from '@/components/trip-hub/TripItineraryMap';
+import TripItineraryMap from '@/components/trip-hub/TripItineraryMap';
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
 
@@ -44,8 +44,25 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingDayId, setSavingDayId] = useState<string | null>(null);
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { activeStopId, setSectionRef } = useActiveStopObserver(stops, active, days.length);
+
+  const orderedDays = useMemo(
+    () =>
+      stops.flatMap((stop) =>
+        days.filter((d) => d.stop_id === stop.id).sort((a, b) => a.day_index - b.day_index)
+      ),
+    [stops, days]
+  );
+
+  useEffect(() => {
+    if (orderedDays.length === 0) {
+      setSelectedDayId(null);
+      return;
+    }
+    if (selectedDayId && orderedDays.some((d) => d.id === selectedDayId)) return;
+    setSelectedDayId(orderedDays[0].id);
+  }, [orderedDays, selectedDayId]);
 
   const fetchDays = useCallback(async () => {
     const res = await fetch(`/api/trips/${tripId}/itinerary`);
@@ -129,6 +146,21 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
     void fetchDays();
   }, [active, stops, fetchDays]);
 
+  useEffect(() => {
+    const ordered = stops.flatMap((stop) =>
+      days
+        .filter((d) => d.stop_id === stop.id)
+        .sort((a, b) => a.day_index - b.day_index)
+    );
+    if (ordered.length === 0) {
+      setSelectedDayId(null);
+      return;
+    }
+    setSelectedDayId((prev) =>
+      prev && ordered.some((d) => d.id === prev) ? prev : ordered[0].id
+    );
+  }, [days, stops]);
+
   const saveDayBlocks = useCallback(
     async (dayId: string, blocks: ItineraryBlock[]) => {
       setSavingDayId(dayId);
@@ -202,7 +234,13 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
 
   return (
     <div style={{ padding: '0 0 1.5rem' }}>
-      <TripItineraryMap tripId={tripId} stops={stops} activeStopId={activeStopId} />
+      <TripItineraryMap
+        tripId={tripId}
+        stops={stops}
+        days={days}
+        selectedDayId={selectedDayId}
+        onSelectDay={setSelectedDayId}
+      />
 
       {(generating || (!complete && days.length > 0)) && (
         <div
@@ -269,7 +307,6 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
         return (
           <section
             key={stop.id}
-            ref={setSectionRef(stop.id)}
             data-stop-id={stop.id}
             style={{ marginBottom: 28 }}
           >
@@ -296,25 +333,38 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
               </p>
             )}
 
-            {stopDays.map((day) => (
+            {stopDays.map((day) => {
+              const selected = day.id === selectedDayId;
+              return (
               <div
                 key={day.id}
                 style={{
                   marginBottom: 16,
-                  border: '1px solid #EAE3D5',
+                  border: selected ? '1.5px solid #D97706' : '1px solid #EAE3D5',
                   borderRadius: 12,
                   overflow: 'hidden',
                   background: '#fff',
                 }}
               >
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selected}
+                  onClick={() => setSelectedDayId(day.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedDayId(day.id);
+                    }
+                  }}
                   style={{
                     padding: '10px 14px',
-                    background: '#FAFAF9',
-                    borderBottom: '1px solid #EAE3D5',
+                    background: selected ? '#FFFBEB' : '#FAFAF9',
+                    borderBottom: selected ? '1px solid #FDE68A' : '1px solid #EAE3D5',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
+                    cursor: 'pointer',
                   }}
                 >
                   <div>
@@ -327,7 +377,10 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                   </div>
                   <button
                     type="button"
-                    onClick={() => addBlock(day)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addBlock(day);
+                    }}
                     disabled={savingDayId === day.id || day.blocks.length >= 6}
                     title="Add block"
                     aria-label="Add block"
@@ -380,7 +433,10 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeBlock(day, block.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeBlock(day, block.id);
+                        }}
                         disabled={savingDayId === day.id}
                         title="Remove block"
                         aria-label="Remove block"
@@ -392,7 +448,8 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                   ))}
                 </div>
               </div>
-            ))}
+            );
+            })}
           </section>
         );
       })}

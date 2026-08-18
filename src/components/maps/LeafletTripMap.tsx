@@ -5,6 +5,7 @@ import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { mapLabelForCity } from '@/lib/place-names';
+import type { ItineraryMapPoint } from '@/lib/itinerary-map-points';
 import type { RouteMapPin } from '@/components/maps/useRouteMapPins';
 
 const OSM_ATTRIBUTION =
@@ -47,12 +48,22 @@ function MapViewport({
   mode,
 }: {
   positions: [number, number][];
-  mode: 'route' | 'single';
+  mode: 'route' | 'single' | 'points';
 }) {
   const map = useMap();
 
   useEffect(() => {
     if (positions.length === 0) return;
+
+    if (mode === 'points') {
+      if (positions.length === 1) {
+        map.setView(positions[0], 13, { animate: true });
+        return;
+      }
+      const bounds = L.latLngBounds(positions);
+      map.fitBounds(bounds, { padding: [28, 28], maxZoom: 15, animate: true });
+      return;
+    }
 
     if (mode === 'single' || positions.length === 1) {
       map.setView(positions[0], 11, { animate: true });
@@ -66,15 +77,19 @@ function MapViewport({
   return null;
 }
 
+export type LeafletTripMapMode = 'route' | 'single' | 'points';
+
 export interface LeafletTripMapProps {
-  pins: RouteMapPin[];
-  mode?: 'route' | 'single';
+  pins?: RouteMapPin[];
+  points?: ItineraryMapPoint[];
+  mode?: LeafletTripMapMode;
   focusStopId?: string | null;
   height?: number;
 }
 
 export default function LeafletTripMap({
-  pins,
+  pins = [],
+  points = [],
   mode = 'route',
   focusStopId = null,
   height = 280,
@@ -91,9 +106,14 @@ export default function LeafletTripMap({
     return sorted;
   }, [sorted, mode, focusStopId]);
 
-  const positions = useMemo(
+  const pinPositions = useMemo(
     () => visiblePins.map((p) => [p.lat, p.lon] as [number, number]),
     [visiblePins]
+  );
+
+  const pointPositions = useMemo(
+    () => points.map((p) => [p.lat, p.lng] as [number, number]),
+    [points]
   );
 
   const polylinePositions = useMemo(
@@ -101,22 +121,24 @@ export default function LeafletTripMap({
     [sorted]
   );
 
+  const isPoints = mode === 'points';
+  const positions = isPoints ? pointPositions : pinPositions;
   const center = positions[0] ?? [0, 0];
-  const mapMode = mode === 'single' ? 'single' : 'route';
   const showRoute = mode === 'route' && polylinePositions.length > 1;
 
-  if (visiblePins.length === 0) return null;
+  if (isPoints && points.length === 0) return null;
+  if (!isPoints && visiblePins.length === 0) return null;
 
   return (
     <MapContainer
       center={center}
-      zoom={mode === 'single' ? 11 : 5}
+      zoom={isPoints ? 13 : mode === 'single' ? 11 : 5}
       style={{ height, width: '100%', borderRadius: 8, zIndex: 0 }}
       scrollWheelZoom={false}
       attributionControl
     >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution={OSM_ATTRIBUTION} />
-      <MapViewport positions={positions} mode={mapMode} />
+      <MapViewport positions={positions} mode={isPoints ? 'points' : mode === 'single' ? 'single' : 'route'} />
 
       {showRoute && (
         <Polyline
@@ -130,23 +152,43 @@ export default function LeafletTripMap({
         />
       )}
 
-      {visiblePins.map((pin) => {
-        const label = mapLabelForCity(pin.city);
-        const isSingle = mode === 'single';
-        return (
-          <Marker
-            key={pin.stopId}
-            position={[pin.lat, pin.lon]}
-            icon={isSingle ? focusMarkerIcon() : orderMarkerIcon(pin.order)}
-          >
-            <Popup>
-              <strong>{label}</strong>
-              <br />
-              {pin.nights} night{pin.nights === 1 ? '' : 's'}
-            </Popup>
-          </Marker>
-        );
-      })}
+      {isPoints
+        ? points.map((point) => {
+            const isCity = point.kind === 'city';
+            const icon = isCity
+              ? focusMarkerIcon()
+              : orderMarkerIcon(Math.max(0, (point.order ?? 1) - 1));
+            return (
+              <Marker key={point.id} position={[point.lat, point.lng]} icon={icon}>
+                <Popup>
+                  <strong>{point.label}</strong>
+                  {point.sublabel ? (
+                    <>
+                      <br />
+                      {point.sublabel}
+                    </>
+                  ) : null}
+                </Popup>
+              </Marker>
+            );
+          })
+        : visiblePins.map((pin) => {
+            const label = mapLabelForCity(pin.city);
+            const isSingle = mode === 'single';
+            return (
+              <Marker
+                key={pin.stopId}
+                position={[pin.lat, pin.lon]}
+                icon={isSingle ? focusMarkerIcon() : orderMarkerIcon(pin.order)}
+              >
+                <Popup>
+                  <strong>{label}</strong>
+                  <br />
+                  {pin.nights} night{pin.nights === 1 ? '' : 's'}
+                </Popup>
+              </Marker>
+            );
+          })}
     </MapContainer>
   );
 }

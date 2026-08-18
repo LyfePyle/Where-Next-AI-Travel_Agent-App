@@ -1,3 +1,5 @@
+import type { TravelNoteKind } from '@/lib/itinerary-travel-note';
+
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 
 export interface ItineraryBlock {
@@ -20,6 +22,9 @@ export interface TripItineraryDay {
   day_index: number;
   date: string | null;
   blocks: ItineraryBlock[];
+  /** Practical arrival / departure / onward note. Omitted on older saved days. */
+  travel_note?: string;
+  travel_note_kind?: TravelNoteKind;
   created_at?: string;
   updated_at?: string;
 }
@@ -27,4 +32,6 @@ export interface TripItineraryDay {
 export interface GeneratedItineraryDay {
   day_index: number;
   blocks: Omit<ItineraryBlock, 'id'>[];
+  travel_note?: string;
+  travel_note_kind?: TravelNoteKind;
 }

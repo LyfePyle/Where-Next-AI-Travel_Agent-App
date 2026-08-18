@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { newBlankBlock } from '@/lib/generate-itinerary-days';
 import { sortBlocksByTimeOfDay } from '@/lib/itinerary-blocks';
 import { mapPointIdForBlock } from '@/lib/itinerary-map-points';
+import { travelNoteTitle } from '@/lib/itinerary-travel-note';
 import { focusTripChat, itineraryDayChatDraft } from '@/lib/trip-chat-focus';
 import { shortStopLabel } from '@/lib/place-names';
 import TripItineraryMap from '@/components/trip-hub/TripItineraryMap';
@@ -500,6 +501,15 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                     </div>
                     );
                   })}
+
+                  {day.travel_note && (
+                    <div className="mt-2 mb-1 rounded-lg border border-amber-100 bg-amber-50 p-3">
+                      <p className="mb-1 text-xs font-medium text-amber-900">
+                        {travelNoteTitle(day.travel_note_kind)}
+                      </p>
+                      <p className="text-sm text-amber-800">{day.travel_note}</p>
+                    </div>
+                  )}
 
                   <button
                     type="button"

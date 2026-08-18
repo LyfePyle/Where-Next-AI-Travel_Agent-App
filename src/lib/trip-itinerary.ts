@@ -13,12 +13,13 @@ import { attachCoordsToBlocks, attachCoordsToGeneratedDays } from '@/lib/geocode
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
 import type { ToolCallInput } from '@/lib/trip-mutations';
+import { parseTravelNoteKind, type TravelNoteKind } from '@/lib/itinerary-travel-note';
 import {
   blockToRestore,
   dayHasSimilarBlock,
   findRecentlyRemovedTitles,
-  parseRequestedActivities,
   parseItineraryBlock,
+  parseRequestedActivities,
   sortBlocksByTimeOfDay,
   type ChatHistoryRow,
 } from '@/lib/itinerary-blocks';
@@ -45,6 +46,32 @@ function dateForStopDay(stop: TripStop, dayIndex: number): string | null {
   return isoAddDays(stop.startDate, dayIndex - 1);
 }
 
+function neighborCities(stops: TripStop[], index: number): {
+  prevCity: string | null;
+  nextCity: string | null;
+} {
+  return {
+    prevCity: index > 0 ? cityFromStop(stops[index - 1]) : null,
+    nextCity: index < stops.length - 1 ? cityFromStop(stops[index + 1]) : null,
+  };
+}
+
+function travelNoteColumnMissing(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const msg = (error.message ?? '').toLowerCase();
+  return (
+    error.code === 'PGRST204' ||
+    (msg.includes('travel_note') && (msg.includes('column') || msg.includes('schema cache')))
+  );
+}
+
+type UpsertDayInput = {
+  day_index: number;
+  blocks: ItineraryBlock[];
+  travel_note?: string;
+  travel_note_kind?: TravelNoteKind;
+};
+
 function normalizeRow(raw: Record<string, unknown>): TripItineraryDay | null {
   const id = str(raw.id);
   const trip_id = str(raw.trip_id);
@@ -68,6 +95,8 @@ function normalizeRow(raw: Record<string, unknown>): TripItineraryDay | null {
     day_index,
     date: raw.date ? String(raw.date) : null,
     blocks,
+    travel_note: str(raw.travel_note) || undefined,
+    travel_note_kind: parseTravelNoteKind(raw.travel_note_kind) ?? undefined,
     created_at: raw.created_at ? String(raw.created_at) : undefined,
     updated_at: raw.updated_at ? String(raw.updated_at) : undefined,
   };
@@ -121,22 +150,37 @@ async function upsertDayRows(
   supabase: SupabaseClient,
   tripId: string,
   stop: TripStop,
-  days: { day_index: number; blocks: ItineraryBlock[] }[]
+  days: UpsertDayInput[]
 ): Promise<void> {
   if (days.length === 0) return;
 
-  const rows = days.map((day) => ({
+  const now = new Date().toISOString();
+  const withNotes = days.map((day) => ({
     trip_id: tripId,
     stop_id: stop.id,
     day_index: day.day_index,
     date: dateForStopDay(stop, day.day_index),
     blocks: day.blocks,
-    updated_at: new Date().toISOString(),
+    travel_note: day.travel_note ?? null,
+    travel_note_kind: day.travel_note_kind ?? null,
+    updated_at: now,
   }));
 
-  const { error } = await supabase.from('trip_itinerary_days').upsert(rows, {
+  const { error } = await supabase.from('trip_itinerary_days').upsert(withNotes, {
     onConflict: 'trip_id,stop_id,day_index',
   });
+
+  if (travelNoteColumnMissing(error)) {
+    const withoutNotes = withNotes.map(({ travel_note: _n, travel_note_kind: _k, ...row }) => row);
+    const retry = await supabase.from('trip_itinerary_days').upsert(withoutNotes, {
+      onConflict: 'trip_id,stop_id,day_index',
+    });
+    if (retry.error) {
+      console.error('upsertDayRows failed:', retry.error);
+      throw new Error(retry.error.message);
+    }
+    return;
+  }
 
   if (error) {
     console.error('upsertDayRows failed:', error);
@@ -200,7 +244,12 @@ export async function generateItineraryForStop(
   tripId: string,
   stop: TripStop,
   context: TripItineraryContext,
-  options?: { stopIndex?: number; stopCount?: number }
+  options?: {
+    stopIndex?: number;
+    stopCount?: number;
+    prevCity?: string | null;
+    nextCity?: string | null;
+  }
 ): Promise<TripItineraryDay[]> {
   const nights = deriveNightsFromStop(stop);
   const stopIndex = options?.stopIndex ?? 0;
@@ -216,6 +265,8 @@ export async function generateItineraryForStop(
         additionalDetails: context.additionalDetails,
         isFirstStop: stopIndex === 0,
         isLastStop: stopIndex === stopCount - 1,
+        prevCity: options?.prevCity,
+        nextCity: options?.nextCity,
       })
     ),
     cityFromStop(stop),
@@ -248,6 +299,7 @@ export async function generateItineraryForTrip(
       generateItineraryForStop(supabase, tripId, stop, context, {
         stopIndex: i,
         stopCount: stops.length,
+        ...neighborCities(stops, i),
       })
     )
   );
@@ -337,6 +389,7 @@ export async function syncItineraryAfterStopMutations(
     await generateItineraryForStop(supabase, tripId, stop, context, {
       stopIndex: idx,
       stopCount: newStops.length,
+      ...neighborCities(newStops, idx),
     });
   }
 
@@ -444,6 +497,7 @@ export async function applyItineraryToolCalls(
 
         const existing = current.find((d) => d.stop_id === stopId && d.day_index === dayIndex);
         const idx = stops.findIndex((s) => s.id === stopId);
+        const neighbors = neighborCities(stops, idx);
         const [regen] = await attachCoordsToGeneratedDays(
           withBlockIds([
             await regenerateItineraryDay({
@@ -454,6 +508,8 @@ export async function applyItineraryToolCalls(
               additionalDetails: context.additionalDetails,
               isFirstStop: idx === 0,
               isLastStop: idx === stops.length - 1,
+              prevCity: neighbors.prevCity,
+              nextCity: neighbors.nextCity,
               dayIndex,
               currentBlocks: existing?.blocks ?? [],
               guidance,
@@ -463,18 +519,14 @@ export async function applyItineraryToolCalls(
           countryFromStop(stop)
         );
 
-        if (existing) {
-          await supabase
-            .from('trip_itinerary_days')
-            .update({
-              blocks: regen.blocks,
-              date: dateForStopDay(stop, dayIndex),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existing.id);
-        } else {
-          await upsertDayRows(supabase, tripId, stop, [{ day_index: dayIndex, blocks: regen.blocks }]);
-        }
+        await upsertDayRows(supabase, tripId, stop, [
+          {
+            day_index: dayIndex,
+            blocks: regen.blocks,
+            travel_note: regen.travel_note,
+            travel_note_kind: regen.travel_note_kind,
+          },
+        ]);
 
         current = await fetchItineraryDays(supabase, tripId);
         summaries.push(

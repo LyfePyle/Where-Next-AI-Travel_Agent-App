@@ -4,6 +4,12 @@
 
 import OpenAI from 'openai';
 import { parseItineraryBlock } from '@/lib/itinerary-blocks';
+import {
+  applyTravelNotesToDays,
+  normalizeTravelNoteText,
+  parseTravelNoteKind,
+  type TravelNoteContext,
+} from '@/lib/itinerary-travel-note';
 import type { GeneratedItineraryDay, ItineraryBlock } from '@/types/itinerary';
 
 const openai = process.env.OPENAI_API_KEY
@@ -18,6 +24,8 @@ export interface StopGenerationInput {
   additionalDetails?: string | null;
   isFirstStop?: boolean;
   isLastStop?: boolean;
+  prevCity?: string | null;
+  nextCity?: string | null;
 }
 
 export interface RegenerateDayInput extends StopGenerationInput {
@@ -42,6 +50,8 @@ RULES
 - No filler language. Never write "explore the vibrant streets of" or "discover the magic of".
 - Don't repeat the same activity type two days running unless the place genuinely calls for it.
 - Day 1 should account for arrival (lighter); if this is the last stop, the final day should account for departure.
+- First and last generated days MUST include a short "travel_note" (1-2 practical sentences, not turn-by-turn directions): airport/station to hotel on arrival; hotel to airport/station on the trip's last day. If there is a next stop, the last generated day gets an onward note — checkout is the NEXT morning, which is the next city's arrival date and has NO itinerary row here. Never invent an extra checkout day.
+- Middle days omit travel_note.
 - Reflect traveler notes and vibes where specific, but don't force every block to reference them.
 - Ground every suggestion in something real about the city — neighborhoods, dish names, landmarks.
 
@@ -50,6 +60,8 @@ OUTPUT — strict JSON, no prose, no markdown fences:
   "days": [
     {
       "day_index": 1,
+      "travel_note": "string",
+      "travel_note_kind": "arrival",
       "blocks": [
         {
           "time_of_day": "morning",
@@ -74,6 +86,10 @@ function buildUserPrompt(input: StopGenerationInput): string {
     input.additionalDetails ? `Traveler notes: ${input.additionalDetails}` : null,
     input.isFirstStop ? 'This is the first stop on the trip (account for arrival).' : null,
     input.isLastStop ? 'This is the final stop on the trip (account for departure on the last day).' : null,
+    input.prevCity ? `Arriving from: ${input.prevCity}` : null,
+    input.nextCity
+      ? `Next stop after this one: ${input.nextCity}. Checkout morning is that city's arrival date — do not generate an extra day for checkout; put the onward travel_note on the last generated day.`
+      : null,
     `Generate exactly ${input.nights} days.`,
   ].filter(Boolean);
 
@@ -98,7 +114,8 @@ function buildRegenerateUserPrompt(input: RegenerateDayInput): string {
     `CURRENT BLOCKS: ${current}`,
     input.guidance ? `USER GUIDANCE: ${input.guidance}` : null,
     'Revise this day only. Keep what works; change what the guidance asks for.',
-    'Return JSON with a single day: { "days": [{ "day_index": 1, "blocks": [...] }] }',
+    'If this is day 1 or the last day of the stop, include travel_note; otherwise omit it.',
+    'Return JSON with a single day: { "days": [{ "day_index": 1, "blocks": [...], "travel_note": "string" }] }',
   ]
     .filter(Boolean)
     .join('\n');
@@ -137,6 +154,8 @@ function normalizeDays(raw: unknown, expectedCount: number): GeneratedItineraryD
         blocks.length > 0
           ? blocks
           : fallbackDayBlocks(i + 1, expectedCount).blocks,
+      travel_note: normalizeTravelNoteText(o.travel_note),
+      travel_note_kind: parseTravelNoteKind(o.travel_note_kind) ?? undefined,
     });
   }
   return days;
@@ -197,18 +216,32 @@ function fallbackDayBlocks(
 
 function fallbackDaysForStop(input: StopGenerationInput): GeneratedItineraryDay[] {
   const city = input.city.trim() || 'town';
-  return Array.from({ length: Math.max(1, input.nights) }, (_, i) =>
-    fallbackDayBlocks(i + 1, input.nights, city)
+  const nights = Math.max(1, input.nights);
+  return applyTravelNotesToDays(
+    Array.from({ length: nights }, (_, i) => fallbackDayBlocks(i + 1, nights, city)),
+    travelContext(input)
   );
 }
 
-async function callOpenAI(userPrompt: string, expectedDays: number): Promise<GeneratedItineraryDay[]> {
+function travelContext(input: StopGenerationInput): TravelNoteContext {
+  return {
+    city: input.city,
+    isLastStop: !!input.isLastStop,
+    prevCity: input.prevCity,
+    nextCity: input.nextCity,
+  };
+}
+
+async function callOpenAI(
+  userPrompt: string,
+  expectedDays: number
+): Promise<GeneratedItineraryDay[]> {
   if (!openai) return [];
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o',
     temperature: 0.6,
-    max_tokens: 3000,
+    max_tokens: 3500,
     messages: [
       { role: 'system', content: buildSystemPrompt() },
       { role: 'user', content: userPrompt },
@@ -229,7 +262,7 @@ export async function generateItineraryDaysForStop(
 
   try {
     const days = await callOpenAI(buildUserPrompt({ ...input, nights }), nights);
-    if (days.length > 0) return days;
+    if (days.length > 0) return applyTravelNotesToDays(days, travelContext(input));
   } catch (err) {
     console.error('generateItineraryDaysForStop failed:', err);
   }
@@ -243,12 +276,21 @@ export async function regenerateItineraryDay(
 ): Promise<GeneratedItineraryDay> {
   try {
     const days = await callOpenAI(buildRegenerateUserPrompt(input), 1);
-    if (days[0]?.blocks?.length) return { day_index: input.dayIndex, blocks: days[0].blocks };
+    if (days[0]?.blocks?.length) {
+      const [withNote] = applyTravelNotesToDays(
+        [{ ...days[0], day_index: input.dayIndex }],
+        { ...travelContext(input), totalDays: Math.max(1, input.nights) }
+      );
+      return withNote;
+    }
   } catch (err) {
     console.error('regenerateItineraryDay failed:', err);
   }
 
-  return fallbackDayBlocks(input.dayIndex, input.nights, input.city);
+  return applyTravelNotesToDays(
+    [fallbackDayBlocks(input.dayIndex, input.nights, input.city)],
+    { ...travelContext(input), totalDays: Math.max(1, input.nights) }
+  )[0];
 }
 
 /** Attach stable block ids for DB persistence. */

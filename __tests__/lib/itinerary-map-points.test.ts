@@ -1,4 +1,4 @@
-import { itineraryDayMapPoints } from '@/lib/itinerary-map-points';
+import { itineraryDayMapPoints, mapPointIdForBlock } from '@/lib/itinerary-map-points';
 import type { ItineraryBlock } from '@/types/itinerary';
 
 const PARIS_PIN = { lat: 48.8566, lon: 2.3522, city: 'Paris' };
@@ -77,5 +77,20 @@ describe('itineraryDayMapPoints', () => {
 
   it('returns an empty list when there is no day and no city pin', () => {
     expect(itineraryDayMapPoints(null, null)).toEqual([]);
+  });
+});
+
+describe('mapPointIdForBlock', () => {
+  it('uses the block id when the block has coords', () => {
+    expect(
+      mapPointIdForBlock(
+        { id: 'day-1' },
+        { id: 'blk-a', lat: 48.86, lng: 2.33 }
+      )
+    ).toBe('blk-a');
+  });
+
+  it('uses the shared city pin when the block has no coords', () => {
+    expect(mapPointIdForBlock({ id: 'day-2' }, { id: 'blk-b' })).toBe('city-day-2');
   });
 });

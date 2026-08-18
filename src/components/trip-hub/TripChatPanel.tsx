@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageCircle, X } from 'lucide-react';
 import type { ChatMessageRow } from '@/app/api/trips/[id]/chat/route';
+import {
+  TRIP_CHAT_FOCUS_EVENT,
+  type TripChatFocusDetail,
+} from '@/lib/trip-chat-focus';
 
 interface TripChatPanelProps {
   tripId: string;
@@ -128,7 +132,7 @@ function ChatPanelBody({
           placeholder="Change nights, swap cities, add a stop…"
           rows={2}
           disabled={sending}
-          className="w-full resize-none px-3 py-2.5 rounded-[10px] border border-[#EAE3D5] text-[13px] outline-none mb-2 box-border"
+          className="js-trip-chat-input w-full resize-none px-3 py-2.5 rounded-[10px] border border-[#EAE3D5] text-[13px] outline-none mb-2 box-border"
         />
         <button
           type="button"
@@ -160,6 +164,27 @@ export default function TripChatPanel({
   const [mobileOpen, setMobileOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onFocusChat = (event: Event) => {
+      const detail = (event as CustomEvent<TripChatFocusDetail>).detail ?? {};
+      setMobileOpen(true);
+      if (detail.draft) {
+        setInput((current) => (current.trim() ? current : detail.draft!));
+      }
+      window.setTimeout(() => {
+        const inputs = Array.from(
+          document.querySelectorAll<HTMLTextAreaElement>('.js-trip-chat-input')
+        );
+        const visible = inputs.find((el) => el.offsetParent !== null) ?? inputs[0];
+        visible?.focus();
+        visible?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 80);
+    };
+
+    window.addEventListener(TRIP_CHAT_FOCUS_EVENT, onFocusChat);
+    return () => window.removeEventListener(TRIP_CHAT_FOCUS_EVENT, onFocusChat);
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

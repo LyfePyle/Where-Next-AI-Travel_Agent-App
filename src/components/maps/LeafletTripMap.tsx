@@ -27,6 +27,38 @@ function orderMarkerIcon(order: number): L.DivIcon {
   });
 }
 
+function highlightedBlockIcon(order: number): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:34px;height:34px;border-radius:50%;
+      background:#D97706;color:#fff;
+      border:3px solid #fff;
+      box-shadow:0 0 0 3px rgba(217,119,6,.45),0 2px 8px rgba(0,0,0,.4);
+      display:flex;align-items:center;justify-content:center;
+      font-size:13px;font-weight:700;font-family:monospace;
+    ">${order + 1}</div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+  });
+}
+
+function highlightedCityIcon(): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:36px;height:36px;border-radius:50%;
+      background:#D97706;color:#fff;
+      border:3px solid #fff;
+      box-shadow:0 0 0 3px rgba(217,119,6,.45),0 2px 8px rgba(0,0,0,.4);
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;
+    ">📍</div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  });
+}
+
 function focusMarkerIcon(): L.DivIcon {
   return L.divIcon({
     className: '',
@@ -77,6 +109,21 @@ function MapViewport({
   return null;
 }
 
+function FocusHighlightedPoint({
+  point,
+}: {
+  point: { lat: number; lng: number } | null;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!point) return;
+    map.panTo([point.lat, point.lng], { animate: true });
+  }, [map, point]);
+
+  return null;
+}
+
 export type LeafletTripMapMode = 'route' | 'single' | 'points';
 
 export interface LeafletTripMapProps {
@@ -84,6 +131,7 @@ export interface LeafletTripMapProps {
   points?: ItineraryMapPoint[];
   mode?: LeafletTripMapMode;
   focusStopId?: string | null;
+  highlightedPointId?: string | null;
   height?: number;
 }
 
@@ -92,6 +140,7 @@ export default function LeafletTripMap({
   points = [],
   mode = 'route',
   focusStopId = null,
+  highlightedPointId = null,
   height = 280,
 }: LeafletTripMapProps) {
   const sorted = useMemo(
@@ -126,6 +175,10 @@ export default function LeafletTripMap({
   const center = positions[0] ?? [0, 0];
   const showRoute = mode === 'route' && polylinePositions.length > 1;
 
+  const highlightedPoint = isPoints
+    ? points.find((p) => p.id === highlightedPointId) ?? null
+    : null;
+
   if (isPoints && points.length === 0) return null;
   if (!isPoints && visiblePins.length === 0) return null;
 
@@ -139,6 +192,7 @@ export default function LeafletTripMap({
     >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution={OSM_ATTRIBUTION} />
       <MapViewport positions={positions} mode={isPoints ? 'points' : mode === 'single' ? 'single' : 'route'} />
+      {isPoints && <FocusHighlightedPoint point={highlightedPoint} />}
 
       {showRoute && (
         <Polyline
@@ -155,11 +209,21 @@ export default function LeafletTripMap({
       {isPoints
         ? points.map((point) => {
             const isCity = point.kind === 'city';
+            const isHighlighted = point.id === highlightedPointId;
             const icon = isCity
-              ? focusMarkerIcon()
-              : orderMarkerIcon(Math.max(0, (point.order ?? 1) - 1));
+              ? isHighlighted
+                ? highlightedCityIcon()
+                : focusMarkerIcon()
+              : isHighlighted
+                ? highlightedBlockIcon(Math.max(0, (point.order ?? 1) - 1))
+                : orderMarkerIcon(Math.max(0, (point.order ?? 1) - 1));
             return (
-              <Marker key={point.id} position={[point.lat, point.lng]} icon={icon}>
+              <Marker
+                key={point.id}
+                position={[point.lat, point.lng]}
+                icon={icon}
+                zIndexOffset={isHighlighted ? 1000 : 0}
+              >
                 <Popup>
                   <strong>{point.label}</strong>
                   {point.sublabel ? (

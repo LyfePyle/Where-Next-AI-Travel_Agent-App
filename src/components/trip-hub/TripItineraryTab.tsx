@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { newBlankBlock } from '@/lib/generate-itinerary-days';
 import { sortBlocksByTimeOfDay } from '@/lib/itinerary-blocks';
+import { mapPointIdForBlock } from '@/lib/itinerary-map-points';
+import { focusTripChat, itineraryDayChatDraft } from '@/lib/trip-chat-focus';
 import { shortStopLabel } from '@/lib/place-names';
 import TripItineraryMap from '@/components/trip-hub/TripItineraryMap';
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
@@ -45,6 +47,7 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
   const [error, setError] = useState<string | null>(null);
   const [savingDayId, setSavingDayId] = useState<string | null>(null);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const orderedDays = useMemo(
@@ -154,10 +157,14 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
     );
     if (ordered.length === 0) {
       setSelectedDayId(null);
+      setSelectedBlockId(null);
       return;
     }
     setSelectedDayId((prev) =>
       prev && ordered.some((d) => d.id === prev) ? prev : ordered[0].id
+    );
+    setSelectedBlockId((prev) =>
+      prev && ordered.some((d) => d.blocks.some((b) => b.id === prev)) ? prev : null
     );
   }, [days, stops]);
 
@@ -188,6 +195,31 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
     },
     [tripId]
   );
+
+  const selectDay = (dayId: string) => {
+    setSelectedDayId(dayId);
+    setSelectedBlockId(null);
+  };
+
+  const selectBlock = (day: TripItineraryDay, blockId: string) => {
+    setSelectedDayId(day.id);
+    setSelectedBlockId(blockId);
+  };
+
+  const openDayInChat = (day: TripItineraryDay) => {
+    const stop = stops.find((s) => s.id === day.stop_id);
+    const city = stop ? stopLabel(stop) : 'this stop';
+    setSelectedDayId(day.id);
+    focusTripChat({ draft: itineraryDayChatDraft(city, day.day_index) });
+  };
+
+  const highlightedPointId = (() => {
+    if (!selectedBlockId || !selectedDayId) return null;
+    const day = days.find((d) => d.id === selectedDayId);
+    const block = day?.blocks.find((b) => b.id === selectedBlockId);
+    if (!day || !block) return null;
+    return mapPointIdForBlock(day, block);
+  })();
 
   const addBlock = (day: TripItineraryDay) => {
     const block = newBlankBlock();
@@ -239,7 +271,8 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
         stops={stops}
         days={days}
         selectedDayId={selectedDayId}
-        onSelectDay={setSelectedDayId}
+        highlightedPointId={highlightedPointId}
+        onSelectDay={selectDay}
       />
 
       {(generating || (!complete && days.length > 0)) && (
@@ -350,11 +383,11 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                   role="button"
                   tabIndex={0}
                   aria-pressed={selected}
-                  onClick={() => setSelectedDayId(day.id)}
+                  onClick={() => selectDay(day.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      setSelectedDayId(day.id);
+                      selectDay(day.id);
                     }
                   }}
                   style={{
@@ -397,14 +430,31 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                     </p>
                   )}
 
-                  {sortBlocksByTimeOfDay(day.blocks).map((block) => (
+                  {sortBlocksByTimeOfDay(day.blocks).map((block) => {
+                    const isHighlighted = block.id === selectedBlockId;
+                    return (
                     <div
                       key={block.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isHighlighted}
+                      onClick={() => selectBlock(day, block.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          selectBlock(day, block.id);
+                        }
+                      }}
                       style={{
                         display: 'flex',
                         gap: 10,
-                        padding: '10px 0',
+                        padding: '10px 8px',
+                        margin: '0 -8px',
+                        borderRadius: 8,
                         borderBottom: '1px solid #F5F0E8',
+                        background: isHighlighted ? '#FFFBEB' : 'transparent',
+                        boxShadow: isHighlighted ? 'inset 3px 0 0 #D97706' : 'none',
+                        cursor: 'pointer',
                       }}
                     >
                       <div style={{ fontSize: 18, lineHeight: 1.2, paddingTop: 2 }}>
@@ -445,7 +495,16 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                         ×
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    onClick={() => openDayInChat(day)}
+                    className="mt-2 w-full min-h-[44px] rounded-lg border border-[#EAE3D5] bg-white text-[13px] font-medium text-[#92400E] touch-manipulation hover:bg-[#FFFBEB]"
+                  >
+                    Change this day in chat
+                  </button>
                 </div>
               </div>
             );

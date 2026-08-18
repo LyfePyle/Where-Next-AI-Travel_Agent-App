@@ -25,6 +25,18 @@ export interface CityPinInput {
   city: string;
 }
 
+export function cityPointId(dayId: string | null | undefined): string {
+  return dayId ? `city-${dayId}` : 'city-fallback';
+}
+
+/** Marker id for a block: its own pin, or the shared city pin when coords are missing. */
+export function mapPointIdForBlock(
+  day: { id: string },
+  block: Pick<ItineraryBlock, 'id' | 'lat' | 'lng'>
+): string {
+  return hasBlockCoords(block) ? block.id : cityPointId(day.id);
+}
+
 export function itineraryDayMapPoints(
   day: { id: string; blocks: ItineraryBlock[] } | null | undefined,
   cityPin: CityPinInput | null | undefined
@@ -53,7 +65,7 @@ export function itineraryDayMapPoints(
 
   if (missingCoords && cityPin) {
     points.push({
-      id: day ? `city-${day.id}` : 'city-fallback',
+      id: cityPointId(day?.id),
       lat: cityPin.lat,
       lng: cityPin.lon,
       label: cityPin.city,

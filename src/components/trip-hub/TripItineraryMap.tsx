@@ -33,6 +33,7 @@ interface TripItineraryMapProps {
   stops: TripStop[];
   days: TripItineraryDay[];
   selectedDayId: string | null;
+  highlightedPointId?: string | null;
   onSelectDay: (dayId: string) => void;
 }
 
@@ -41,6 +42,7 @@ export default function TripItineraryMap({
   stops,
   days,
   selectedDayId,
+  highlightedPointId = null,
   onSelectDay,
 }: TripItineraryMapProps) {
   const { pins, loading, error } = useRouteMapPins(tripId, stops);
@@ -155,7 +157,14 @@ export default function TripItineraryMap({
         {error && !loading && points.length === 0 && (
           <p style={{ fontSize: 13, color: '#B91C1C', margin: '8px 0' }}>{error}</p>
         )}
-        {points.length > 0 && <LeafletTripMap points={points} mode="points" height={200} />}
+        {points.length > 0 && (
+          <LeafletTripMap
+            points={points}
+            mode="points"
+            highlightedPointId={highlightedPointId}
+            height={200}
+          />
+        )}
         {!loading && points.length === 0 && (
           <p style={{ fontSize: 13, color: '#A8A29E', margin: '8px 0' }}>
             Could not plot this day on the map.

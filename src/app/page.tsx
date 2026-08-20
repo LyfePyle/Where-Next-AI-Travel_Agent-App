@@ -318,8 +318,8 @@ export default function NewHomePage() {
                     {[
                       'I don\'t know where to go yet — help me narrow it down',
                       '6 countries in Southeast Asia, ~6 weeks, mid budget',
-                      'Swap one stop and keep the rest of the trip intact',
-                      'Add a yoga day in Denpasar on day 3',
+                      'A week in Tokyo for food, mid budget',
+                      'Italy for two weeks — romantic, not rushed',
                     ].map((chip) => (
                       <button
                         key={chip}

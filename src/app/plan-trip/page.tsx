@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import StopsBuilder, { makeEmptyStop } from '@/components/StopsBuilder';
+import { parsePlanTripSearchParams } from '@/lib/plan-trip-params';
 import type { TripStop } from '@/types/trip';
 
 const VIBES = [
@@ -62,14 +63,21 @@ export default function PlanTripPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const dest = params.get('destination');
-    if (dest) setDestination(dest);
-
-    const vibesParam = params.get('vibes');
-    if (vibesParam) {
-      const parsed = vibesParam.split(',').map((v) => v.trim()).filter(Boolean);
-      const valid = parsed.filter((v) => VIBES.some((option) => option.value === v));
-      if (valid.length) setVibes(valid.slice(0, MAX_VIBES));
+    const prefill = parsePlanTripSearchParams(
+      params,
+      VIBES.map((v) => v.value)
+    );
+    if (prefill.destination) setDestination(prefill.destination);
+    if (prefill.tripStyle) setTripStyle(prefill.tripStyle);
+    if (prefill.budget != null) setBudget(prefill.budget);
+    if (prefill.additionalDetails) setAdditionalDetails(prefill.additionalDetails);
+    if (prefill.vibes?.length) setVibes(prefill.vibes.slice(0, MAX_VIBES));
+    if (prefill.startDate) setStartDate(prefill.startDate);
+    if (prefill.endDate) setEndDate(prefill.endDate);
+    if (prefill.numberOfStops) {
+      setMultiStops(
+        Array.from({ length: prefill.numberOfStops }, (_, i) => makeEmptyStop(i * 4))
+      );
     }
   }, []);
 
@@ -100,7 +108,7 @@ export default function PlanTripPage() {
     // Trip style → backend tripType. "surprise" has no destination, single trip.
     if (isMulti) {
       params.set('tripType', 'multi-city');
-      params.set('numberOfStops', '3');
+      params.set('numberOfStops', String(Math.max(2, multiStops.length)));
     } else {
       params.set('tripType', 'single');
     }
@@ -149,6 +157,15 @@ export default function PlanTripPage() {
     if (!isMulti || multiStops.every((s) => !s.destination.trim())) {
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
+      if (startDate && endDate) {
+        const nights = Math.max(
+          1,
+          Math.round(
+            (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000
+          )
+        );
+        params.set('tripDuration', String(nights));
+      }
     }
     if (vibes.length) params.set('vibes', vibes.join(','));
     if (additionalDetails.trim()) params.set('additionalDetails', additionalDetails.trim());

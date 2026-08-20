@@ -19,60 +19,12 @@ import {
   CreditCard
 } from 'lucide-react';
 import TravelImageCarousel from '@/components/marketing/TravelImageCarousel';
+import {
+  buildPlanTripHrefFromHints,
+  guessHomeTripHints,
+  guessStylePaceFromText,
+} from '@/lib/home-trip-hints';
 
-/** Best-effort destination for map / save / UI (prompt + AI text). */
-function guessDestinationFromText(...parts: string[]): string {
-  const text = parts.filter(Boolean).join('\n');
-  const known = [
-    'Tokyo', 'Kyoto', 'Osaka', 'Japan', 'Paris', 'London', 'Barcelona', 'Rome', 'Lisbon',
-    'Amsterdam', 'Berlin', 'Dublin', 'NYC', 'New York', 'San Francisco', 'Los Angeles',
-    'Mexico City', 'Cancún', 'Bali', 'Bangkok', 'Singapore', 'Seoul', 'Sydney', 'Dubai',
-    'Istanbul', 'Marrakech', 'Cairo', 'Cape Town', 'Lima', 'Cusco', 'Santiago', 'Reykjavik',
-    'Santorini', 'Athens', 'Swiss Alps', 'Zurich', 'Vancouver', 'Toronto', 'Montreal',
-  ];
-  for (const place of known) {
-    if (new RegExp(`\\b${place.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)) {
-      return place === 'Japan' ? 'Japan' : place;
-    }
-  }
-  const m = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/);
-  return m ? m[1] : 'Your trip';
-}
-
-function guessBudgetUsdFromText(text: string): number {
-  const lower = text.toLowerCase();
-  const kMatch = text.match(/\$\s*([\d.]+)\s*k\b/i) || text.match(/\b([\d.]+)\s*k\s*(?:usd|dollars?)?\b/i);
-  if (kMatch) return Math.round(parseFloat(kMatch[1]) * 1000) || 2000;
-  const m = text.match(/\$\s*([\d,]+)/);
-  if (m) return parseInt(m[1].replace(/,/g, ''), 10) || 2000;
-  const under = lower.match(/under\s*\$?\s*([\d,]+)/);
-  if (under) return parseInt(under[1].replace(/,/g, ''), 10) || 2000;
-  return 2000;
-}
-
-function guessTripLengthFromText(text: string): string {
-  const day = text.match(/(\d+)\s*[-–]\s*(\d+)\s*-?\s*day/i);
-  if (day) return `${day[1]}–${day[2]} days`;
-  const single = text.match(/(\d+)\s*-?\s*day/i);
-  if (single) return `${single[1]} days`;
-  const week = text.match(/(\d+)\s*weeks?/i);
-  if (week) return `${parseInt(week[1], 10) * 7}+ days`;
-  return '7–14 days';
-}
-
-function guessStylePaceFromText(text: string): { style: string; pace: string } {
-  const t = text.toLowerCase();
-  const style =
-    /luxury|splurge|high.end/i.test(t) ? 'Upscale' :
-    /budget|cheap|affordable/i.test(t) ? 'Budget' :
-    /family|kids/i.test(t) ? 'Family' : 'Balanced';
-  const pace =
-    /relax|slow|chill|easy/i.test(t) ? 'Relaxed' :
-    /pack|busy|adventure|hiking/i.test(t) ? 'Active' : 'Explorer';
-  return { style, pace };
-}
-
-/** Pull day lines from AI markdown-ish text for sample itinerary. */
 function extractItineraryDays(aiText: string, maxRows = 5): { label: string; detail: string }[] {
   const rows: { label: string; detail: string }[] = [];
   const re = /(?:^|\n)\s*Day\s*(\d+)\s*[:.\-–—]\s*([^\n]+)/gi;
@@ -101,15 +53,13 @@ export default function NewHomePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const planHints = useMemo(() => {
-    const combined = `${prompt}\n${aiResponse || ''}`;
-    const destination = guessDestinationFromText(prompt, aiResponse || '');
-    const budgetNum = guessBudgetUsdFromText(combined);
-    const { style, pace } = guessStylePaceFromText(combined);
+    const hints = guessHomeTripHints(prompt, aiResponse || '');
+    const { style, pace } = guessStylePaceFromText(`${prompt}\n${aiResponse || ''}`);
     return {
-      destination,
-      tripLength: guessTripLengthFromText(combined),
-      budgetLabel: `$${(budgetNum * 0.85).toLocaleString()}–$${(budgetNum * 1.15).toLocaleString()}`,
-      budgetNum,
+      ...hints,
+      tripLength: hints.tripLengthLabel,
+      budgetNum: hints.budgetAmount,
+      budgetLabel: `$${(hints.budgetAmount * 0.85).toLocaleString()}–$${(hints.budgetAmount * 1.15).toLocaleString()}`,
       style,
       pace,
       itineraryRows: aiResponse ? extractItineraryDays(aiResponse) : [],
@@ -234,8 +184,12 @@ export default function NewHomePage() {
   };
 
   const handleOpenRouteMap = () => {
-    const q = planHints.destination === 'Your trip' ? prompt.slice(0, 60) || 'travel' : planHints.destination;
-    router.push(`/plan-trip?destination=${encodeURIComponent(q)}`);
+    const hints = guessHomeTripHints(prompt, aiResponse || '');
+    router.push(
+      buildPlanTripHrefFromHints(hints, {
+        additionalDetails: prompt.trim() || undefined,
+      })
+    );
   };
 
   async function handleSaveTrip() {

@@ -7,12 +7,16 @@ export type PlanTripStyle = 'single' | 'multi' | 'surprise';
 export type PlanTripPrefill = {
   tripStyle?: PlanTripStyle;
   destination?: string;
+  origin?: string;
   startDate?: string;
   endDate?: string;
   budget?: number;
   additionalDetails?: string;
   vibes?: string[];
   numberOfStops?: number;
+  adults?: number;
+  kids?: number;
+  stops?: { id: string; destination: string; startDate: string; endDate: string }[];
 };
 
 const BUDGET_MIN = 500;
@@ -73,6 +77,15 @@ export function parsePlanTripSearchParams(
   const dest = params.get('destination')?.trim();
   if (dest) out.destination = dest;
 
+  const origin = params.get('from')?.trim();
+  if (origin) out.origin = origin;
+
+  const adultsRaw = parseInt(params.get('adults') || '', 10);
+  if (Number.isFinite(adultsRaw)) out.adults = Math.min(9, Math.max(1, Math.round(adultsRaw)));
+
+  const kidsRaw = parseInt(params.get('kids') || '', 10);
+  if (Number.isFinite(kidsRaw)) out.kids = Math.min(8, Math.max(0, Math.round(kidsRaw)));
+
   const style = parseTripStyleParam(params.get('tripType') ?? params.get('mode'));
   if (style) out.tripStyle = style;
 
@@ -99,6 +112,13 @@ export function parsePlanTripSearchParams(
     out.numberOfStops = Math.min(MAX_STOPS, Math.max(2, Math.round(stopsRaw)));
   }
 
+  const namedStops = parseNamedStopsParam(params.get('stops'));
+  if (namedStops.length >= 2) {
+    out.stops = namedStops;
+    out.numberOfStops = namedStops.length;
+    if (!out.tripStyle) out.tripStyle = 'multi';
+  }
+
   const startDate = params.get('startDate')?.trim() || '';
   const endDate = params.get('endDate')?.trim() || '';
   const durationRaw = parseInt(params.get('tripDuration') || '', 10);
@@ -116,4 +136,37 @@ export function parsePlanTripSearchParams(
   }
 
   return out;
+}
+
+function parseNamedStopsParam(
+  raw: string | null
+): { id: string; destination: string; startDate: string; endDate: string }[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item, i) => {
+        if (!item || typeof item !== 'object') return null;
+        const s = item as Record<string, unknown>;
+        const destination = typeof s.destination === 'string' ? s.destination.trim() : '';
+        if (!destination) return null;
+        return {
+          id: typeof s.id === 'string' && s.id ? s.id : `stop-${i}`,
+          destination,
+          startDate: typeof s.startDate === 'string' ? s.startDate : '',
+          endDate: typeof s.endDate === 'string' ? s.endDate : '',
+        };
+      })
+      .filter((s): s is { id: string; destination: string; startDate: string; endDate: string } => s != null)
+      .slice(0, MAX_STOPS);
+  } catch {
+    return [];
+  }
+}
+
+/** Suggestions → Plan Trip: keep the current query so the form can rehydrate. */
+export function planTripHrefFromSearchParams(params: { toString(): string }): string {
+  const qs = params.toString();
+  return qs ? `/plan-trip?${qs}` : '/plan-trip';
 }

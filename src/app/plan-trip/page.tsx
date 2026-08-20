@@ -72,9 +72,14 @@ export default function PlanTripPage() {
     if (prefill.budget != null) setBudget(prefill.budget);
     if (prefill.additionalDetails) setAdditionalDetails(prefill.additionalDetails);
     if (prefill.vibes?.length) setVibes(prefill.vibes.slice(0, MAX_VIBES));
+    if (prefill.origin) setOrigin(prefill.origin);
+    if (prefill.adults != null) setAdults(prefill.adults);
+    if (prefill.kids != null) setKids(prefill.kids);
     if (prefill.startDate) setStartDate(prefill.startDate);
     if (prefill.endDate) setEndDate(prefill.endDate);
-    if (prefill.numberOfStops) {
+    if (prefill.stops && prefill.stops.length >= 2) {
+      setMultiStops(prefill.stops);
+    } else if (prefill.numberOfStops) {
       setMultiStops(
         Array.from({ length: prefill.numberOfStops }, (_, i) => makeEmptyStop(i * 4))
       );

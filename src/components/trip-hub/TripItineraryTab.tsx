@@ -5,9 +5,13 @@ import { newBlankBlock } from '@/lib/generate-itinerary-days';
 import { sortBlocksByTimeOfDay } from '@/lib/itinerary-blocks';
 import { mapPointIdForBlock } from '@/lib/itinerary-map-points';
 import { travelNoteTitle } from '@/lib/itinerary-travel-note';
+import { pickTourSuggestionDays } from '@/lib/itinerary-free-time';
 import { focusTripChat, itineraryDayChatDraft } from '@/lib/trip-chat-focus';
 import { shortStopLabel } from '@/lib/place-names';
 import TripItineraryMap from '@/components/trip-hub/TripItineraryMap';
+import TourDaySuggestionCard, {
+  type TourDaySuggestionPayload,
+} from '@/components/trip-hub/TourDaySuggestionCard';
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
 
@@ -49,7 +53,23 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
   const [savingDayId, setSavingDayId] = useState<string | null>(null);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [dismissedStops, setDismissedStops] = useState<Set<string>>(new Set());
+  const [tourSuggest, setTourSuggest] = useState<
+    Record<
+      string,
+      {
+        payload?: TourDaySuggestionPayload;
+        loading: boolean;
+        swapping: boolean;
+        error: string | null;
+        alternatives: TourDaySuggestionPayload[] | null;
+        confirm: boolean;
+        skipped?: boolean;
+      }
+    >
+  >({});
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dismissKey = `wn-tour-suggest-dismiss:${tripId}`;
 
   const orderedDays = useMemo(
     () =>
@@ -205,6 +225,214 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
   const selectBlock = (day: TripItineraryDay, blockId: string) => {
     setSelectedDayId(day.id);
     setSelectedBlockId(blockId);
+  };
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(dismissKey);
+      if (!raw) {
+        setDismissedStops(new Set());
+        return;
+      }
+      const ids = JSON.parse(raw) as unknown;
+      setDismissedStops(
+        new Set(Array.isArray(ids) ? ids.filter((x): x is string => typeof x === 'string') : [])
+      );
+    } catch {
+      setDismissedStops(new Set());
+    }
+    setTourSuggest({});
+  }, [dismissKey]);
+
+  const eligibleTourDays = useMemo(() => {
+    if (!complete) return [];
+    return pickTourSuggestionDays(days).filter((d) => !dismissedStops.has(d.stop_id));
+  }, [complete, days, dismissedStops]);
+
+  const loadTourSuggestion = useCallback(async (dayId: string) => {
+    setTourSuggest((prev) => ({
+      ...prev,
+      [dayId]: {
+        loading: true,
+        swapping: false,
+        error: null,
+        alternatives: prev[dayId]?.alternatives ?? null,
+        confirm: false,
+        payload: prev[dayId]?.payload,
+      },
+    }));
+    try {
+      const res = await fetch(`/api/trips/${tripId}/itinerary/tour-suggest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dayId }),
+      });
+      const data = await res.json();
+      if (res.status === 409) {
+        setTourSuggest((prev) => ({
+          ...prev,
+          [dayId]: {
+            loading: false,
+            swapping: false,
+            error: null,
+            alternatives: null,
+            confirm: false,
+            skipped: true,
+          },
+        }));
+        return;
+      }
+      if (!res.ok) {
+        setTourSuggest((prev) => ({
+          ...prev,
+          [dayId]: {
+            loading: false,
+            swapping: false,
+            error: data.error || 'Could not suggest a walking tour',
+            alternatives: null,
+            confirm: false,
+          },
+        }));
+        return;
+      }
+      setTourSuggest((prev) => ({
+        ...prev,
+        [dayId]: {
+          payload: data.suggestion,
+          loading: false,
+          swapping: false,
+          error: null,
+          alternatives: null,
+          confirm: false,
+        },
+      }));
+    } catch {
+      setTourSuggest((prev) => ({
+        ...prev,
+        [dayId]: {
+          loading: false,
+          swapping: false,
+          error: 'Could not suggest a walking tour',
+          alternatives: null,
+          confirm: false,
+        },
+      }));
+    }
+  }, [tripId]);
+
+  useEffect(() => {
+    if (!active || generating) return;
+    for (const day of eligibleTourDays) {
+      const state = tourSuggest[day.id];
+      if (state?.loading || state?.payload || state?.error || state?.skipped) continue;
+      void loadTourSuggestion(day.id);
+    }
+  }, [active, generating, eligibleTourDays, tourSuggest, loadTourSuggestion]);
+
+  const dismissTourStop = (stopId: string, dayId: string) => {
+    setDismissedStops((prev) => {
+      const next = new Set(prev);
+      next.add(stopId);
+      try {
+        sessionStorage.setItem(dismissKey, JSON.stringify([...next]));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+    setTourSuggest((prev) => {
+      const next = { ...prev };
+      delete next[dayId];
+      return next;
+    });
+  };
+
+  const loadTourAlternatives = async (dayId: string) => {
+    setTourSuggest((prev) => ({
+      ...prev,
+      [dayId]: { ...prev[dayId], swapping: true, error: null, confirm: false, loading: false },
+    }));
+    try {
+      const res = await fetch(`/api/trips/${tripId}/itinerary/tour-suggest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dayId, alternatives: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setTourSuggest((prev) => ({
+          ...prev,
+          [dayId]: {
+            ...prev[dayId],
+            swapping: false,
+            error: data.error || 'Could not load other tours',
+          },
+        }));
+        return;
+      }
+      setTourSuggest((prev) => ({
+        ...prev,
+        [dayId]: {
+          ...prev[dayId],
+          swapping: false,
+          alternatives: data.options ?? [],
+        },
+      }));
+    } catch {
+      setTourSuggest((prev) => ({
+        ...prev,
+        [dayId]: { ...prev[dayId], swapping: false, error: 'Could not load other tours' },
+      }));
+    }
+  };
+
+  const pickTourAlternative = async (dayId: string, option: TourDaySuggestionPayload) => {
+    setTourSuggest((prev) => ({
+      ...prev,
+      [dayId]: {
+        ...prev[dayId],
+        payload: option,
+        confirm: false,
+        swapping: true,
+        loading: false,
+      },
+    }));
+    try {
+      const res = await fetch(`/api/trips/${tripId}/itinerary/tour-suggest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dayId, blocks: option.blocks }),
+      });
+      const data = await res.json();
+      if (res.ok && data.suggestion?.blocks) {
+        setTourSuggest((prev) => ({
+          ...prev,
+          [dayId]: {
+            ...prev[dayId],
+            payload: { ...option, blocks: data.suggestion.blocks },
+            swapping: false,
+          },
+        }));
+        return;
+      }
+    } catch {
+      /* keep un-geocoded option */
+    }
+    setTourSuggest((prev) => ({
+      ...prev,
+      [dayId]: { ...prev[dayId], swapping: false },
+    }));
+  };
+
+  const acceptTourSuggestion = async (day: TripItineraryDay) => {
+    const payload = tourSuggest[day.id]?.payload;
+    if (!payload?.blocks?.length) return;
+    await saveDayBlocks(day.id, payload.blocks);
+    setTourSuggest((prev) => {
+      const next = { ...prev };
+      delete next[day.id];
+      return next;
+    });
   };
 
   const openDayInChat = (day: TripItineraryDay) => {
@@ -509,6 +737,39 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
                       </p>
                       <p className="text-sm text-amber-800">{day.travel_note}</p>
                     </div>
+                  )}
+
+                  {eligibleTourDays.some((d) => d.id === day.id) &&
+                    !tourSuggest[day.id]?.skipped && (
+                    <TourDaySuggestionCard
+                      title={tourSuggest[day.id]?.payload?.title || 'Walking tour'}
+                      summary={tourSuggest[day.id]?.payload?.summary}
+                      theme={tourSuggest[day.id]?.payload?.theme}
+                      stopCount={tourSuggest[day.id]?.payload?.stopCount ?? 0}
+                      extraStopNames={tourSuggest[day.id]?.payload?.extraStopNames ?? []}
+                      loading={!tourSuggest[day.id] || tourSuggest[day.id].loading}
+                      swapping={!!tourSuggest[day.id]?.swapping}
+                      error={tourSuggest[day.id]?.error ?? null}
+                      confirmOpen={!!tourSuggest[day.id]?.confirm}
+                      alternatives={tourSuggest[day.id]?.alternatives ?? null}
+                      hasExistingBlocks={day.blocks.length > 0}
+                      onUse={() =>
+                        setTourSuggest((prev) => ({
+                          ...prev,
+                          [day.id]: { ...prev[day.id], confirm: true, loading: false },
+                        }))
+                      }
+                      onConfirmUse={() => void acceptTourSuggestion(day)}
+                      onCancelConfirm={() =>
+                        setTourSuggest((prev) => ({
+                          ...prev,
+                          [day.id]: { ...prev[day.id], confirm: false },
+                        }))
+                      }
+                      onDismiss={() => dismissTourStop(day.stop_id, day.id)}
+                      onSeeOthers={() => void loadTourAlternatives(day.id)}
+                      onPickAlternative={(opt) => void pickTourAlternative(day.id, opt)}
+                    />
                   )}
 
                   <button

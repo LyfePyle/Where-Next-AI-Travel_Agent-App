@@ -158,6 +158,38 @@ export const TRIP_CHAT_TOOLS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'propose_walking_tour',
+      description:
+        'Generate a walking-tour SUGGESTION for a day. Does not change the itinerary. Use this when the user asks about a walking tour or filling a free day. Tell them to tap Use this day on the itinerary card to apply it.',
+      parameters: {
+        type: 'object',
+        properties: {
+          stop_id: { type: 'string' },
+          day_index: { type: 'integer', minimum: 1 },
+        },
+        required: ['stop_id', 'day_index'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'apply_walking_tour',
+      description:
+        'Replace one day\'s itinerary blocks with a generated walking tour. NEVER call this unless the user clearly asked to replace that day with the tour (e.g. "yes use it", "put that walking tour on day 3"). Never call it unprompted.',
+      parameters: {
+        type: 'object',
+        properties: {
+          stop_id: { type: 'string' },
+          day_index: { type: 'integer', minimum: 1 },
+        },
+        required: ['stop_id', 'day_index'],
+      },
+    },
+  },
 ];
 
 export function buildTripJsonForPrompt(stops: TripStop[], tripStart: string): string {
@@ -320,7 +352,7 @@ export function withFocusedItineraryDay(
   if (!focus) return summary;
   return `${summary}
 
-Currently viewing: Day ${focus.dayIndex} in ${focus.city} (id: ${focus.dayId}, stop_id: ${focus.stopId}). When the user says "this day", "today's plan", or does not name a day, apply regenerate_day / add_itinerary_block / remove_itinerary_block to this day.`;
+Currently viewing: Day ${focus.dayIndex} in ${focus.city} (id: ${focus.dayId}, stop_id: ${focus.stopId}). When the user says "this day", "today's plan", or does not name a day, apply regenerate_day / add_itinerary_block / remove_itinerary_block / propose_walking_tour to this day. Do not apply_walking_tour unless they clearly asked to replace the day.`;
 }
 
 export function buildTripChatSystemPrompt(
@@ -345,6 +377,9 @@ ${budgetSection}${itinerarySection}
 Rules:
 - Use stop tools (swap_stop, resize_stop_nights, add_stop, remove_stop, reorder_stops) for route/date/city changes.
 - Use itinerary tools (regenerate_day, add_itinerary_block, remove_itinerary_block) for day-by-day plan edits.
+- Walking tours: use propose_walking_tour to suggest a walk. That tool does NOT change the itinerary. Tell the user the suggestion appears on the itinerary day card — they tap "Use this day" to apply it.
+- NEVER use regenerate_day or add_itinerary_block to silently fill a day with a walking tour.
+- apply_walking_tour replaces that day's blocks. Call it ONLY when the user clearly asked to replace that day with the walking tour (e.g. "yes use it", "put that tour on day 3"). Never call it unprompted, on tab open, or because a day looks light.
 - Only modify the trip using the provided tools. Never describe changes in prose without calling a tool.
 - Positional stop requests ALWAYS need reorder_stops: "end in X", "put X last/first", "move X before Y", "finish in X instead". If you add or swap stops AND the user asked for a new order, call reorder_stops with the complete final stop order.
 - Before add_itinerary_block, read that day's existing blocks in the itinerary summary. Skip adding duplicates. If the user says "keep X and add Y", only add Y when missing; do not re-add X if it is already listed.

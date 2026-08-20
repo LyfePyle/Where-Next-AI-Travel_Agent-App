@@ -10,6 +10,7 @@ import {
   withBlockIds,
 } from '@/lib/generate-itinerary-days';
 import { attachCoordsToBlocks, attachCoordsToGeneratedDays } from '@/lib/geocode-itinerary-block';
+import { buildTourDaySuggestion } from '@/lib/itinerary-tour-suggest';
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
 import type { ToolCallInput } from '@/lib/trip-mutations';
@@ -596,6 +597,54 @@ export async function applyItineraryToolCalls(
         summaries.push(`Removed "${removed?.title ?? 'block'}" from day ${day.day_index}`);
         break;
       }
+      case 'propose_walking_tour': {
+        const stopId = String(args.stop_id ?? '');
+        const dayIndex = Math.max(1, Math.round(Number(args.day_index)));
+        const stop = stops.find((s) => s.id === stopId);
+        if (!stop) return { ok: false, error: `Stop not found: ${stopId}` };
+
+        const suggestion = await buildTourDaySuggestion({
+          city: cityFromStop(stop),
+          country: countryFromStop(stop),
+          vibes: context.vibes,
+          additionalDetails: context.additionalDetails,
+          geocode: false,
+        });
+        const names = suggestion.blocks.map((b) => b.title).join(', ');
+        summaries.push(
+          `Suggested walking tour "${suggestion.title}" for day ${dayIndex} in ${cityFromStop(stop)}: ${names}. This did not change the itinerary — the traveler must tap Use this day on that day's card to apply it.`
+        );
+        break;
+      }
+      case 'apply_walking_tour': {
+        const stopId = String(args.stop_id ?? '');
+        const dayIndex = Math.max(1, Math.round(Number(args.day_index)));
+        const stop = stops.find((s) => s.id === stopId);
+        if (!stop) return { ok: false, error: `Stop not found: ${stopId}` };
+
+        const existing = current.find((d) => d.stop_id === stopId && d.day_index === dayIndex);
+        const suggestion = await buildTourDaySuggestion({
+          city: cityFromStop(stop),
+          country: countryFromStop(stop),
+          vibes: context.vibes,
+          additionalDetails: context.additionalDetails,
+        });
+
+        await upsertDayRows(supabase, tripId, stop, [
+          {
+            day_index: dayIndex,
+            blocks: suggestion.blocks,
+            travel_note: existing?.travel_note,
+            travel_note_kind: existing?.travel_note_kind,
+          },
+        ]);
+
+        current = await fetchItineraryDays(supabase, tripId);
+        summaries.push(
+          `Replaced day ${dayIndex} in ${cityFromStop(stop)} with walking tour "${suggestion.title}" (${suggestion.blocks.length} stops)`
+        );
+        break;
+      }
       default:
         return { ok: false, error: `Unknown itinerary tool: ${call.name}` };
     }
@@ -608,6 +657,8 @@ export const ITINERARY_TOOL_NAMES = new Set([
   'regenerate_day',
   'add_itinerary_block',
   'remove_itinerary_block',
+  'propose_walking_tour',
+  'apply_walking_tour',
 ]);
 
 export const STOP_TOOL_NAMES = new Set([

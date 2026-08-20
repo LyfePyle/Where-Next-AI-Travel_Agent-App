@@ -6,7 +6,11 @@ import { sortBlocksByTimeOfDay } from '@/lib/itinerary-blocks';
 import { mapPointIdForBlock } from '@/lib/itinerary-map-points';
 import { travelNoteTitle } from '@/lib/itinerary-travel-note';
 import { pickTourSuggestionDays } from '@/lib/itinerary-free-time';
-import { focusTripChat, itineraryDayChatDraft } from '@/lib/trip-chat-focus';
+import {
+  TRIP_ITINERARY_CHANGED_EVENT,
+  focusTripChat,
+  itineraryDayChatDraft,
+} from '@/lib/trip-chat-focus';
 import { shortStopLabel } from '@/lib/place-names';
 import TripItineraryMap from '@/components/trip-hub/TripItineraryMap';
 import TourDaySuggestionCard, {
@@ -169,6 +173,14 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
     if (!active) return;
     void fetchDays();
   }, [active, stops, fetchDays]);
+
+  useEffect(() => {
+    const onItineraryChanged = () => {
+      void fetchDays();
+    };
+    window.addEventListener(TRIP_ITINERARY_CHANGED_EVENT, onItineraryChanged);
+    return () => window.removeEventListener(TRIP_ITINERARY_CHANGED_EVENT, onItineraryChanged);
+  }, [fetchDays]);
 
   useEffect(() => {
     const ordered = stops.flatMap((stop) =>

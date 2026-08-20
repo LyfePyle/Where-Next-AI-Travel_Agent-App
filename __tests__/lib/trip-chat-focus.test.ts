@@ -1,4 +1,8 @@
-import { itineraryDayChatDraft } from '@/lib/trip-chat-focus';
+import {
+  TRIP_ITINERARY_CHANGED_EVENT,
+  itineraryDayChatDraft,
+  notifyItineraryChanged,
+} from '@/lib/trip-chat-focus';
 import { withFocusedItineraryDay } from '@/lib/trip-chat-tools';
 
 describe('itineraryDayChatDraft', () => {
@@ -25,8 +29,12 @@ describe('withFocusedItineraryDay', () => {
   });
 });
 
-describe('itineraryDayChatDraft', () => {
-  it('scopes the chat prompt to a stop day', () => {
-    expect(itineraryDayChatDraft('Paris', 2)).toBe('Change day 2 in Paris: ');
+describe('notifyItineraryChanged', () => {
+  it('dispatches so the itinerary tab can refetch after chat writes', () => {
+    const seen = jest.fn();
+    window.addEventListener(TRIP_ITINERARY_CHANGED_EVENT, seen);
+    notifyItineraryChanged();
+    expect(seen).toHaveBeenCalledTimes(1);
+    window.removeEventListener(TRIP_ITINERARY_CHANGED_EVENT, seen);
   });
 });

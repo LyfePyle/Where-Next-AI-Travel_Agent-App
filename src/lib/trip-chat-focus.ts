@@ -20,3 +20,11 @@ export function itineraryDayChatDraft(city: string, dayIndex: number): string {
   const place = city.trim() || 'this stop';
   return `Change day ${dayIndex} in ${place}: `;
 }
+
+/** Chat mutated itinerary days — TripItineraryTab refetches so the list matches the write. */
+export const TRIP_ITINERARY_CHANGED_EVENT = 'where-next:itinerary-changed';
+
+export function notifyItineraryChanged(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(TRIP_ITINERARY_CHANGED_EVENT));
+}

@@ -6,6 +6,7 @@ import { MessageCircle, X } from 'lucide-react';
 import type { ChatMessageRow } from '@/app/api/trips/[id]/chat/route';
 import {
   TRIP_CHAT_FOCUS_EVENT,
+  notifyItineraryChanged,
   type TripChatFocusDetail,
 } from '@/lib/trip-chat-focus';
 
@@ -277,6 +278,7 @@ export default function TripChatPanel({
       if (data.applied) {
         setUndoAvailable(!!data.undoAvailable);
         setUndoExpiresAt(data.undoExpiresAt ?? null);
+        notifyItineraryChanged();
         router.refresh();
       }
     } catch {
@@ -316,6 +318,7 @@ export default function TripChatPanel({
 
         if (data.trip) {
           await refreshChat();
+          notifyItineraryChanged();
           router.refresh();
         }
       } catch {

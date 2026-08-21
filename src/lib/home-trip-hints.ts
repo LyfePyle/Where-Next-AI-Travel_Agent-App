@@ -194,6 +194,23 @@ export function guessHomeTripHints(prompt: string, aiResponse = ''): HomeTripHin
   };
 }
 
+/** Same four chips as the homepage hero — Dashboard reuses these without cloning homepage AI. */
+export const HOME_TRIP_PROMPT_CHIPS = [
+  "I don't know where to go yet — help me narrow it down",
+  '6 countries in Southeast Asia, ~6 weeks, mid budget',
+  'A week in Tokyo for food, mid budget',
+  'Italy for two weeks — romantic, not rushed',
+] as const;
+
+/** Empty prompt → bare planner; otherwise hints + the sentence as additionalDetails. */
+export function planTripHrefFromPrompt(prompt: string): string {
+  const trimmed = prompt.trim();
+  if (!trimmed) return '/plan-trip';
+  return buildPlanTripHrefFromHints(guessHomeTripHints(trimmed), {
+    additionalDetails: trimmed,
+  });
+}
+
 export function buildPlanTripHrefFromHints(
   hints: HomeTripHints,
   extra?: { additionalDetails?: string }

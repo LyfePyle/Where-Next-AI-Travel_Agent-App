@@ -2,6 +2,7 @@ import {
   buildPlanTripHrefFromHints,
   guessDestinationFromText,
   guessHomeTripHints,
+  planTripHrefFromPrompt,
 } from '@/lib/home-trip-hints';
 import {
   parsePlanTripSearchParams,
@@ -33,6 +34,23 @@ describe('buildPlanTripHrefFromHints', () => {
   it('passes tripType, duration, budget, and the chip copy to Plan Trip', () => {
     const hints = guessHomeTripHints(SEA_CHIP);
     const href = buildPlanTripHrefFromHints(hints, { additionalDetails: SEA_CHIP });
+    const qs = new URLSearchParams(href.split('?')[1]);
+    expect(qs.get('destination')).toBe('Southeast Asia');
+    expect(qs.get('tripType')).toBe('multi-city');
+    expect(qs.get('tripDuration')).toBe('42');
+    expect(qs.get('budgetAmount')).toBe('4500');
+    expect(qs.get('numberOfStops')).toBe('6');
+    expect(qs.get('additionalDetails')).toBe(SEA_CHIP);
+  });
+});
+
+describe('planTripHrefFromPrompt', () => {
+  it('opens a blank planner when the sentence is empty', () => {
+    expect(planTripHrefFromPrompt('  ')).toBe('/plan-trip');
+  });
+
+  it('sends the Southeast Asia chip straight to a pre-filled planner', () => {
+    const href = planTripHrefFromPrompt(SEA_CHIP);
     const qs = new URLSearchParams(href.split('?')[1]);
     expect(qs.get('destination')).toBe('Southeast Asia');
     expect(qs.get('tripType')).toBe('multi-city');

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
 import { tripDestinationSummary, type TripStop } from '@/types/trip';
+import StartTripFromPrompt from '@/components/dashboard/StartTripFromPrompt';
 
 interface PlannedTrip {
   id: string;
@@ -364,23 +365,7 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-8 py-16 text-center max-w-lg mx-auto">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4 text-slate-400">
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 mb-2">No planned trips yet</h2>
-            <p className="text-sm text-slate-500 mb-6">
-              Plan a trip, save it from AI suggestions, and track affiliate partner clicks here.
-            </p>
-            <Link
-              href="/plan-trip"
-              className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors"
-            >
-              Plan your first trip
-            </Link>
-          </div>
+          <StartTripFromPrompt variant="empty" />
         </div>
       </div>
     );
@@ -403,6 +388,8 @@ export default function DashboardPage() {
             Plan a trip
           </Link>
         </div>
+
+        <StartTripFromPrompt variant="compact" />
 
         {stats && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">

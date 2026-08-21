@@ -2,8 +2,12 @@
 
 Living audit of every path that starts (or claims to start) a new trip via `/plan-trip` or `/suggestions`.
 
+**See also:** full-app map in [`docs/site-map.md`](site-map.md) (§B for current Plan Trip / Suggestions / trip-details wiring).
+
 **Status:** mapping only — no product fixes in this pass.  
 **Last audited:** 2026-08-19 against `main` (`src/app/page.tsx`, `src/app/plan-trip/page.tsx`, `src/app/suggestions/page.tsx`, `src/data/curated-destinations.ts`).
+
+**Stale vs later 2026-08-19 ships:** the **Receiver** table below still describes Plan Trip as reading only `destination` + `vibes`. It now also reads `from`, `adults`, `kids`, `tripType`/`mode`, budget, dates, `tripDuration`, `numberOfStops`, and named `stops` (≥2). Hero chips A3/A4 were replaced. Suggestions Back (F) now keeps the query. Use `site-map.md` §B as the current receiver; keep the tables below as the original promise-vs-pass audit.
 
 How to use this: when something “doesn’t feel like the copy,” find the row, then check **Passes today** vs **Should pass**. Re-audit by grepping `plan-trip` / `suggestions?` (commands at the bottom).
 

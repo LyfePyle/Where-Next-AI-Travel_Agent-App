@@ -35,7 +35,7 @@ const footerSections = [
     title: 'Resources',
     links: [
       { label: 'Travel Tools', href: '/tools' },
-      { label: 'Walking Tours', href: '/tours' },
+      { label: 'Walking Tours', href: '/walking-tour' },
       { label: 'Saved Trips', href: '/saved' },
     ]
   }

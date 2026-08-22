@@ -19,7 +19,7 @@ export default function ToolsPage() {
         <li className="rounded-xl border p-4">
           <h3 className="font-semibold">Walking Tours</h3>
           <p className="text-sm text-gray-600 mb-3">Self-guided routes with POIs.</p>
-          <a className="rounded-md border px-3 py-2 inline-block" href="/tours">Open</a>
+          <a className="rounded-md border px-3 py-2 inline-block" href="/walking-tour">Open</a>
         </li>
         <li className="rounded-xl border p-4">
           <h3 className="font-semibold">Trip Planner</h3>

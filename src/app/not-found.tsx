@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="mb-6 text-gray-600">Try one of these:</p>
       <div className="flex gap-3 justify-center">
         <Link className="border rounded px-3 py-2" href="/plan-trip">Plan Trip</Link>
-        <Link className="border rounded px-3 py-2" href="/tours">Walking Tours</Link>
+        <Link className="border rounded px-3 py-2" href="/walking-tour">Walking Tours</Link>
         <Link className="border rounded px-3 py-2" href="/budget">Budget</Link>
       </div>
     </main>

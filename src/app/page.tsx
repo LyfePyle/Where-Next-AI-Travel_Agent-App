@@ -942,7 +942,7 @@ export default function NewHomePage() {
               <h3 className="text-2xl font-bold mb-8 text-white">Resources</h3>
               <ul className="space-y-4 list-none p-0 m-0">
                 <li><Link href="/tools" className="text-gray-300 hover:text-white transition-colors text-lg block">Travel Tools</Link></li>
-                <li><Link href="/tours" className="text-gray-300 hover:text-white transition-colors text-lg block">Walking Tours</Link></li>
+                <li><Link href="/walking-tour" className="text-gray-300 hover:text-white transition-colors text-lg block">Walking Tours</Link></li>
                 <li><Link href="/saved" className="text-gray-300 hover:text-white transition-colors text-lg block">Saved Trips</Link></li>
               </ul>
             </div>

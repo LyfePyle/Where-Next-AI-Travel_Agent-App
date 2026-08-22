@@ -6,7 +6,6 @@ import { createServerClient } from '@supabase/ssr';
 const PROTECTED_ROUTES = [
   '/dashboard',
   '/saved',
-  '/tours',
   '/plan-trip',
   '/trip-details',
   '/budgets',

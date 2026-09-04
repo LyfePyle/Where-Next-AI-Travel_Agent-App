@@ -794,6 +794,7 @@ function Counter({
         border: '1.5px solid #E2DDD6',
         borderRadius: 10,
         background: '#FAFAF9',
+        color: '#1C1917',
       }}
     >
       <div>
@@ -812,11 +813,15 @@ function Counter({
         </button>
         <span
           style={{
-            fontSize: 15,
+            fontSize: 18,
             fontWeight: 700,
-            minWidth: 20,
+            minWidth: 22,
             textAlign: 'center',
-            fontFamily: 'monospace',
+            lineHeight: 1,
+            fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
+            // Same ink as labels/inputs — OS dark mode otherwise inherits light --foreground.
+            color: '#1C1917',
+            WebkitTextFillColor: '#1C1917',
           }}
         >
           {value}

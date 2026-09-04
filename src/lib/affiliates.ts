@@ -23,15 +23,49 @@ const IDS = {
 };
 
 /**
- * Expedia is the Travel Creator Program — links must be pre-generated and
- * tracked via Expedia's dashboard; you can't build deep links with a reusable
- * ID. So every Expedia fallback points to your one tracked link. It lands on
- * Expedia (homepage) and credits any booking within the cookie window.
- * Swap the env var if you generate a new tracked link.
+ * Creator-program homepage shortlink. Use only when we have no destination to
+ * search — it cannot carry a city/region (that's why Bali used to land on
+ * generic Expedia). Destination-aware links use Expedia's public search URLs.
  */
 const EXPEDIA_TRACKED_URL =
   process.env.NEXT_PUBLIC_EXPEDIA_AFFILIATE_URL ??
   'https://expedia.com/affiliates/expedia-home.oTHKuON';
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function isIsoDate(value: string | undefined): value is string {
+  return !!value && ISO_DATE.test(value);
+}
+
+/** Build an expedia.com URL with correctly encoded query params. */
+function expediaSearchUrl(
+  path: string,
+  params: Record<string, string | undefined>
+): string {
+  const sp = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null || value === '') continue;
+    sp.set(key, value);
+  }
+  const qs = sp.toString();
+  return `https://www.expedia.com${path}${qs ? `?${qs}` : ''}`;
+}
+
+function expediaLink(
+  type: AffiliateType,
+  label: string,
+  emoji: string,
+  url: string
+): AffiliateLink {
+  return {
+    type,
+    partner: 'Expedia',
+    label,
+    sublabel: 'via Expedia',
+    emoji,
+    url,
+  };
+}
 
 export interface AffiliateLink {
   partner: string;
@@ -50,25 +84,28 @@ export type AffiliateType =
   | 'cars'
   | 'insurance';
 
-/** Expedia Creator-Program tracked link, labelled per category. */
-function expediaTracked(
-  type: AffiliateType,
-  label: string,
-  emoji: string
+/**
+ * Expedia hotel search — free-text `destination` (city/region name, not IATA).
+ * Path is Hotel-Search (singular). Hotels-Search 404s / misses the query, same
+ * class of bug as inventing Viator slugs.
+ */
+export function expediaHotelLink(
+  dest: string,
+  checkIn = '',
+  checkOut = '',
+  adults = 2
 ): AffiliateLink {
-  return {
-    type,
-    partner: 'Expedia',
-    label,
-    sublabel: 'via Expedia',
-    emoji,
-    url: EXPEDIA_TRACKED_URL,
-  };
-}
-
-// Hotels
-export function expediaHotelLink(dest: string): AffiliateLink {
-  return expediaTracked('hotels', `Hotels in ${dest}`, '🏨');
+  const destination = dest.trim();
+  const url = destination
+    ? expediaSearchUrl('/Hotel-Search', {
+        destination,
+        startDate: isIsoDate(checkIn) ? checkIn : undefined,
+        endDate: isIsoDate(checkOut) ? checkOut : undefined,
+        rooms: '1',
+        adults: String(adults || 2),
+      })
+    : EXPEDIA_TRACKED_URL;
+  return expediaLink('hotels', `Hotels in ${dest}`, '🏨', url);
 }
 
 export function bookingHotelLink(
@@ -95,9 +132,44 @@ export function bookingHotelLink(
   };
 }
 
-// Flights
-export function expediaFlightLink(_origin: string, dest: string): AffiliateLink {
-  return expediaTracked('flights', `Flights to ${dest}`, '✈️');
+/**
+ * Expedia flight search. `from` / `to` take city names (Expedia resolves Bali
+ * → DPS); do not require IATA. Dates are ISO YYYY-MM-DD when present.
+ */
+export function expediaFlightLink(
+  origin: string,
+  dest: string,
+  departDate = '',
+  returnDate = '',
+  adults = 1
+): AffiliateLink {
+  const to = dest.trim();
+  const from = origin.trim() || 'Vancouver';
+  if (!to) {
+    return expediaLink('flights', `Flights to ${dest}`, '✈️', EXPEDIA_TRACKED_URL);
+  }
+
+  const roundtrip = isIsoDate(returnDate);
+  const leg1 = [`from:${from}`, `to:${to}`];
+  if (isIsoDate(departDate)) leg1.push(`departure:${departDate}TANYT`);
+
+  const params: Record<string, string | undefined> = {
+    'flight-type': 'on',
+    mode: 'search',
+    trip: roundtrip ? 'roundtrip' : 'oneway',
+    leg1: leg1.join(','),
+    passengers: `adults:${adults || 1},children:0,infantinlap:Y`,
+  };
+  if (roundtrip) {
+    params.leg2 = `from:${to},to:${from},departure:${returnDate}TANYT`;
+  }
+
+  return expediaLink(
+    'flights',
+    `Flights to ${dest}`,
+    '✈️',
+    expediaSearchUrl('/Flights-Search', params)
+  );
 }
 
 export function skyscannerFlightLink(
@@ -174,23 +246,50 @@ export function gygLink(dest: string): AffiliateLink {
   };
 }
 
+function expediaThingsToDoUrl(dest: string): string {
+  const location = dest.trim();
+  return location
+    ? expediaSearchUrl('/things-to-do/search', { location })
+    : EXPEDIA_TRACKED_URL;
+}
+
 export function expediaActivityLink(dest: string): AffiliateLink {
-  return expediaTracked('experiences', `Things to do in ${dest}`, '🎫');
+  return expediaLink(
+    'experiences',
+    `Things to do in ${dest}`,
+    '🎫',
+    expediaThingsToDoUrl(dest)
+  );
 }
 
-// Tours fallback (Expedia)
 export function expediaTourLink(dest: string): AffiliateLink {
-  return expediaTracked('tours', `Tours in ${dest}`, '🎭');
+  return expediaLink('tours', `Tours in ${dest}`, '🎭', expediaThingsToDoUrl(dest));
 }
 
-// Cars
-export function expediaCarLink(dest: string): AffiliateLink {
-  return expediaTracked('cars', `Car hire in ${dest}`, '🚗');
+export function expediaCarLink(
+  dest: string,
+  pickupDate = '',
+  dropoffDate = ''
+): AffiliateLink {
+  const locn = dest.trim();
+  const url = locn
+    ? expediaSearchUrl('/carsearch', {
+        locn,
+        date1: isIsoDate(pickupDate) ? pickupDate : undefined,
+        date2: isIsoDate(dropoffDate) ? dropoffDate : undefined,
+      })
+    : EXPEDIA_TRACKED_URL;
+  return expediaLink('cars', `Car hire in ${dest}`, '🚗', url);
 }
 
-// Insurance fallback (Expedia)
+/** Insurance has no destination search on Expedia — keep the tracked homepage. */
 export function expediaInsuranceLink(dest: string): AffiliateLink {
-  return expediaTracked('insurance', `Travel insurance for ${dest}`, '🛡️');
+  return expediaLink(
+    'insurance',
+    `Travel insurance for ${dest}`,
+    '🛡️',
+    EXPEDIA_TRACKED_URL
+  );
 }
 
 export function rentalcarsLink(
@@ -238,9 +337,9 @@ export function worldNomadsLink(
 
 /**
  * Preferred partner per category (used by getAffiliateLinks and the redirect
- * route). Until a partner ID is set, every category falls back to your tracked
- * Expedia link. Add an ID to .env.local and that category switches to a proper
- * pre-filled deep link — no code change needed.
+ * route). Until a partner ID is set, the category falls back to an Expedia
+ * search URL pre-filled with the stop name. Add an ID to .env.local and that
+ * category switches to the preferred partner — no code change needed.
  */
 export function hotelLink(
   dest: string,
@@ -250,7 +349,7 @@ export function hotelLink(
 ): AffiliateLink {
   return IDS.booking
     ? bookingHotelLink(dest, checkIn, checkOut, adults)
-    : expediaHotelLink(dest);
+    : expediaHotelLink(dest, checkIn, checkOut, adults);
 }
 
 export function flightLink(
@@ -262,7 +361,7 @@ export function flightLink(
 ): AffiliateLink {
   return IDS.skyscanner
     ? skyscannerFlightLink(origin, dest, departDate, returnDate, adults)
-    : expediaFlightLink(origin, dest);
+    : expediaFlightLink(origin, dest, departDate, returnDate, adults);
 }
 
 export function tourLink(dest: string): AffiliateLink {
@@ -294,7 +393,7 @@ export function carLink(
 ): AffiliateLink {
   return IDS.rentalcars
     ? rentalcarsLink(dest, pickupDate, dropoffDate)
-    : expediaCarLink(dest);
+    : expediaCarLink(dest, pickupDate, dropoffDate);
 }
 
 export function insuranceLink(
@@ -310,8 +409,8 @@ export function insuranceLink(
 /**
  * getAffiliateLinks
  * Returns all links for one trip stop.
- * Prefers approved partners. Falls back to your tracked Expedia link until
- * each partner is approved.
+ * Prefers approved partners. Expedia fallbacks are destination search URLs
+ * (not the Creator homepage shortlink).
  */
 export function getAffiliateLinks(params: {
   destination: string;

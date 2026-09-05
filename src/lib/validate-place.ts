@@ -3,7 +3,11 @@
  */
 
 import { parseDestinationParts } from '@/lib/parse-destination';
-import { disambiguatedCountry, normalizePlaceKey } from '@/lib/geocode-disambiguation';
+import {
+  ambiguousCityDefaultCountry,
+  disambiguatedCountry,
+  normalizePlaceKey,
+} from '@/lib/geocode-disambiguation';
 import { searchPlaceCandidates, type PlaceCandidate, resolvePlace } from '@/lib/geocode-place';
 
 export interface ValidatedPlace {
@@ -37,19 +41,45 @@ function countryKeys(candidates: PlaceCandidate[]): Set<string> {
   return keys;
 }
 
-function pickConfidentMatch(
+function candidateMatchesCountry(candidate: PlaceCandidate, countryName: string): boolean {
+  const want = normalizePlaceKey(countryName);
+  const have = normalizePlaceKey(candidate.country);
+  if (have === want) return true;
+  const code = (candidate.countryCode ?? '').toLowerCase();
+  if (want === 'costa rica' && code === 'cr') return true;
+  if (want === 'liberia' && code === 'lr') return true;
+  return false;
+}
+
+export function pickConfidentMatch(
   city: string,
   candidates: PlaceCandidate[]
-): { type: 'single'; candidate: PlaceCandidate } | { type: 'ambiguous'; candidates: PlaceCandidate[] } | { type: 'none' } {
+):
+  | { type: 'single'; candidate: PlaceCandidate }
+  | { type: 'ambiguous'; candidates: PlaceCandidate[] }
+  | { type: 'none' } {
   if (candidates.length === 0) return { type: 'none' };
 
   const sorted = [...candidates].sort((a, b) => b.score - a.score);
   const forcedCountry = disambiguatedCountry(city);
   if (forcedCountry) {
-    const forced = sorted.find(
-      (c) => c.country.toLowerCase() === forcedCountry.toLowerCase()
-    );
+    const forced = sorted.find((c) => candidateMatchesCountry(c, forcedCountry));
     if (forced) return { type: 'single', candidate: forced };
+  }
+
+  const softDefault = ambiguousCityDefaultCountry(city);
+  if (softDefault) {
+    const preferred = sorted.filter((c) => candidateMatchesCountry(c, softDefault));
+    const others = sorted.filter((c) => !candidateMatchesCountry(c, softDefault));
+    if (preferred.length > 0 && others.length > 0) {
+      return {
+        type: 'ambiguous',
+        candidates: [...preferred.slice(0, 2), ...others.slice(0, 2)].slice(0, 5),
+      };
+    }
+    if (preferred.length > 0) {
+      return { type: 'single', candidate: preferred[0] };
+    }
   }
 
   const top = sorted[0];

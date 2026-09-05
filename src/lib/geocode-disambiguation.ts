@@ -15,6 +15,19 @@ const CITY_COUNTRY_OVERRIDES: Record<string, string> = {
   'kuala lumpur': 'Malaysia',
 };
 
+/**
+ * City names that also collide with a country or a place on another continent.
+ * Unlike CITY_COUNTRY_OVERRIDES these must NOT win over an explicit country
+ * (e.g. "Liberia" the country vs Liberia, Costa Rica).
+ */
+const AMBIGUOUS_CITY_DEFAULTS: Record<string, string> = {
+  liberia: 'Costa Rica',
+  monteverde: 'Costa Rica',
+  arenal: 'Costa Rica',
+  'la fortuna': 'Costa Rica',
+  dominical: 'Costa Rica',
+};
+
 /** Last-segment labels that look like countries in "City, X" but are not. */
 const NON_COUNTRY_PLACE_NAMES = new Set([
   'penang',
@@ -26,6 +39,8 @@ const NON_COUNTRY_PLACE_NAMES = new Set([
   'malacca',
   'melaka',
   'bali',
+  'guanacaste',
+  'puntarenas',
   'java',
   'jawa',
   'yogyakarta',
@@ -55,6 +70,11 @@ export function disambiguatedCountry(city: string): string | undefined {
   return CITY_COUNTRY_OVERRIDES[normalizePlaceKey(city)];
 }
 
+/** Default country for an ambiguous city when no explicit/sibling country is set. */
+export function ambiguousCityDefaultCountry(city: string): string | undefined {
+  return AMBIGUOUS_CITY_DEFAULTS[normalizePlaceKey(city)];
+}
+
 /** Whether a comma-suffix or stored country field is plausibly a country name. */
 export function isLikelyCountryName(label: string): boolean {
   const key = normalizePlaceKey(label);
@@ -79,22 +99,38 @@ export function majorityTripCountry(countries: string[]): string | undefined {
 
 /**
  * Resolve the country string to pass into geocoding for a city/stop.
- * Order: explicit valid country → disambiguation table → sibling majority.
+ * Hard overrides (Penang) always win. Names that collide with a country
+ * (Liberia) prefer sibling-trip context, then an explicit *other* country,
+ * then a Costa Rica default — unless the user clearly meant the country
+ * (explicit country === city name, no other-country siblings).
  */
 export function resolveGeocodeCountry(
   city: string,
   explicitCountry?: string,
   siblingCountries: string[] = []
 ): string | undefined {
-  // Known ambiguous cities always win — avoids "Penang" + country "Indonesia" from AI.
   const fromCity = disambiguatedCountry(city);
   if (fromCity) return fromCity;
 
-  const explicit = explicitCountry?.trim();
-  if (explicit && isLikelyCountryName(explicit)) return explicit;
-
+  const cityKey = normalizePlaceKey(city);
+  const ambiguousDefault = ambiguousCityDefaultCountry(city);
   const fromSiblings = majorityTripCountry(siblingCountries);
-  if (fromSiblings) return fromSiblings;
+  const explicit = explicitCountry?.trim();
 
+  if (ambiguousDefault) {
+    if (fromSiblings && normalizePlaceKey(fromSiblings) !== cityKey) {
+      return fromSiblings;
+    }
+    if (explicit && isLikelyCountryName(explicit) && normalizePlaceKey(explicit) !== cityKey) {
+      return explicit;
+    }
+    if (explicit && isLikelyCountryName(explicit) && normalizePlaceKey(explicit) === cityKey) {
+      return explicit;
+    }
+    return ambiguousDefault;
+  }
+
+  if (explicit && isLikelyCountryName(explicit)) return explicit;
+  if (fromSiblings) return fromSiblings;
   return explicit || undefined;
 }

@@ -44,16 +44,22 @@ function inferCountryFromDestination(destination: string): string | undefined {
 
 /** Fill missing or invalid stop.country from disambiguation + sibling stops. */
 export function enrichStopCountries(stops: TripStop[]): TripStop[] {
-  const siblingCountries = stops
-    .map((s) => s.country)
-    .filter((c): c is string => Boolean(c?.trim()));
+  const apply = (current: TripStop[]): TripStop[] => {
+    const siblingCountries = current
+      .map((s) => s.country)
+      .filter((c): c is string => Boolean(c?.trim()));
 
-  return stops.map((stop) => {
-    const city = stop.city || stop.destination.split(',')[0]?.trim() || stop.destination;
-    const resolved = resolveGeocodeCountry(city, stop.country, siblingCountries);
-    if (!resolved || resolved === stop.country) return stop;
-    return { ...stop, country: resolved };
-  });
+    return current.map((stop) => {
+      const city = stop.city || stop.destination.split(',')[0]?.trim() || stop.destination;
+      const resolved = resolveGeocodeCountry(city, stop.country, siblingCountries);
+      if (!resolved || resolved === stop.country) return stop;
+      return { ...stop, country: resolved };
+    });
+  };
+
+  // Second pass lets sibling majority see countries assigned in the first pass
+  // (e.g. Liberia → Costa Rica, then Arenal / Monteverde inherit that).
+  return apply(apply(stops));
 }
 
 /** City + resolved country for geocoding a stop within a trip. */

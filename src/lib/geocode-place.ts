@@ -4,6 +4,7 @@
  */
 
 import {
+  ambiguousCityDefaultCountry,
   disambiguatedCountry,
   isLikelyCountryName,
   normalizePlaceKey,
@@ -55,7 +56,15 @@ function namesMatch(requested: string, found: string): boolean {
   return false;
 }
 
-function countryMatches(
+function isoNameMatches(requested: string, iso: string): boolean {
+  if (!iso || iso.length !== 2 || !regionDisplay) return false;
+  const named = regionDisplay.of(iso.toUpperCase());
+  if (!named) return false;
+  const name = normalize(named);
+  return name === requested || name.includes(requested) || requested.includes(name);
+}
+
+export function countryMatches(
   requested: string | undefined,
   foundCountry: string | undefined,
   foundCode: string | undefined
@@ -65,10 +74,20 @@ function countryMatches(
   const country = normalize(foundCountry ?? '');
   const code = (foundCode ?? '').toLowerCase();
 
-  if (country && (country === req || country.includes(req) || req.includes(country))) {
+  // Never substring-match a 2-letter ISO against a full name ("co" in "costa rica").
+  if (country.length === 2) {
+    if (req.length === 2 && country === req) return true;
+    if (isoNameMatches(req, country)) return true;
+  } else if (
+    country &&
+    (country === req ||
+      (country.length >= 4 && country.includes(req)) ||
+      (req.length >= 4 && req.includes(country)))
+  ) {
     return true;
   }
-  if (code && req.length >= 2 && code === req.slice(0, 2)) return true;
+  if (code && req.length === 2 && code === req) return true;
+  if (code && isoNameMatches(req, code)) return true;
   return false;
 }
 
@@ -159,11 +178,8 @@ function openWeatherScore(
   else if (namesMatch(city, row.name)) score += 60;
 
   if (country && row.country.length === 2) {
-    const req = normalize(country);
     const code = row.country.toLowerCase();
-    if (req === code || (req.startsWith('malay') && code === 'my')) score += 200;
-    else if (req.startsWith('indones') && code === 'id') score += 200;
-    else if (countryMatches(country, undefined, code)) score += 200;
+    if (countryMatches(country, undefined, code)) score += 200;
     else score -= 150;
   }
 
@@ -208,11 +224,19 @@ export async function geocodeOpenWeather(
     if (!Array.isArray(data) || data.length === 0) return null;
 
     const match = pickBestOpenWeatherRow(data, city, resolvedCountry);
+    const matchCode = match.country.length === 2 ? match.country : undefined;
+    if (
+      resolvedCountry &&
+      isLikelyCountryName(resolvedCountry) &&
+      !countryMatches(resolvedCountry, match.country, matchCode)
+    ) {
+      return null;
+    }
 
     return {
       name: match.name,
       country: match.country.length === 2 ? resolvedCountry || match.country : match.country,
-      countryCode: match.country.length === 2 ? match.country : undefined,
+      countryCode: matchCode,
       lat: match.lat,
       lon: match.lon,
       source: 'openweather',
@@ -279,7 +303,14 @@ export async function resolvePlace(
 ): Promise<GeocodeResult | null> {
   const resolvedCountry = country?.trim() || disambiguatedCountry(place.trim());
   const ow = await geocodeOpenWeather(place, resolvedCountry);
-  if (ow) return ow;
+  if (
+    ow &&
+    (!resolvedCountry ||
+      !isLikelyCountryName(resolvedCountry) ||
+      countryMatches(resolvedCountry, ow.country, ow.countryCode))
+  ) {
+    return ow;
+  }
   return geocodeNominatim(place, resolvedCountry);
 }
 
@@ -383,6 +414,19 @@ async function searchNominatimCandidates(
   }
 }
 
+function mergeCandidates(lists: PlaceCandidate[][]): PlaceCandidate[] {
+  const merged = new Map<string, PlaceCandidate>();
+  for (const candidate of lists.flat()) {
+    if (candidate.score < 40) continue;
+    const key = candidateKey(candidate.name, candidate.country, candidate.countryCode);
+    const existing = merged.get(key);
+    if (!existing || candidate.score > existing.score) {
+      merged.set(key, candidate);
+    }
+  }
+  return [...merged.values()].sort((a, b) => b.score - a.score);
+}
+
 /** Search geocoders and merge ranked place candidates (for bare-city disambiguation). */
 export async function searchPlaceCandidates(
   place: string,
@@ -392,20 +436,21 @@ export async function searchPlaceCandidates(
   if (!city) return [];
 
   const resolvedCountry = country?.trim() || disambiguatedCountry(city);
-  const [ow, nom] = await Promise.all([
+  const searches: Promise<PlaceCandidate[]>[] = [
     searchOpenWeatherCandidates(city, resolvedCountry),
     searchNominatimCandidates(city, resolvedCountry),
-  ]);
+  ];
 
-  const merged = new Map<string, PlaceCandidate>();
-  for (const candidate of [...ow, ...nom]) {
-    if (candidate.score < 40) continue;
-    const key = candidateKey(candidate.name, candidate.country, candidate.countryCode);
-    const existing = merged.get(key);
-    if (!existing || candidate.score > existing.score) {
-      merged.set(key, candidate);
-    }
+  // Homonyms like Liberia (country vs Costa Rica city): also search the
+  // travel-app default so both sides show up in "did you mean".
+  const soft = !country?.trim() && !resolvedCountry ? ambiguousCityDefaultCountry(city) : undefined;
+  if (soft) {
+    searches.push(
+      searchOpenWeatherCandidates(city, soft),
+      searchNominatimCandidates(city, soft)
+    );
   }
 
-  return [...merged.values()].sort((a, b) => b.score - a.score);
+  const lists = await Promise.all(searches);
+  return mergeCandidates(lists);
 }

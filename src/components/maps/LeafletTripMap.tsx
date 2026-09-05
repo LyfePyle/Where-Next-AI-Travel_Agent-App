@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { mapLabelForCity } from '@/lib/place-names';
+import { offsetCollidingXY } from '@/lib/offset-colliding-pins';
 import type { ItineraryMapPoint } from '@/lib/itinerary-map-points';
 import type { RouteMapPin } from '@/components/maps/useRouteMapPins';
 
@@ -103,7 +104,7 @@ function MapViewport({
     }
 
     const bounds = L.latLngBounds(positions);
-    map.fitBounds(bounds, { padding: [36, 36], maxZoom: 8, animate: true });
+    map.fitBounds(bounds, { padding: [52, 52], maxZoom: 8, animate: true });
   }, [map, positions, mode]);
 
   return null;
@@ -122,6 +123,41 @@ function FocusHighlightedPoint({
   }, [map, point]);
 
   return null;
+}
+
+function OffsetPixelMarkers<T extends { lat: number; lon: number; key: string }>({
+  items,
+  render,
+}: {
+  items: T[];
+  render: (item: T) => ReactNode;
+}) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+
+  useEffect(() => {
+    const onView = () => setZoom(map.getZoom());
+    map.on('zoomend', onView);
+    map.on('moveend', onView);
+    return () => {
+      map.off('zoomend', onView);
+      map.off('moveend', onView);
+    };
+  }, [map]);
+
+  const display = useMemo(() => {
+    const layer = items.map((p) => {
+      const pt = map.latLngToLayerPoint(L.latLng(p.lat, p.lon));
+      return { x: pt.x, y: pt.y };
+    });
+    const spread = offsetCollidingXY(layer);
+    return items.map((p, i) => {
+      const ll = map.layerPointToLatLng(L.point(spread[i].x, spread[i].y));
+      return { ...p, lat: ll.lat, lon: ll.lng };
+    });
+  }, [items, map, zoom]);
+
+  return <>{display.map((item) => render(item))}</>;
 }
 
 export type LeafletTripMapMode = 'route' | 'single' | 'points';
@@ -206,8 +242,10 @@ export default function LeafletTripMap({
         />
       )}
 
-      {isPoints
-        ? points.map((point) => {
+      {isPoints ? (
+        <OffsetPixelMarkers
+          items={points.map((p) => ({ ...p, lon: p.lng, key: p.id }))}
+          render={(point) => {
             const isCity = point.kind === 'city';
             const isHighlighted = point.id === highlightedPointId;
             const icon = isCity
@@ -219,8 +257,8 @@ export default function LeafletTripMap({
                 : orderMarkerIcon(Math.max(0, (point.order ?? 1) - 1));
             return (
               <Marker
-                key={point.id}
-                position={[point.lat, point.lng]}
+                key={point.key}
+                position={[point.lat, point.lon]}
                 icon={icon}
                 zIndexOffset={isHighlighted ? 1000 : 0}
               >
@@ -235,15 +273,18 @@ export default function LeafletTripMap({
                 </Popup>
               </Marker>
             );
-          })
-        : visiblePins.map((pin) => {
+          }}
+        />
+      ) : (
+        <OffsetPixelMarkers
+          items={visiblePins.map((p) => ({ ...p, key: p.stopId }))}
+          render={(pin) => {
             const label = mapLabelForCity(pin.city);
-            const isSingle = mode === 'single';
             return (
               <Marker
-                key={pin.stopId}
+                key={pin.key}
                 position={[pin.lat, pin.lon]}
-                icon={isSingle ? focusMarkerIcon() : orderMarkerIcon(pin.order)}
+                icon={mode === 'single' ? focusMarkerIcon() : orderMarkerIcon(pin.order)}
               >
                 <Popup>
                   <strong>{label}</strong>
@@ -252,7 +293,9 @@ export default function LeafletTripMap({
                 </Popup>
               </Marker>
             );
-          })}
+          }}
+        />
+      )}
     </MapContainer>
   );
 }

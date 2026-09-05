@@ -105,7 +105,7 @@ export function normalizeStop(
   const notes = str(o.notes) || undefined;
   const nightsRaw = o.nights;
   const nights =
-    typeof nightsRaw === 'number' && Number.isFinite(nightsRaw) && nightsRaw >= 1
+    typeof nightsRaw === 'number' && Number.isFinite(nightsRaw) && nightsRaw >= 0
       ? Math.round(nightsRaw)
       : undefined;
 
@@ -240,7 +240,7 @@ const DEFAULT_STOP_NIGHTS = 3;
 
 /** Derive nights for one stop from cached nights or stored dates. */
 export function deriveNightsFromStop(stop: TripStop): number {
-  if (typeof stop.nights === 'number' && stop.nights >= 1 && Number.isFinite(stop.nights)) {
+  if (typeof stop.nights === 'number' && Number.isFinite(stop.nights) && stop.nights >= 0) {
     return Math.round(stop.nights);
   }
   if (stop.startDate && stop.endDate) {
@@ -262,7 +262,7 @@ export function chainStopsFromNights(
 
   let cursor = tripStart;
   return stops.map((stop, i) => {
-    const n = Math.max(1, deriveNightsFromStop(stop));
+    const n = Math.max(0, deriveNightsFromStop(stop));
     const startDate = cursor;
     const endDate = isoAddDays(cursor, n);
     cursor = endDate;
@@ -282,7 +282,7 @@ export function hydrateStopsWithNights(
 /**
  * Split a trip date range evenly across ordered stops.
  * Shared boundary days: stop N ends on the same day stop N+1 starts (checkout/check-in).
- * Remainder nights go on the last stop only; last stop always ends on tripEnd.
+ * Remainder nights go on the first stops (a starting point the user can edit).
  */
 export function assignDatesAcrossStops(
   stops: TripStop[],
@@ -291,11 +291,14 @@ export function assignDatesAcrossStops(
 ): TripStop[] {
   if (stops.length === 0) return [];
   if (stops.length === 1) {
+    const nights =
+      tripStart && tripEnd ? nightsBetween(tripStart, tripEnd) : undefined;
     return [
       {
         ...stops[0],
         startDate: tripStart || stops[0].startDate,
         endDate: tripEnd || stops[0].endDate,
+        ...(nights != null ? { nights } : {}),
         order: 0,
       },
     ];
@@ -311,11 +314,11 @@ export function assignDatesAcrossStops(
 
   let cursor = tripStart;
   return stops.map((stop, i) => {
-    const nights = i === n - 1 ? base + remainder : base;
+    const nights = base + (i < remainder ? 1 : 0);
     const startDate = cursor;
-    const endDate = i === n - 1 ? tripEnd : isoAddDays(cursor, nights);
+    const endDate = isoAddDays(cursor, nights);
     cursor = endDate;
-    return { ...stop, startDate, endDate, order: i };
+    return { ...stop, startDate, endDate, nights, order: i };
   });
 }
 

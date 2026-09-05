@@ -127,8 +127,10 @@ export default function PlanTripPage() {
           params.set('destination', validStops.map((s) => s.destination).join(' → '));
           const first = validStops[0];
           const last = validStops[validStops.length - 1];
-          if (first.startDate) params.set('startDate', first.startDate);
-          if (last.endDate) params.set('endDate', last.endDate);
+          if (startDate) params.set('startDate', startDate);
+          else if (first.startDate) params.set('startDate', first.startDate);
+          if (endDate) params.set('endDate', endDate);
+          else if (last.endDate) params.set('endDate', last.endDate);
         } else if (destination.trim()) {
           params.set(
             'stops',
@@ -159,18 +161,16 @@ export default function PlanTripPage() {
       }
     }
 
-    if (!isMulti || multiStops.every((s) => !s.destination.trim())) {
-      if (startDate) params.set('startDate', startDate);
-      if (endDate) params.set('endDate', endDate);
-      if (startDate && endDate) {
-        const nights = Math.max(
-          1,
-          Math.round(
-            (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000
-          )
-        );
-        params.set('tripDuration', String(nights));
-      }
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    if (startDate && endDate) {
+      const nights = Math.max(
+        1,
+        Math.round(
+          (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000
+        )
+      );
+      params.set('tripDuration', String(nights));
     }
     if (vibes.length) params.set('vibes', vibes.join(','));
     if (additionalDetails.trim()) params.set('additionalDetails', additionalDetails.trim());
@@ -389,27 +389,76 @@ export default function PlanTripPage() {
 
           {isMulti && (
             <FormSection
-              step={3.5}
-              title="Your stops"
-              subtitle="Add 2 or more cities with dates — or leave blank and AI will suggest a route"
+              step={4}
+              title="When are you travelling?"
               optional
+              subtitle="Set a trip length and we'll even-split nights across your stops — then drag to adjust"
             >
-              <StopsBuilder stops={multiStops} onChange={setMultiStops} maxStops={8} />
+              <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3">
+                <div>
+                  <label style={labelStyle}>Departure</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Return</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate || new Date().toISOString().split('T')[0]}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+              {tripNights !== null && tripNights > 0 && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: '#78716C',
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  {tripNights} night{tripNights !== 1 ? 's' : ''} away
+                </div>
+              )}
             </FormSection>
           )}
 
+          {isMulti && (
+            <FormSection
+              step={5}
+              title="Your stops"
+              subtitle={
+                startDate && tripNights
+                  ? 'Drag nights between any cities — this is a starting split, not a locked plan'
+                  : 'Add 2 or more cities — set dates above to auto-split nights'
+              }
+              optional
+            >
+              <StopsBuilder
+                stops={multiStops}
+                onChange={setMultiStops}
+                maxStops={8}
+                totalNights={tripNights}
+                tripStart={startDate}
+              />
+            </FormSection>
+          )}
+
+          {!isMulti && (
           <FormSection
             step={4}
             title="When are you travelling?"
             optional
-            subtitle={
-              isMulti && multiStops.some((s) => s.destination.trim())
-                ? 'Overall dates are set per stop above; these apply when you only name a region'
-                : 'Helps the AI check seasonality and pricing'
-            }
+            subtitle="Helps the AI check seasonality and pricing"
           >
-            {!(isMulti && multiStops.some((s) => s.destination.trim())) && (
-            <>
             <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3">
               <div>
                 <label style={labelStyle}>Departure</label>
@@ -444,11 +493,10 @@ export default function PlanTripPage() {
                 {tripNights} night{tripNights !== 1 ? 's' : ''} away
               </div>
             )}
-            </>
-            )}
           </FormSection>
+          )}
 
-          <FormSection step={5} title="Who's travelling?">
+          <FormSection step={isMulti ? 6 : 5} title="Who's travelling?">
             <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3">
               <Counter
                 label="Adults"
@@ -469,7 +517,7 @@ export default function PlanTripPage() {
             </div>
           </FormSection>
 
-          <FormSection step={6} title="What's your budget?">
+          <FormSection step={isMulti ? 7 : 6} title="What's your budget?">
             <div>
               <div
                 style={{
@@ -532,7 +580,7 @@ export default function PlanTripPage() {
           </FormSection>
 
           <FormSection
-            step={7}
+            step={isMulti ? 8 : 7}
             title="What's your vibe?"
             optional
             subtitle={`Pick up to ${MAX_VIBES} to help the AI match your style`}
@@ -580,7 +628,7 @@ export default function PlanTripPage() {
           </FormSection>
 
           <FormSection
-            step={8}
+            step={isMulti ? 9 : 8}
             title="Anything else we should know?"
             optional
             subtitle="Special requests — e.g. no flying, travelling with elderly parents, honeymoon"

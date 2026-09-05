@@ -1,6 +1,19 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  NightMoveStatus,
+  StopNightsRow,
+  type PickedNight,
+} from '@/components/NightChipsEditor';
+import {
+  applyStopNights,
+  evenSplitNights,
+  moveNightBetweenStops,
+  nightsArray,
+  nightsFingerprint,
+  reconcileStopNights,
+} from '@/lib/split-stop-nights';
 import { TripStop } from '@/types/trip';
 
 // ---------------------------------------------------------------------------
@@ -75,6 +88,15 @@ function StopCard({
   onMoveUp,
   onMoveDown,
   error,
+  hideDates,
+  chipMode,
+  tripStart,
+  picked,
+  isDropTarget,
+  onPickNight,
+  onClearPick,
+  onDropOnStop,
+  onDragOverChange,
 }: {
   stop: TripStop;
   index: number;
@@ -84,11 +106,21 @@ function StopCard({
   onMoveUp: (id: string) => void;
   onMoveDown: (id: string) => void;
   error?: string;
+  hideDates?: boolean;
+  chipMode?: boolean;
+  tripStart?: string;
+  picked?: PickedNight | null;
+  isDropTarget?: boolean;
+  onPickNight?: (night: PickedNight) => void;
+  onClearPick?: () => void;
+  onDropOnStop?: (toStopId: string) => void;
+  onDragOverChange?: (stopId: string | null) => void;
 }) {
   const isFirst = index === 0;
   const isLast = index === total - 1;
   const label = isFirst ? 'Origin' : `Stop ${index}`;
   const placeholder = isFirst ? 'e.g. New York, US' : 'e.g. Paris, France';
+  const canReceive = Boolean(chipMode && picked && picked.stopId !== stop.id);
 
   return (
     <div className="relative">
@@ -96,9 +128,18 @@ function StopCard({
         <div className="absolute left-[22px] top-full w-px h-4 bg-slate-200 z-10" />
       )}
 
-      <div className={`rounded-2xl border transition-all ${
-        error ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200 bg-white'
-      } shadow-sm`}>
+      <div
+        className={`rounded-2xl border transition-all ${
+        error
+          ? 'border-rose-300 bg-rose-50/30'
+          : canReceive || isDropTarget
+            ? 'border-slate-900 bg-white'
+            : 'border-slate-200 bg-white'
+      } shadow-sm`}
+        onClick={() => {
+          if (canReceive) onDropOnStop?.(stop.id);
+        }}
+      >
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -110,13 +151,22 @@ function StopCard({
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                 {label}
               </span>
+              {chipMode && (
+                <span className="text-[11px] font-medium text-slate-400 tabular-nums">
+                  {typeof stop.nights === 'number' ? stop.nights : 0} night
+                  {(stop.nights ?? 0) !== 1 ? 's' : ''}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-1">
               {!isFirst && (
                 <button
                   type="button"
-                  onClick={() => onMoveUp(stop.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMoveUp(stop.id);
+                  }}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                   title="Move up"
                 >
@@ -128,7 +178,10 @@ function StopCard({
               {!isLast && (
                 <button
                   type="button"
-                  onClick={() => onMoveDown(stop.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMoveDown(stop.id);
+                  }}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                   title="Move down"
                 >
@@ -138,7 +191,10 @@ function StopCard({
               {total > 1 && (
                 <button
                   type="button"
-                  onClick={() => onRemove(stop.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove(stop.id);
+                  }}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                   title="Remove stop"
                 >
@@ -153,6 +209,10 @@ function StopCard({
               type="text"
               placeholder={placeholder}
               value={stop.destination}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canReceive) onDropOnStop?.(stop.id);
+              }}
               onChange={(e) => onChange(stop.id, 'destination', e.target.value)}
               className={`w-full px-3.5 py-2.5 rounded-xl border text-sm text-slate-900 bg-white placeholder:text-slate-400 outline-none transition-all ${
                 error
@@ -170,6 +230,7 @@ function StopCard({
             )}
           </div>
 
+          {!hideDates && (
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs text-slate-500 mb-1 block">
@@ -196,6 +257,20 @@ function StopCard({
               />
             </div>
           </div>
+          )}
+          {chipMode && onPickNight && onClearPick && onDropOnStop && onDragOverChange && (
+            <StopNightsRow
+              stop={stop}
+              tripStart={tripStart}
+              picked={picked ?? null}
+              isDropTarget={Boolean(isDropTarget)}
+              dropLabel={stop.destination.trim() ? stop.destination.trim().split(',')[0] : label}
+              onPick={onPickNight}
+              onClearPick={onClearPick}
+              onDropOnStop={onDropOnStop}
+              onDragOverChange={onDragOverChange}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -211,6 +286,9 @@ interface StopsBuilderProps {
   onChange: (stops: TripStop[]) => void;
   errors?: Record<string, string>;
   maxStops?: number;
+  /** Overall trip nights. When set with tripStart, auto-splits and shows chips. */
+  totalNights?: number | null;
+  tripStart?: string;
 }
 
 export default function StopsBuilder({
@@ -218,7 +296,53 @@ export default function StopsBuilder({
   onChange,
   errors = {},
   maxStops = 6,
+  totalNights = null,
+  tripStart = '',
 }: StopsBuilderProps) {
+  const chipMode = Boolean(tripStart && totalNights != null && totalNights > 0);
+  const userAdjustedRef = useRef(false);
+  const prevRef = useRef<{ ids: string[]; nights: number[]; totalNights: number }>({
+    ids: [],
+    nights: [],
+    totalNights: -1,
+  });
+  const [picked, setPicked] = useState<PickedNight | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const stopIdsKey = stops.map((s) => s.id).join('|');
+
+  useEffect(() => {
+    if (!chipMode || totalNights == null) return;
+    const prev = prevRef.current;
+    const next = reconcileStopNights({
+      stops,
+      prevIds: prev.ids,
+      prevNights: prev.nights,
+      totalNights,
+      userAdjusted: userAdjustedRef.current,
+      tripStart,
+    });
+    prevRef.current = {
+      ids: next.map((s) => s.id),
+      nights: nightsArray(next),
+      totalNights,
+    };
+    if (nightsFingerprint(stops) === nightsFingerprint(next)) return;
+    onChange(next);
+    // stopIdsKey stands in for membership/order so we don't loop on destination edits
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chipMode, totalNights, tripStart, stopIdsKey]);
+
+  const chipStops =
+    chipMode && totalNights != null
+      ? reconcileStopNights({
+          stops,
+          prevIds: prevRef.current.ids,
+          prevNights: prevRef.current.nights,
+          totalNights,
+          userAdjusted: userAdjustedRef.current,
+          tripStart,
+        })
+      : stops;
   const handleFieldChange = useCallback(
     (id: string, field: keyof TripStop, value: string) => {
       onChange(stops.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
@@ -228,6 +352,13 @@ export default function StopsBuilder({
 
   const handleAdd = useCallback(() => {
     if (stops.length >= maxStops) return;
+    if (chipMode) {
+      onChange([
+        ...stops,
+        { id: uid(), destination: '', startDate: '', endDate: '', nights: 0 },
+      ]);
+      return;
+    }
     const last = stops[stops.length - 1];
     const newStart = last?.endDate ?? inDays(7);
     const newEnd = (() => {
@@ -239,7 +370,54 @@ export default function StopsBuilder({
       ...stops,
       { id: uid(), destination: '', startDate: newStart, endDate: newEnd },
     ]);
-  }, [stops, onChange, maxStops]);
+  }, [stops, onChange, maxStops, chipMode]);
+
+  const handleMoveNight = useCallback(
+    (fromStopId: string, toStopId: string) => {
+      userAdjustedRef.current = true;
+      const next = moveNightBetweenStops(chipStops, fromStopId, toStopId, tripStart);
+      prevRef.current = {
+        ids: next.map((s) => s.id),
+        nights: nightsArray(next),
+        totalNights: totalNights ?? 0,
+      };
+      onChange(next);
+    },
+    [chipStops, onChange, tripStart, totalNights]
+  );
+
+  const handleDropOnStop = useCallback(
+    (toStopId: string) => {
+      if (!picked || picked.stopId === toStopId) {
+        setPicked(null);
+        setDragOverId(null);
+        return;
+      }
+      handleMoveNight(picked.stopId, toStopId);
+      setPicked(null);
+      setDragOverId(null);
+    },
+    [picked, handleMoveNight]
+  );
+
+  const handleClearPick = useCallback(() => {
+    setPicked(null);
+    setDragOverId(null);
+  }, []);
+
+  const handleResetEvenSplit = useCallback(() => {
+    if (totalNights == null) return;
+    userAdjustedRef.current = false;
+    setPicked(null);
+    setDragOverId(null);
+    const next = applyStopNights(chipStops, evenSplitNights(totalNights, chipStops.length), tripStart);
+    prevRef.current = {
+      ids: next.map((s) => s.id),
+      nights: nightsArray(next),
+      totalNights,
+    };
+    onChange(next);
+  }, [chipStops, onChange, totalNights, tripStart]);
 
   const handleRemove = useCallback(
     (id: string) => {
@@ -271,19 +449,39 @@ export default function StopsBuilder({
     [stops, onChange]
   );
 
+  const list = chipMode ? chipStops : stops;
+
   return (
     <div className="space-y-4">
-      {stops.map((stop, index) => (
+      {chipMode && (
+        <NightMoveStatus
+          picked={picked}
+          totalNights={totalNights ?? 0}
+          stopCount={list.length}
+          onCancel={handleClearPick}
+          onResetEvenSplit={handleResetEvenSplit}
+        />
+      )}
+      {list.map((stop, index) => (
         <StopCard
           key={stop.id}
           stop={stop}
           index={index}
-          total={stops.length}
+          total={list.length}
           onChange={handleFieldChange}
           onRemove={handleRemove}
           onMoveUp={handleMoveUp}
           onMoveDown={handleMoveDown}
           error={errors[stop.id]}
+          hideDates={chipMode}
+          chipMode={chipMode}
+          tripStart={tripStart}
+          picked={picked}
+          isDropTarget={dragOverId === stop.id}
+          onPickNight={setPicked}
+          onClearPick={handleClearPick}
+          onDropOnStop={handleDropOnStop}
+          onDragOverChange={setDragOverId}
         />
       ))}
 

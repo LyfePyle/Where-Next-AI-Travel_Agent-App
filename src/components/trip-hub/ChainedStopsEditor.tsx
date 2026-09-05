@@ -1,6 +1,12 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import {
+  NightMoveStatus,
+  StopNightsRow,
+  type PickedNight,
+} from '@/components/NightChipsEditor';
+import { moveNightBetweenStops, nightsOnStop } from '@/lib/split-stop-nights';
 import { deriveNightsFromStop } from '@/lib/trip-stops';
 import type { TripStop } from '@/types/trip';
 
@@ -95,20 +101,60 @@ export default function ChainedStopsEditor({
     [stops, onChange]
   );
 
+  const tripStart = stops[0]?.startDate ?? '';
+  const [picked, setPicked] = useState<PickedNight | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const showChips = stops.length >= 2 && Boolean(tripStart);
+  const totalNights = stops.reduce((sum, s) => sum + nightsOnStop(s), 0);
+
+  const handleDropOnStop = useCallback(
+    (toStopId: string) => {
+      if (!picked || picked.stopId === toStopId) {
+        setPicked(null);
+        setDragOverId(null);
+        return;
+      }
+      onChange(moveNightBetweenStops(stops, picked.stopId, toStopId, tripStart));
+      setPicked(null);
+      setDragOverId(null);
+    },
+    [picked, stops, onChange, tripStart]
+  );
+
   return (
     <div className="space-y-4">
+      {showChips && (
+        <NightMoveStatus
+          picked={picked}
+          totalNights={totalNights}
+          stopCount={stops.length}
+          onCancel={() => {
+            setPicked(null);
+            setDragOverId(null);
+          }}
+        />
+      )}
       {stops.map((stop, index) => {
         const isFirst = index === 0;
         const isLast = index === stops.length - 1;
         const error = errors[stop.id];
         const nightsVal = deriveNightsFromStop(stop);
+        const label = isFirst ? 'First stop' : `Stop ${index + 1}`;
+        const canReceive = Boolean(showChips && picked && picked.stopId !== stop.id);
 
         return (
           <div
             key={stop.id}
             className={`rounded-2xl border bg-white shadow-sm p-4 ${
-              error ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200'
+              error
+                ? 'border-rose-300 bg-rose-50/30'
+                : canReceive || dragOverId === stop.id
+                  ? 'border-slate-900'
+                  : 'border-slate-200'
             }`}
+            onClick={() => {
+              if (canReceive) handleDropOnStop(stop.id);
+            }}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -123,7 +169,10 @@ export default function ChainedStopsEditor({
                 {!isFirst && (
                   <button
                     type="button"
-                    onClick={() => handleMoveUp(stop.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMoveUp(stop.id);
+                    }}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
                     title="Move up"
                   >
@@ -133,7 +182,10 @@ export default function ChainedStopsEditor({
                 {!isLast && (
                   <button
                     type="button"
-                    onClick={() => handleMoveDown(stop.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMoveDown(stop.id);
+                    }}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
                     title="Move down"
                   >
@@ -143,7 +195,10 @@ export default function ChainedStopsEditor({
                 {stops.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => handleRemove(stop.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemove(stop.id);
+                    }}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                     title="Remove stop"
                   >
@@ -158,6 +213,10 @@ export default function ChainedStopsEditor({
                 type="text"
                 placeholder="e.g. Hanoi, Vietnam"
                 value={stop.destination}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (canReceive) handleDropOnStop(stop.id);
+                }}
                 onChange={(e) => handleDestinationChange(stop.id, e.target.value)}
                 className={`w-full px-3.5 py-2.5 rounded-xl border text-sm text-slate-900 bg-white placeholder:text-slate-400 outline-none ${
                   error ? 'border-rose-300' : 'border-slate-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10'
@@ -166,7 +225,26 @@ export default function ChainedStopsEditor({
               {error && <p className="mt-1 text-xs text-rose-500">{error}</p>}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {showChips && (
+              <div className="mb-3" onClick={(e) => e.stopPropagation()}>
+                <StopNightsRow
+                  stop={stop}
+                  tripStart={tripStart}
+                  picked={picked}
+                  isDropTarget={dragOverId === stop.id}
+                  dropLabel={stop.destination.trim() ? stop.destination.trim().split(',')[0] : label}
+                  onPick={setPicked}
+                  onClearPick={() => {
+                    setPicked(null);
+                    setDragOverId(null);
+                  }}
+                  onDropOnStop={handleDropOnStop}
+                  onDragOverChange={setDragOverId}
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3" onClick={(e) => e.stopPropagation()}>
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">Nights</label>
                 <input

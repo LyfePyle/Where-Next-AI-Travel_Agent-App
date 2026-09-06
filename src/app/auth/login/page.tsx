@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import { createClient } from '@/utils/supabase/client';
 import {
   destinationAfterPendingSave,
@@ -28,7 +29,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const redirectStarted = useRef(false);
   
-  const { handleSignIn, handleSignInWithOAuth } = useApp();
+  const { handleSignIn } = useApp();
 
   async function finishLoginRedirect() {
     if (redirectStarted.current) return;
@@ -111,17 +112,6 @@ export default function LoginPage() {
       }
     } catch (e: any) {
       setError(e.message);
-      setIsLoading(false);
-    }
-  };
-
-  const handleSocialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
-    setIsLoading(true);
-    setError('');
-    try {
-      await handleSignInWithOAuth(provider);
-    } catch (error: any) {
-      setError(error.message || `Failed to sign in with ${provider}. Please try again.`);
       setIsLoading(false);
     }
   };
@@ -239,7 +229,15 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Social login coming soon */}
+          <SocialAuthButtons
+            providers={['google']}
+            disabled={isLoading}
+            onBusyChange={(busy) => {
+              setIsLoading(busy);
+              if (busy) setError('');
+            }}
+            onError={setError}
+          />
 
           {/* Divider */}
           <div className="mt-6">

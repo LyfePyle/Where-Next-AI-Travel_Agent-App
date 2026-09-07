@@ -12,10 +12,15 @@ export function bookableLabel(name: string, country?: string): string {
   const n = name.trim();
   const c = country?.trim();
   if (!n) return c || '';
-  // Nominatim sometimes returns "Schweiz/Suisse/Svizzera/Svizra" — unusable in partner search.
-  if (c && !c.includes('/') && c.length <= 40 && !n.toLowerCase().includes(c.toLowerCase())) {
-    return `${n}, ${c}`;
-  }
+  // Skip ISO codes ("BT", "ID") and Nominatim multilingual dumps
+  // ("Schweiz/Suisse/...") — partner search wants a readable place name.
+  const countryOk =
+    !!c &&
+    c.length > 2 &&
+    c.length <= 40 &&
+    !c.includes('/') &&
+    !n.toLowerCase().includes(c.toLowerCase());
+  if (countryOk) return `${n}, ${c}`;
   return n;
 }
 

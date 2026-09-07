@@ -42,3 +42,14 @@ describe('bookablePlaceGuesses', () => {
     expect(bookablePlaceGuesses('Family Fun in Bali')).toContain('Bali');
   });
 });
+
+describe('bookableLabel', () => {
+  it('does not duplicate country when it is already in the name', () => {
+    expect(bookableLabel('Bali, Indonesia', 'Indonesia')).toBe('Bali, Indonesia');
+  });
+
+  it('omits 2-letter ISO codes that would turn Bali into Bali, BT', () => {
+    expect(bookableLabel('Bali', 'BT')).toBe('Bali');
+    expect(bookableLabel('Bali', 'ID')).toBe('Bali');
+  });
+});

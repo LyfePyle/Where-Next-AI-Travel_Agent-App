@@ -233,6 +233,7 @@ export default function RegisterPage() {
           </form>
 
           <SocialAuthButtons
+            providers={['google']}
             intent="signup"
             disabled={isLoading}
             onBusyChange={(busy) => {

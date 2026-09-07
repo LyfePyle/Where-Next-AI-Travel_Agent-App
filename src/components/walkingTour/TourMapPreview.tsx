@@ -1,61 +1,48 @@
 'use client';
 
+import { useId, useMemo, useState } from 'react';
 import type { TourStop } from '@/hooks/useWalkingTour';
+import {
+  buildTourPreviewStaticUrl,
+  previewBboxForStops,
+  projectTourStopsToPreview,
+} from '@/lib/tour-map-static-preview';
 
 type TourMapPreviewProps = {
   stops: TourStop[];
   className?: string;
 };
 
-function projectStops(stops: TourStop[]) {
-  const valid = stops.filter((s) => s.lat && s.lng);
-  if (valid.length === 0) return [];
-
-  const lats = valid.map((s) => s.lat);
-  const lngs = valid.map((s) => s.lng);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const latSpan = maxLat - minLat || 0.01;
-  const lngSpan = maxLng - minLng || 0.01;
-  const pad = 0.12;
-
-  return valid
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    .map((stop, index) => {
-      const x = pad + ((stop.lng - minLng) / lngSpan) * (1 - pad * 2);
-      const y = pad + (1 - (stop.lat - minLat) / latSpan) * (1 - pad * 2);
-      return { x: x * 100, y: y * 100, order: stop.order ?? index + 1 };
-    });
-}
-
-/** Lightweight dot-map preview from stop coordinates (no Mapbox instance per card). */
-export default function TourMapPreview({ stops, className = '' }: TourMapPreviewProps) {
-  const points = projectStops(stops);
-
-  if (points.length === 0) {
-    return (
-      <div
-        className={`bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center ${className}`}
-      >
-        <span className="text-xs text-slate-500">Map preview</span>
-      </div>
-    );
-  }
-
+function Overlay({
+  points,
+  showGrid,
+  gridId,
+}: {
+  points: { x: number; y: number; order: number }[];
+  showGrid: boolean;
+  gridId: string;
+}) {
   const linePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
 
   return (
-    <div className={`relative overflow-hidden bg-[#e8eef4] ${className}`}>
-      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
-        <defs>
-          <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#cbd5e1" strokeWidth="0.3" opacity="0.5" />
-          </pattern>
-        </defs>
-        <rect width="100" height="100" fill="url(#grid)" />
-        {points.length >= 2 && (
+    <>
+      <svg
+        viewBox="0 0 100 100"
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        {showGrid ? (
+          <>
+            <defs>
+              <pattern id={gridId} width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#cbd5e1" strokeWidth="0.3" opacity="0.5" />
+              </pattern>
+            </defs>
+            <rect width="100" height="100" fill={`url(#${gridId})`} />
+          </>
+        ) : null}
+        {points.length >= 2 ? (
           <polyline
             points={linePoints}
             fill="none"
@@ -65,7 +52,7 @@ export default function TourMapPreview({ stops, className = '' }: TourMapPreview
             strokeLinecap="round"
             opacity="0.85"
           />
-        )}
+        ) : null}
       </svg>
       {points.map((p) => (
         <span
@@ -76,6 +63,52 @@ export default function TourMapPreview({ stops, className = '' }: TourMapPreview
           {p.order}
         </span>
       ))}
+    </>
+  );
+}
+
+/** Static Mapbox tile + overlay (no Mapbox GL instance per card). */
+export default function TourMapPreview({ stops, className = '' }: TourMapPreviewProps) {
+  const gridId = useId().replace(/:/g, '');
+  const [tileFailed, setTileFailed] = useState(false);
+
+  const bbox = useMemo(() => previewBboxForStops(stops), [stops]);
+  const points = useMemo(() => projectTourStopsToPreview(stops, bbox), [stops, bbox]);
+  const tileUrl = useMemo(
+    () => (tileFailed ? null : buildTourPreviewStaticUrl(stops, process.env.NEXT_PUBLIC_MAPBOX_TOKEN)),
+    [stops, tileFailed]
+  );
+
+  if (points.length === 0) {
+    return (
+      <div
+        className={`flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 ${className}`}
+      >
+        <span className="text-xs text-slate-500">Map preview</span>
+      </div>
+    );
+  }
+
+  const showTile = Boolean(tileUrl);
+
+  return (
+    <div className={`relative overflow-hidden bg-[#e8eef4] ${className}`}>
+      {showTile ? (
+        // eslint-disable-next-line @next/next/no-img-element -- Mapbox static URL; overlay alignment needs object-fill
+        <img
+          src={tileUrl!}
+          alt=""
+          className="absolute inset-0 h-full w-full object-fill"
+          draggable={false}
+          onError={() => setTileFailed(true)}
+        />
+      ) : null}
+      <Overlay points={points} showGrid={!showTile} gridId={gridId} />
+      {showTile ? (
+        <span className="pointer-events-none absolute bottom-1 left-1 rounded bg-white/75 px-1 py-px text-[8px] leading-tight text-slate-600">
+          © Mapbox © OSM
+        </span>
+      ) : null}
     </div>
   );
 }

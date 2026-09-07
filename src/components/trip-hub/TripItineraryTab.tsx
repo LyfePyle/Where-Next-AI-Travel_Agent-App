@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { newBlankBlock } from '@/lib/generate-itinerary-days';
 import { sortBlocksByTimeOfDay } from '@/lib/itinerary-blocks';
 import { mapPointIdForBlock } from '@/lib/itinerary-map-points';
@@ -18,6 +19,7 @@ import TourDaySuggestionCard, {
 } from '@/components/trip-hub/TourDaySuggestionCard';
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
+import { tripKnownNights } from '@/lib/trip-stops';
 
 interface TripItineraryTabProps {
   tripId: string;
@@ -49,11 +51,14 @@ function stopLabel(stop: TripStop): string {
 }
 
 export default function TripItineraryTab({ tripId, stops, active }: TripItineraryTabProps) {
+  const router = useRouter();
   const [days, setDays] = useState<TripItineraryDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dayCountInput, setDayCountInput] = useState('');
+  const dayCountPrefill = useRef(false);
   const [savingDayId, setSavingDayId] = useState<string | null>(null);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -106,27 +111,47 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
     setDays(data.days ?? []);
     setComplete(!!data.complete);
     setError(null);
-    return data as { days: TripItineraryDay[]; complete: boolean };
+    return data as { days: TripItineraryDay[]; complete: boolean; needsDayCount?: boolean };
   }, [tripId]);
 
-  const triggerGenerate = useCallback(async () => {
-    setGenerating(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/trips/${tripId}/itinerary`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Generation failed');
-        return;
+  const needsDayCount = tripKnownNights(stops) == null;
+
+  const triggerGenerate = useCallback(
+    async (daysOverride?: number) => {
+      setGenerating(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/trips/${tripId}/itinerary`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            daysOverride != null && Number.isFinite(daysOverride)
+              ? { days: daysOverride }
+              : {}
+          ),
+        });
+        const data = await res.json();
+        if (res.status === 409 && data.code === 'NEEDS_DAY_COUNT') {
+          setError(null);
+          return;
+        }
+        if (!res.ok) {
+          setError(data.error || 'Generation failed');
+          return;
+        }
+        setDays(data.days ?? []);
+        setComplete(!!data.complete);
+        if (daysOverride != null) {
+          router.refresh();
+        }
+      } catch {
+        setError('Network error during generation');
+      } finally {
+        setGenerating(false);
       }
-      setDays(data.days ?? []);
-      setComplete(!!data.complete);
-    } catch {
-      setError('Network error during generation');
-    } finally {
-      setGenerating(false);
-    }
-  }, [tripId]);
+    },
+    [tripId, router]
+  );
 
   useEffect(() => {
     if (!active) return;
@@ -138,10 +163,9 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
       if (cancelled) return;
       setLoading(false);
 
-      // Incomplete = missing days. Do not regenerate complete trips that
-      // merely lack lat/lng — those keep a city-pin fallback until the user
-      // regenerates a day or the whole plan.
-      if (data && !data.complete && stops.length > 0) {
+      // Incomplete = missing days. Do not auto-generate when trip length is
+      // unknown — that used to silently invent a 3-day plan.
+      if (data && !data.complete && !data.needsDayCount && !needsDayCount && stops.length > 0) {
         await triggerGenerate();
       }
     })();
@@ -149,10 +173,27 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
     return () => {
       cancelled = true;
     };
-  }, [active, tripId, fetchDays, triggerGenerate, stops.length]);
+  }, [active, tripId, fetchDays, triggerGenerate, stops.length, needsDayCount]);
 
   useEffect(() => {
-    if (!active || complete || generating) {
+    if (dayCountPrefill.current) return;
+    if (days.length > 0) {
+      setDayCountInput(String(days.length));
+      dayCountPrefill.current = true;
+    }
+  }, [days.length]);
+
+  const submitDayCount = () => {
+    const n = parseInt(dayCountInput, 10);
+    if (!Number.isFinite(n) || n < 1) {
+      setError('Enter how many days this trip is.');
+      return;
+    }
+    void triggerGenerate(Math.min(30, n));
+  };
+
+  useEffect(() => {
+    if (!active || complete || generating || needsDayCount) {
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
@@ -167,7 +208,7 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [active, complete, generating, fetchDays]);
+  }, [active, complete, generating, needsDayCount, fetchDays]);
 
   useEffect(() => {
     if (!active) return;
@@ -485,7 +526,7 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
     );
   }
 
-  if (error && days.length === 0) {
+  if (error && days.length === 0 && !needsDayCount) {
     return (
       <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
         <p style={{ fontSize: 14, color: '#B91C1C', marginBottom: 12 }}>{error}</p>
@@ -519,7 +560,7 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
         onSelectDay={selectDay}
       />
 
-      {(generating || (!complete && days.length > 0)) && (
+      {(generating || (!complete && !needsDayCount && days.length > 0)) && (
         <div
           style={{
             marginBottom: 16,
@@ -533,6 +574,64 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
         >
           {generating ? 'Generating your day-by-day plan…' : 'Still building some days…'}
         </div>
+      )}
+
+      {needsDayCount && !generating && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitDayCount();
+          }}
+          style={{
+            marginBottom: 16,
+            padding: '16px 18px',
+            background: '#FFFBEB',
+            border: '1px solid #FDE68A',
+            borderRadius: 10,
+          }}
+        >
+          <p style={{ fontSize: 15, fontWeight: 600, color: '#1C1917', marginBottom: 6 }}>
+            How many days is this trip?
+          </p>
+          <p style={{ fontSize: 13, color: '#78716C', marginBottom: 12, lineHeight: 1.5 }}>
+            Dates can stay blank — we just need a length so the itinerary matches Overview.
+          </p>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              inputMode="numeric"
+              value={dayCountInput}
+              onChange={(e) => setDayCountInput(e.target.value)}
+              placeholder="e.g. 5"
+              aria-label="Number of days"
+              style={{
+                width: 96,
+                padding: '10px 12px',
+                border: '1px solid #D6CFC4',
+                borderRadius: 8,
+                fontSize: 16,
+                fontFamily: 'inherit',
+              }}
+            />
+            <button
+              type="submit"
+              disabled={generating}
+              style={{
+                padding: '10px 18px',
+                background: '#D97706',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              Generate itinerary
+            </button>
+          </div>
+        </form>
       )}
 
       {error && (
@@ -551,7 +650,7 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
         </div>
       )}
 
-      {!complete && days.length === 0 && !generating && (
+      {!complete && !needsDayCount && days.length === 0 && !generating && (
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
           <p style={{ fontSize: 14, color: '#78716C', marginBottom: 12 }}>
             No itinerary yet — generate a light starting-point plan for each stop.
@@ -604,7 +703,7 @@ export default function TripItineraryTab({ tripId, stops, active }: TripItinerar
               <span style={{ flex: 1, height: 1, background: '#EAE3D5' }} />
             </div>
 
-            {stopDays.length === 0 && !complete && (
+            {stopDays.length === 0 && !complete && !needsDayCount && (
               <p style={{ fontSize: 13, color: '#A8A29E', fontStyle: 'italic' }}>
                 Waiting for {stopLabel(stop)}…
               </p>

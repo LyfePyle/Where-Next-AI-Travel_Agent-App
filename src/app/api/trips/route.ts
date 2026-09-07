@@ -6,7 +6,11 @@ import {
   isStoredSuggestionsEmpty,
 } from '@/lib/trip-preview';
 import { distributeStops } from '@/lib/stop-parser';
-import { serializeStopsForDb } from '@/lib/trip-stops';
+import {
+  attachSuggestionPlaceToStops,
+  serializeStopsForDb,
+  suggestionPlaceFields,
+} from '@/lib/trip-stops';
 import type { TripStop } from '@/types/trip';
 
 type TripPayload = {
@@ -115,7 +119,7 @@ export async function POST(req: NextRequest) {
         : null;
     const vibe = body.vibe ?? strField(suggestion.vibe) ?? null;
 
-    const resolvedStops: TripStop[] =
+    const resolvedStops: TripStop[] = attachSuggestionPlaceToStops(
       Array.isArray(body.stops) && body.stops.length > 0
         ? body.stops
         : Array.isArray(suggestion.stops) &&
@@ -134,7 +138,9 @@ export async function POST(req: NextRequest) {
                   endDate: endDate ?? '',
                 },
               ]
-            : [];
+            : [],
+      suggestionPlaceFields(suggestion)
+    );
 
     const stopsForDb = serializeStopsForDb(resolvedStops);
 

@@ -3,7 +3,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { deriveNightsFromStop, isoAddDays } from '@/lib/trip-stops';
+import { deriveNightsFromStop, isoAddDays, tripKnownNights } from '@/lib/trip-stops';
 import {
   generateItineraryDaysForStop,
   regenerateItineraryDay,
@@ -311,6 +311,7 @@ export function itineraryIsComplete(
   stops: TripStop[],
   days: TripItineraryDay[]
 ): boolean {
+  if (tripKnownNights(stops) == null) return false;
   for (const stop of stops) {
     const expected = deriveNightsFromStop(stop);
     const actual = days.filter((d) => d.stop_id === stop.id).length;

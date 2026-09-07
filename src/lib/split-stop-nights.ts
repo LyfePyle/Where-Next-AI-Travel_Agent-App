@@ -27,6 +27,14 @@ export function nightsArray(stops: TripStop[]): number[] {
   return stops.map(nightsOnStop);
 }
 
+/**
+ * Set per-stop nights (even split) without inventing calendar dates.
+ * Used when the user answers "how many days?" on a dateless trip.
+ */
+export function applyDurationNights(stops: TripStop[], totalDays: number): TripStop[] {
+  return applyStopNights(stops, evenSplitNights(totalDays, stops.length), '');
+}
+
 export function applyStopNights(
   stops: TripStop[],
   nights: number[],

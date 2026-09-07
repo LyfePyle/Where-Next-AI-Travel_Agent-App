@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import { normalizeTripStopsFromRow } from '@/lib/trip-stops';
+import { normalizeTripStopsFromRow, serializeStopsForDb, tripKnownNights } from '@/lib/trip-stops';
+import { applyDurationNights } from '@/lib/split-stop-nights';
 import {
   extractTripItineraryContext,
   fetchItineraryDays,
@@ -88,6 +89,7 @@ export async function GET(
   return NextResponse.json({
     days,
     complete: itineraryIsComplete(stops, days),
+    needsDayCount: tripKnownNights(stops) == null,
     stops: stops.map((s) => ({ id: s.id, destination: s.destination })),
   });
 }
@@ -151,9 +153,19 @@ export async function PATCH(
   return NextResponse.json({ day: updated });
 }
 
+const MAX_ITINERARY_DAYS = 30;
+
+function requestedTripDays(body: unknown): number | null {
+  if (!body || typeof body !== 'object') return null;
+  const o = body as Record<string, unknown>;
+  const n = Number(o.days ?? o.nights);
+  if (!Number.isFinite(n) || n < 1) return null;
+  return Math.min(MAX_ITINERARY_DAYS, Math.round(n));
+}
+
 /** POST — generate itinerary for all stops (also used after save) */
 export async function POST(
-  _: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -162,9 +174,46 @@ export async function POST(
   if ('error' in loaded && loaded.error) return loaded.error;
 
   const { trip } = loaded as { trip: Record<string, unknown> };
-  const stops = normalizeTripStopsFromRow(trip);
+  let stops = normalizeTripStopsFromRow(trip);
   if (stops.length === 0) {
     return NextResponse.json({ error: 'Trip has no stops' }, { status: 400 });
+  }
+
+  let body: unknown = {};
+  try {
+    body = await req.json();
+  } catch {
+    body = {};
+  }
+  const daysRequested = requestedTripDays(body);
+
+  if (tripKnownNights(stops) == null) {
+    if (daysRequested == null) {
+      return NextResponse.json(
+        {
+          error: 'How many days is this trip?',
+          code: 'NEEDS_DAY_COUNT',
+          needsDayCount: true,
+        },
+        { status: 409 }
+      );
+    }
+    const withLength = applyDurationNights(stops, daysRequested);
+    const serialized = serializeStopsForDb(withLength);
+    if (serialized) {
+      const { error: persistError } = await supabase
+        .from('trips')
+        .update({ stops: serialized })
+        .eq('id', id);
+      if (persistError) {
+        console.error('itinerary POST persist nights failed:', persistError);
+        return NextResponse.json(
+          { error: 'Failed to save trip length' },
+          { status: 500 }
+        );
+      }
+      stops = serialized;
+    }
   }
 
   const probe = await supabase.from('trip_itinerary_days').select('id').limit(1);
@@ -178,6 +227,7 @@ export async function POST(
     return NextResponse.json({
       days,
       complete: itineraryIsComplete(stops, days),
+      needsDayCount: false,
     });
   } catch (err) {
     console.error('itinerary POST generate failed:', err);

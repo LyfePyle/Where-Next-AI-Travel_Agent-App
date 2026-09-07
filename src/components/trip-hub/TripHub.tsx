@@ -12,7 +12,7 @@ import AffiliateLink from '@/components/AffiliateLink';
 import {
   parseStoredSuggestions,
 } from '@/lib/trip-preview';
-import { normalizeTripStopsFromRow, serializeStopsForDb, validateStopsForSave } from '@/lib/trip-stops';
+import { normalizeTripStopsFromRow, serializeStopsForDb, tripKnownNights, validateStopsForSave } from '@/lib/trip-stops';
 import { useToast, ToastContainer } from '@/hooks/useToast';
 import TripHubStopsSection from '@/components/trip-hub/TripHubStopsSection';
 import TripChatPanel from '@/components/trip-hub/TripChatPanel';
@@ -22,6 +22,7 @@ import TripRouteMap from '@/components/trip-hub/TripRouteMap';
 import { useTripEditState } from '@/components/trip-hub/useTripEditState';
 import type { ChatMessageRow } from '@/app/api/trips/[id]/chat/route';
 import { parseDestinationParts } from '@/lib/parse-destination';
+import { bookableDestinationFromStop } from '@/lib/bookable-place';
 import type { TripStop } from '@/types/trip';
 
 export type { TripStop };
@@ -114,7 +115,7 @@ function AffiliateCard({
   return (
     <AffiliateLink
       type={link.type}
-      destination={stop.destination}
+      destination={bookableDestinationFromStop(stop)}
       startDate={stop.startDate}
       endDate={stop.endDate}
       adults={adults}
@@ -375,9 +376,14 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
     : trip.end_date;
 
   const primaryDestination = displayStops[0]?.destination || trip.destination;
-  const { city: toolCity, country: toolCountry } = parseDestinationParts(primaryDestination);
-  const toolDestEnc = encodeURIComponent(primaryDestination);
-  const totalNights = nights(displayStart, displayEnd);
+  const bookablePrimary = displayStops[0]
+    ? bookableDestinationFromStop(displayStops[0])
+    : primaryDestination;
+  const { city: toolCity, country: toolCountry } = parseDestinationParts(bookablePrimary);
+  const toolDestEnc = encodeURIComponent(bookablePrimary);
+  const calendarNights = nights(displayStart, displayEnd);
+  const storedNights = tripKnownNights(displayStops);
+  const totalNights = calendarNights > 0 ? calendarNights : storedNights ?? 0;
   const totalTravelers = (trip.adults ?? 1) + (trip.kids ?? 0);
   const isConfirmed = booking?.status === 'confirmed';
   const paidCents = booking ? bookingAmountCents(booking) : null;
@@ -565,7 +571,7 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
             {[
               {
                 label: 'Duration',
-                val: totalNights > 0 ? `${totalNights} nights` : 'Dates TBC',
+                val: calendarNights > 0 ? `${calendarNights} nights` : 'Dates TBC',
               },
               {
                 label: 'Travellers',
@@ -928,7 +934,7 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
                 </SectionTitle>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {getAffiliateLinks({
-                    destination: stop.destination,
+                    destination: bookableDestinationFromStop(stop),
                     startDate: stop.startDate || trip.start_date,
                     endDate: stop.endDate || trip.end_date,
                     adults: trip.adults ?? 2,

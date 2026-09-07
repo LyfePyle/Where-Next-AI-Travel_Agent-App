@@ -60,6 +60,18 @@ describe('expediaFlightLink', () => {
     expect(destParam(bangkok.url, 'leg1')).toContain('to:Bangkok');
     expect(bali.url).not.toContain('expedia-home');
   });
+
+  it('uses only the city in to: because Expedia leg params are comma-delimited', () => {
+    const link = expediaFlightLink(
+      'Vancouver',
+      'Bali, Indonesia',
+      '2026-10-01',
+      '2026-10-08',
+      2
+    );
+    expect(destParam(link.url, 'leg1')).toContain('to:Bali');
+    expect(destParam(link.url, 'leg1')).not.toContain('Indonesia');
+  });
 });
 
 describe('expediaTourLink / expediaCarLink', () => {

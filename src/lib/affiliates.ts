@@ -143,7 +143,7 @@ export function expediaFlightLink(
   returnDate = '',
   adults = 1
 ): AffiliateLink {
-  const to = dest.trim();
+  const to = dest.trim().split(',')[0]?.trim() || dest.trim();
   const from = origin.trim() || 'Vancouver';
   if (!to) {
     return expediaLink('flights', `Flights to ${dest}`, '✈️', EXPEDIA_TRACKED_URL);

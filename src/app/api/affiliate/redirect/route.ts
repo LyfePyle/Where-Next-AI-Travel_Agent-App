@@ -10,6 +10,7 @@ import {
   insuranceLink,
   type AffiliateType,
 } from '@/lib/affiliates';
+import { resolveBookableDestination } from '@/lib/bookable-place';
 import {
   isValidTripId,
   normalizePartner,
@@ -69,25 +70,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'type and destination are required' }, { status: 400 });
   }
 
+  const bookable = await resolveBookableDestination(destination);
+
   let link;
   switch (type) {
     case 'hotels':
-      link = hotelLink(destination, startDate, endDate, adults);
+      link = hotelLink(bookable, startDate, endDate, adults);
       break;
     case 'flights':
-      link = flightLink(origin, destination, startDate, endDate, adults);
+      link = flightLink(origin, bookable, startDate, endDate, adults);
       break;
     case 'tours':
-      link = tourLink(destination);
+      link = tourLink(bookable);
       break;
     case 'experiences':
-      link = experienceLink(destination);
+      link = experienceLink(bookable);
       break;
     case 'cars':
-      link = carLink(destination, startDate, endDate);
+      link = carLink(bookable, startDate, endDate);
       break;
     case 'insurance':
-      link = insuranceLink(destination, startDate, endDate);
+      link = insuranceLink(bookable, startDate, endDate);
       break;
     default:
       return NextResponse.json({ error: 'unknown type' }, { status: 400 });

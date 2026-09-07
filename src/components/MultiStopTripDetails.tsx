@@ -12,6 +12,7 @@ import {
   TripPlan,
 } from '@/types/trip';
 import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
+import { bookableDestinationFromStop } from '@/lib/bookable-place';
 import type { StopPreview, TripPreview } from '@/lib/trip-preview';
 
 // ---------------------------------------------------------------------------
@@ -519,7 +520,7 @@ export default function MultiStopTripDetails({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          destination: stop.destination,
+          destination: bookableDestinationFromStop(stop),
           checkIn: stop.startDate,
           checkOut: stop.endDate,
           adults,
@@ -572,7 +573,7 @@ export default function MultiStopTripDetails({
         router.push(`/my-trip/${tripId}`);
       } else if (stops[0]?.destination) {
         openAffiliateRedirect('hotels', {
-          destination: stops[0].destination,
+          destination: bookableDestinationFromStop(stops[0]),
           startDate: stops[0].startDate || undefined,
           endDate: stops[0].endDate || undefined,
           adults,

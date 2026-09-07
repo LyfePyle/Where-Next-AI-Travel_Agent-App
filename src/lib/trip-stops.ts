@@ -238,6 +238,77 @@ export function nightsBetween(start: string, end: string): number {
 
 const DEFAULT_STOP_NIGHTS = 3;
 
+/**
+ * Nights we actually know — from stored nights or real dates.
+ * Returns null when length was never set (do not invent a default here).
+ */
+export function knownNightsFromStop(stop: TripStop): number | null {
+  if (typeof stop.nights === 'number' && Number.isFinite(stop.nights) && stop.nights >= 0) {
+    return Math.round(stop.nights);
+  }
+  if (stop.startDate && stop.endDate) {
+    const n = nightsBetween(stop.startDate, stop.endDate);
+    return n > 0 ? n : null;
+  }
+  return null;
+}
+
+/** Sum of known nights, or null if any stop is still dateless/length-less. */
+export function tripKnownNights(stops: TripStop[]): number | null {
+  if (!stops.length) return null;
+  let total = 0;
+  for (const stop of stops) {
+    const n = knownNightsFromStop(stop);
+    if (n == null) return null;
+    total += n;
+  }
+  return total;
+}
+
+/**
+ * Fill missing city/country from an AI suggestion. Display `destination` (often
+ * an evocative title like "Swiss Alps Nature Retreat") stays unchanged.
+ */
+export function attachSuggestionPlaceToStops(
+  stops: TripStop[],
+  suggestion?: { city?: string; country?: string } | null
+): TripStop[] {
+  if (!stops.length || !suggestion) return stops;
+  const city = suggestion.city?.trim() || '';
+  const country = suggestion.country?.trim() || '';
+  if (!city && !country) return stops;
+
+  if (stops.length === 1) {
+    const stop = stops[0];
+    return [
+      {
+        ...stop,
+        city: stop.city?.trim() || city || undefined,
+        country: stop.country?.trim() || country || undefined,
+      },
+    ];
+  }
+
+  return stops.map((stop) => ({
+    ...stop,
+    country: stop.country?.trim() || country || undefined,
+  }));
+}
+
+export function suggestionPlaceFields(suggestion: unknown): {
+  city?: string;
+  country?: string;
+} {
+  if (!suggestion || typeof suggestion !== 'object') return {};
+  const o = suggestion as Record<string, unknown>;
+  const city = typeof o.city === 'string' ? o.city.trim() : '';
+  const country = typeof o.country === 'string' ? o.country.trim() : '';
+  return {
+    ...(city ? { city } : {}),
+    ...(country ? { country } : {}),
+  };
+}
+
 /** Derive nights for one stop from cached nights or stored dates. */
 export function deriveNightsFromStop(stop: TripStop): number {
   if (typeof stop.nights === 'number' && Number.isFinite(stop.nights) && stop.nights >= 0) {

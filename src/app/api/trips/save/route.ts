@@ -3,7 +3,11 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { TripStop, tripDestinationSummary, tripStartDate, tripEndDate } from '@/types/trip';
-import { serializeStopsForDb } from '@/lib/trip-stops';
+import {
+  attachSuggestionPlaceToStops,
+  serializeStopsForDb,
+  suggestionPlaceFields,
+} from '@/lib/trip-stops';
 
 /**
  * POST /api/trips/save — writes to `trips` (must match /saved page query).
@@ -68,7 +72,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No stops provided' }, { status: 400 });
     }
 
-    const stopsForDb = serializeStopsForDb(stops) ?? stops;
+    const placedStops = attachSuggestionPlaceToStops(
+      stops,
+      suggestionPlaceFields(body.suggestion)
+    );
+    const stopsForDb = serializeStopsForDb(placedStops) ?? placedStops;
 
     const destination = body.title ?? tripDestinationSummary(stops);
     const startDate = tripStartDate(stops);

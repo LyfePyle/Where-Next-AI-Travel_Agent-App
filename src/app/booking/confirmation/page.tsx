@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { tripDestinationSummary, type TripStop } from '@/types/trip';
 import { getAffiliateLinks } from '@/lib/affiliates';
+import { bookableDestinationFromStop } from '@/lib/bookable-place';
 import AffiliateLink from '@/components/AffiliateLink';
 
 interface TripSummary {
@@ -66,7 +67,7 @@ function StopAffiliateLinks({
   adults: number;
 }) {
   const links = getAffiliateLinks({
-    destination: stop.destination,
+    destination: bookableDestinationFromStop(stop),
     startDate: stop.startDate,
     endDate: stop.endDate,
     adults,
@@ -78,7 +79,7 @@ function StopAffiliateLinks({
         <AffiliateLink
           key={`${stop.id}-${link.type}`}
           type={link.type}
-          destination={stop.destination}
+          destination={bookableDestinationFromStop(stop)}
           startDate={stop.startDate}
           endDate={stop.endDate}
           adults={adults}

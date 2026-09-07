@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { parseDestinationToStops } from '@/lib/stop-parser';
-import { serializeStopsForDb, stopSetFingerprint, fingerprintFromStopsJson } from '@/lib/trip-stops';
+import {
+  attachSuggestionPlaceToStops,
+  serializeStopsForDb,
+  stopSetFingerprint,
+  fingerprintFromStopsJson,
+  suggestionPlaceFields,
+  tripKnownNights,
+} from '@/lib/trip-stops';
 import { buildMultiStopSuggestionsBlobAsync, isStoredSuggestionsEmpty } from '@/lib/trip-preview';
 
 interface SavedTrip {
@@ -240,10 +247,12 @@ export async function POST(request: NextRequest) {
     // multi-city trip). Otherwise split the destination string conservatively
     // so "Singapore, Bali & Yogyakarta" becomes 3 stops while "Bangkok,
     // Thailand" stays one.
-    const stops =
+    const stops = attachSuggestionPlaceToStops(
       Array.isArray(body.stops) && body.stops.length > 0
         ? body.stops
-        : parseDestinationToStops(destination, startDate || '', endDate || '');
+        : parseDestinationToStops(destination, startDate || '', endDate || ''),
+      suggestionPlaceFields(body.suggestion)
+    );
 
     const stopsForDb = serializeStopsForDb(stops);
 
@@ -292,7 +301,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (stopsForDb?.length) {
+    if (stopsForDb?.length && tripKnownNights(stopsForDb) != null) {
       void import('@/lib/trip-itinerary').then(({ extractTripItineraryContext, generateItineraryForTrip }) => {
         const ctx = extractTripItineraryContext({
           ...newTrip,

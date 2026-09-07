@@ -8,7 +8,7 @@ import { useToast, ToastContainer } from '@/hooks/useToast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { stopsFromSearchParams, tripDestinationSummary, type TripStop } from '@/types/trip';
 import { distributeStops } from '@/lib/stop-parser';
-import { serializeStopsForDb, titleFromCountries } from '@/lib/trip-stops';
+import { serializeStopsForDb, titleFromCountries, attachSuggestionPlaceToStops } from '@/lib/trip-stops';
 import CompareSummaryBlock from '@/components/suggestions/CompareSummaryBlock';
 import SuggestionsDrillDown from '@/components/suggestions/SuggestionsDrillDown';
 import {
@@ -36,12 +36,31 @@ function resolveStopsForSave(
   endDate: string
 ): TripStop[] | undefined {
   const filledUrlStops = urlStops.filter((s) => s.destination.trim());
-  if (filledUrlStops.length > 1) return filledUrlStops;
-  if (suggestion.stops && suggestion.stops.length > 1) {
-    return distributeStops(suggestion.stops, startDate || '', endDate || '');
+  const place = { city: suggestion.city, country: suggestion.country };
+  if (filledUrlStops.length > 1) {
+    return attachSuggestionPlaceToStops(filledUrlStops, place);
   }
-  if (filledUrlStops.length === 1) return filledUrlStops;
-  return undefined;
+  if (suggestion.stops && suggestion.stops.length > 1) {
+    return attachSuggestionPlaceToStops(
+      distributeStops(suggestion.stops, startDate || '', endDate || ''),
+      place
+    );
+  }
+  if (filledUrlStops.length === 1) {
+    return attachSuggestionPlaceToStops(filledUrlStops, place);
+  }
+  if (!suggestion.destination.trim()) return undefined;
+  return attachSuggestionPlaceToStops(
+    [
+      {
+        id: 'stop-0',
+        destination: suggestion.destination,
+        startDate: startDate || '',
+        endDate: endDate || '',
+      },
+    ],
+    place
+  );
 }
 
 function SuggestionsContent() {

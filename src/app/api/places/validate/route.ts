@@ -17,8 +17,15 @@ const BodySchema = z
 
 /** POST — validate a destination via geocoding (OpenWeather + Nominatim). */
 export async function POST(req: NextRequest) {
+  let raw: unknown;
   try {
-    const body = BodySchema.parse(await req.json());
+    raw = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Invalid input' }, { status: 400 });
+  }
+
+  try {
+    const body = BodySchema.parse(raw);
 
     const result = body.destination?.trim()
       ? await validateDestinationInput(body.destination)

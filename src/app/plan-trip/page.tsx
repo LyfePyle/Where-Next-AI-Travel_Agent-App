@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import StopsBuilder, { makeEmptyStop } from '@/components/StopsBuilder';
 import { parsePlanTripSearchParams } from '@/lib/plan-trip-params';
+import { planTripStepNumber, type PlanTripStepId } from '@/lib/plan-trip-steps';
 import type { TripStop } from '@/types/trip';
 
 const VIBES = [
@@ -88,6 +89,7 @@ export default function PlanTripPage() {
 
   const isSurprise = tripStyle === 'surprise';
   const isMulti = tripStyle === 'multi';
+  const step = (id: PlanTripStepId) => planTripStepNumber(tripStyle, id);
 
   function toggleVibe(value: string) {
     setVibes((prev) => {
@@ -250,7 +252,7 @@ export default function PlanTripPage() {
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem 1.25rem 4rem' }}>
         <form onSubmit={handleSubmit} noValidate>
           <FormSection
-            step={1}
+            step={step('kind')}
             title="What kind of trip?"
             subtitle="Pick a style — you can change it any time"
           >
@@ -295,7 +297,7 @@ export default function PlanTripPage() {
           </FormSection>
 
           <FormSection
-            step={2}
+            step={step('origin')}
             title="Where are you based?"
             subtitle="Your home city — we use this to find flights"
           >
@@ -330,7 +332,7 @@ export default function PlanTripPage() {
 
           {!isSurprise && (
             <FormSection
-              step={3}
+              step={step('destination')}
               title={isMulti ? 'Which region or cities?' : 'Where do you want to go?'}
               subtitle={
                 isMulti
@@ -389,7 +391,7 @@ export default function PlanTripPage() {
 
           {isMulti && (
             <FormSection
-              step={4}
+              step={step('dates')}
               title="When are you travelling?"
               optional
               subtitle="Set a trip length and we'll even-split nights across your stops — then drag to adjust"
@@ -433,7 +435,7 @@ export default function PlanTripPage() {
 
           {isMulti && (
             <FormSection
-              step={5}
+              step={step('stops')}
               title="Your stops"
               subtitle={
                 startDate && tripNights
@@ -454,7 +456,7 @@ export default function PlanTripPage() {
 
           {!isMulti && (
           <FormSection
-            step={4}
+            step={step('dates')}
             title="When are you travelling?"
             optional
             subtitle="Helps the AI check seasonality and pricing"
@@ -496,7 +498,7 @@ export default function PlanTripPage() {
           </FormSection>
           )}
 
-          <FormSection step={isMulti ? 6 : 5} title="Who's travelling?">
+          <FormSection step={step('party')} title="Who's travelling?">
             <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3">
               <Counter
                 label="Adults"
@@ -517,7 +519,7 @@ export default function PlanTripPage() {
             </div>
           </FormSection>
 
-          <FormSection step={isMulti ? 7 : 6} title="What's your budget?">
+          <FormSection step={step('budget')} title="What's your budget?">
             <div>
               <div
                 style={{
@@ -580,7 +582,7 @@ export default function PlanTripPage() {
           </FormSection>
 
           <FormSection
-            step={isMulti ? 8 : 7}
+            step={step('vibes')}
             title="What's your vibe?"
             optional
             subtitle={`Pick up to ${MAX_VIBES} to help the AI match your style`}
@@ -628,7 +630,7 @@ export default function PlanTripPage() {
           </FormSection>
 
           <FormSection
-            step={isMulti ? 9 : 8}
+            step={step('details')}
             title="Anything else we should know?"
             optional
             subtitle="Special requests — e.g. no flying, travelling with elderly parents, honeymoon"

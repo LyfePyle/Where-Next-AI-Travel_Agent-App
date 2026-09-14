@@ -327,6 +327,20 @@ describe('Amadeus API Integration Tests', () => {
   })
 
   describe('Hotel Search API', () => {
+    const previousFlag = process.env.NEXT_PUBLIC_ENABLE_AMADEUS_HOTELS
+
+    beforeAll(() => {
+      process.env.NEXT_PUBLIC_ENABLE_AMADEUS_HOTELS = 'true'
+    })
+
+    afterAll(() => {
+      if (previousFlag === undefined) {
+        delete process.env.NEXT_PUBLIC_ENABLE_AMADEUS_HOTELS
+      } else {
+        process.env.NEXT_PUBLIC_ENABLE_AMADEUS_HOTELS = previousFlag
+      }
+    })
+
     it('should search hotels successfully with Amadeus API', async () => {
       const mockHotelData = [
         {

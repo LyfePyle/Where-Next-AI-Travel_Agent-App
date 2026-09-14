@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
+import { isAmadeusHotelsEnabled } from '@/lib/amadeus-hotels-flag';
 
 interface BudgetBreakdown {
   flights: number;
@@ -278,12 +279,14 @@ export default function BudgetSuggestionCard({
                 >
                   ✈️ Flights (${budgetBreakdown.flights.toLocaleString()})
                 </button>
+                {isAmadeusHotelsEnabled() && (
                 <button 
                   onClick={() => window.location.href = `/booking/hotels?destination=${encodeURIComponent(destination)}&budget=${budgetBreakdown.accommodation}`}
                   className="flex items-center justify-center px-3 py-2 bg-cyan-100 text-cyan-700 rounded-lg hover:bg-cyan-200 transition-colors text-sm font-medium"
                 >
                   🏨 Hotels (${budgetBreakdown.accommodation.toLocaleString()})
                 </button>
+                )}
                 <button 
                   onClick={() => window.location.href = `/tours?destination=${encodeURIComponent(destination)}&budget=${budgetBreakdown.activities}`}
                   className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { isAmadeusHotelsEnabled } from '@/lib/amadeus-hotels-flag';
 
 type FlightResult = {
   id: string;
@@ -68,6 +69,7 @@ export default function BookingPanel({
   showFlights = true,
   showHotels = true,
 }: BookingPanelProps) {
+  const hotelsEnabled = showHotels && isAmadeusHotelsEnabled();
   const [flights, setFlights] = useState<FlightResult[] | null>(null);
   const [hotels, setHotels] = useState<HotelResult[] | null>(null);
   const [loadingFlights, setLoadingFlights] = useState(false);
@@ -212,7 +214,7 @@ export default function BookingPanel({
               : '✈️ Search flights'}
           </button>
         )}
-        {showHotels && (
+        {hotelsEnabled && (
           <button
             onClick={handleSearchHotels}
             disabled={loadingHotels || !canSearchHotels}
@@ -292,13 +294,13 @@ export default function BookingPanel({
         </div>
       )}
 
-      {showHotels && hotelError && (
+      {hotelsEnabled && hotelError && (
         <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
           {hotelError}
         </div>
       )}
 
-      {showHotels && hotels && (
+      {hotelsEnabled && hotels && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-black">

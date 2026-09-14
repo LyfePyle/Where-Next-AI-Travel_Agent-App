@@ -34,6 +34,9 @@ AI_GATEWAY_API_KEY=your_ai_gateway_api_key
 AMADEUS_CLIENT_ID=your_amadeus_client_id
 AMADEUS_CLIENT_SECRET=your_amadeus_client_secret
 AMADEUS_ENVIRONMENT=test  # set to 'production' for prod
+# Hotel search UI + /api/amadeus/hotels. Default off so fabricated fallback
+# rows never reach users. Duffel Stays will replace this. Set 'true' to re-enable.
+NEXT_PUBLIC_ENABLE_AMADEUS_HOTELS=false
 
 # Optional: Weather & currency APIs
 OPENWEATHER_API_KEY=your_openweather_api_key

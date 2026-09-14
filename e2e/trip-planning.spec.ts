@@ -72,19 +72,6 @@ test.describe('Booking Flow', () => {
     }
   });
 
-  test('should access hotel booking page', async ({ page }) => {
-    await page.goto('/booking/hotels?destination=Madrid');
-    
-    // Should load booking page
-    await expect(page.locator('body')).toBeVisible();
-    
-    // Look for hotel booking elements
-    const hotelElements = page.locator('text=hotel, text=Hotel, text=HOTEL').first();
-    if (await hotelElements.isVisible()) {
-      await expect(hotelElements).toBeVisible();
-    }
-  });
-
   test('should load checkout page', async ({ page }) => {
     const checkoutUrl = '/booking/checkout?type=flight&item=%7B%22id%22%3A%22test%22%2C%22airline%22%3A%22Air%20Canada%22%2C%22price%22%3A1200%7D&price=1200';
     await page.goto(checkoutUrl);

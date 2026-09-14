@@ -3,6 +3,9 @@ import {
   buildStopPhotoQuery,
   categoryFallbackPhoto,
   formatUnsplashUrl,
+  pickWikipediaThumbnail,
+  WIKIPEDIA_SEARCH_LIMIT,
+  type WikipediaSearchPage,
 } from '@/lib/stop-photo';
 
 export const dynamic = 'force-dynamic';
@@ -27,12 +30,12 @@ async function searchUnsplash(query: string): Promise<string | null> {
   return url ? formatUnsplashUrl(url) : null;
 }
 
-async function searchWikipedia(query: string): Promise<string | null> {
+async function searchWikipedia(query: string, stopName: string): Promise<string | null> {
   const params = new URLSearchParams({
     action: 'query',
     generator: 'search',
     gsrsearch: query,
-    gsrlimit: '1',
+    gsrlimit: String(WIKIPEDIA_SEARCH_LIMIT),
     prop: 'pageimages',
     piprop: 'thumbnail',
     pithumbsize: '800',
@@ -41,18 +44,18 @@ async function searchWikipedia(query: string): Promise<string | null> {
   });
 
   const res = await fetch(`https://en.wikipedia.org/w/api.php?${params}`, {
+    headers: {
+      'User-Agent': 'WhereNextAI/1.0 (https://www.wherenextai.com; walking-tour stop-photo)',
+      'Api-User-Agent': 'WhereNextAI/1.0 (https://www.wherenextai.com; walking-tour stop-photo)',
+    },
     next: { revalidate: 86400 },
   });
   if (!res.ok) return null;
 
   const data = (await res.json()) as {
-    query?: { pages?: Record<string, { thumbnail?: { source?: string } }> };
+    query?: { pages?: Record<string, WikipediaSearchPage> };
   };
-  const pages = data?.query?.pages;
-  if (!pages) return null;
-
-  const page = Object.values(pages)[0];
-  return page?.thumbnail?.source ?? null;
+  return pickWikipediaThumbnail(data?.query?.pages, stopName);
 }
 
 export async function GET(req: NextRequest) {
@@ -69,17 +72,21 @@ export async function GET(req: NextRequest) {
   const query = buildStopPhotoQuery(stopName, city, country);
 
   let imageUrl = await searchUnsplash(query);
-  let source: 'unsplash' | 'wikipedia' | 'fallback' = imageUrl ? 'unsplash' : 'wikipedia';
+  let source: 'unsplash' | 'wikipedia' | 'fallback' = 'fallback';
 
-  if (!imageUrl) {
-    imageUrl = await searchWikipedia(`${stopName} ${city}`);
-  }
-  if (!imageUrl && country) {
-    imageUrl = await searchWikipedia(`${stopName} ${city} ${country}`);
-  }
-  if (!imageUrl) {
-    imageUrl = categoryFallbackPhoto(categories);
-    source = 'fallback';
+  if (imageUrl) {
+    source = 'unsplash';
+  } else {
+    imageUrl = await searchWikipedia(`${stopName} ${city}`, stopName);
+    if (!imageUrl && country) {
+      imageUrl = await searchWikipedia(`${stopName} ${city} ${country}`, stopName);
+    }
+    if (imageUrl) {
+      source = 'wikipedia';
+    } else {
+      imageUrl = categoryFallbackPhoto(categories);
+      source = 'fallback';
+    }
   }
 
   return NextResponse.json(

@@ -5,6 +5,7 @@ import { useSearchParams, useParams } from 'next/navigation';
 import Link from 'next/link';
 import FlightPickerModal from '@/components/FlightPickerModal';
 import BookingPanel from '@/components/booking/BookingPanel';
+import { isAmadeusHotelsEnabled } from '@/lib/amadeus-hotels-flag';
 
 interface TripDetail {
   id: string;
@@ -274,7 +275,9 @@ function TripDetailContent() {
               { id: 'overview', label: 'Overview', icon: '📋' },
               { id: 'itinerary', label: 'Itinerary', icon: '🗓️' },
               { id: 'flights', label: 'Flights', icon: '✈️' },
-              { id: 'hotels', label: 'Hotels', icon: '🏨' }
+              ...(isAmadeusHotelsEnabled()
+                ? [{ id: 'hotels' as const, label: 'Hotels', icon: '🏨' }]
+                : []),
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -437,7 +440,7 @@ function TripDetailContent() {
               </div>
             )}
 
-            {activeTab === 'hotels' && (
+            {activeTab === 'hotels' && isAmadeusHotelsEnabled() && (
               <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-sm border p-6">
                   <h2 className="text-xl font-semibold text-black mb-6">Hotel Options</h2>

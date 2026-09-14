@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 /** Routes where trip cart actions are irrelevant — hide the FAB instead of overlapping page controls. */
-const CART_HIDDEN_PREFIXES = ['/walking-tour'];
+const CART_HIDDEN_PREFIXES = ['/walking-tour', '/tours'];
 
 // Types for cart items
 export interface CartItem {

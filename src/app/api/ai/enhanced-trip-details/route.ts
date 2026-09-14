@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildAffiliateRedirectUrl } from '@/lib/payments';
+import { isAmadeusHotelsEnabled } from '@/lib/amadeus-hotels-flag';
 
 interface TripPreferences {
   from: string;
@@ -457,6 +459,11 @@ function generateHotelOptions(
   destinationData: any
 ) {
   const basePricePerNight = Math.round(accommodationBudget.recommended / 7); // Assume 7 nights
+  const checkin = new Date().toISOString().split('T')[0];
+  const checkout = new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0];
+  const affiliateUrl = isAmadeusHotelsEnabled()
+    ? `/booking/hotels?destination=${encodeURIComponent(city)}&checkin=${checkin}&checkout=${checkout}`
+    : buildAffiliateRedirectUrl('hotels', { destination: city, startDate: checkin, endDate: checkout });
   
   return [
     {
@@ -468,7 +475,7 @@ function generateHotelOptions(
       amenities: ['Free WiFi', 'Breakfast', 'Gym', 'Concierge'],
       type: 'mid_range' as const,
       whyRecommended: 'Perfect location in the heart of the city with excellent transport links and amenities',
-      affiliateUrl: `/booking/hotels?destination=${encodeURIComponent(city)}&checkin=${new Date().toISOString().split('T')[0]}&checkout=${new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]}`
+      affiliateUrl,
     },
     {
       id: 'hotel2',
@@ -479,7 +486,7 @@ function generateHotelOptions(
       amenities: ['Free WiFi', 'Basic Breakfast'],
       type: 'budget' as const,
       whyRecommended: 'Clean, comfortable accommodation with great value and easy access to attractions',
-      affiliateUrl: `/booking/hotels?destination=${encodeURIComponent(city)}&checkin=${new Date().toISOString().split('T')[0]}&checkout=${new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]}`
+      affiliateUrl,
     },
     {
       id: 'hotel3',
@@ -490,7 +497,7 @@ function generateHotelOptions(
       amenities: ['Spa', 'Pool', 'Fine Dining', 'Butler Service', 'Premium Location'],
       type: 'luxury' as const,
       whyRecommended: 'Ultimate luxury experience with world-class amenities and service',
-      affiliateUrl: `/booking/hotels?destination=${encodeURIComponent(city)}&checkin=${new Date().toISOString().split('T')[0]}&checkout=${new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]}`
+      affiliateUrl,
     }
   ];
 }

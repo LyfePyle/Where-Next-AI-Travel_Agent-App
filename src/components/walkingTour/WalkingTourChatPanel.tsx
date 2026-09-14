@@ -141,7 +141,7 @@ function ChatBody({
             type="button"
             onClick={handleSend}
             disabled={sending || !input.trim()}
-            className="shrink-0 min-h-[44px] px-4 rounded-xl bg-[#D97706] text-white text-sm font-semibold disabled:opacity-50"
+            className="relative z-10 shrink-0 min-h-[44px] px-4 rounded-xl bg-[#D97706] text-white text-sm font-semibold disabled:opacity-50"
           >
             Send
           </button>
@@ -182,7 +182,7 @@ export default function WalkingTourChatPanel(props: WalkingTourChatPanelProps) {
       </button>
 
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true">
+        <div className="lg:hidden fixed inset-0 z-[60] flex flex-col" role="dialog" aria-modal="true">
           <button
             type="button"
             className="absolute inset-0 bg-black/40"
@@ -206,7 +206,7 @@ export default function WalkingTourChatPanel(props: WalkingTourChatPanelProps) {
         </div>
       )}
 
-      <aside className="hidden lg:flex w-full max-w-[360px] shrink-0 sticky top-20 self-start max-h-[calc(100vh-5.5rem)] flex-col bg-white border border-[#EAE3D5] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
+      <aside className="hidden lg:flex w-full max-w-[360px] shrink-0 sticky top-20 self-start max-h-[calc(100vh-5.5rem)] flex-col bg-white border border-[#EAE3D5] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden z-[60]">
         {body}
       </aside>
     </>

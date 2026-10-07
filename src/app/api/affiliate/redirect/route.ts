@@ -8,6 +8,7 @@ import {
   experienceLink,
   carLink,
   insuranceLink,
+  linkForBookPartner,
   type AffiliateType,
 } from '@/lib/affiliates';
 import { resolveBookableDestination } from '@/lib/bookable-place';
@@ -71,29 +72,45 @@ export async function GET(req: NextRequest) {
   }
 
   const bookable = await resolveBookableDestination(destination);
+  const requestedPartner = sp.get('partner')?.trim().toLowerCase() ?? '';
 
   let link;
-  switch (type) {
-    case 'hotels':
-      link = hotelLink(bookable, startDate, endDate, adults);
-      break;
-    case 'flights':
-      link = flightLink(origin, bookable, startDate, endDate, adults);
-      break;
-    case 'tours':
-      link = tourLink(bookable);
-      break;
-    case 'experiences':
-      link = experienceLink(bookable);
-      break;
-    case 'cars':
-      link = carLink(bookable, startDate, endDate);
-      break;
-    case 'insurance':
-      link = insuranceLink(bookable, startDate, endDate);
-      break;
-    default:
-      return NextResponse.json({ error: 'unknown type' }, { status: 400 });
+  if (requestedPartner) {
+    const specific = linkForBookPartner(requestedPartner, {
+      type,
+      destination: bookable,
+      startDate,
+      endDate,
+      adults,
+      origin,
+    });
+    if (!specific) {
+      return NextResponse.json({ error: 'unknown partner' }, { status: 400 });
+    }
+    link = specific;
+  } else {
+    switch (type) {
+      case 'hotels':
+        link = hotelLink(bookable, startDate, endDate, adults);
+        break;
+      case 'flights':
+        link = flightLink(origin, bookable, startDate, endDate, adults);
+        break;
+      case 'tours':
+        link = tourLink(bookable);
+        break;
+      case 'experiences':
+        link = experienceLink(bookable);
+        break;
+      case 'cars':
+        link = carLink(bookable, startDate, endDate);
+        break;
+      case 'insurance':
+        link = insuranceLink(bookable, startDate, endDate);
+        break;
+      default:
+        return NextResponse.json({ error: 'unknown type' }, { status: 400 });
+    }
   }
 
   // Log click before redirect (guests → user_id null)

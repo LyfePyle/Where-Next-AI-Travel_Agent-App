@@ -22,6 +22,8 @@ export interface AffiliateRedirectParams {
   adults?: number;
   origin?: string;
   tripId?: string;
+  /** Optional. Hotels: expedia | booking. Tours: viator | expedia. Omit to keep the category default. */
+  partner?: string;
 }
 
 /**
@@ -41,6 +43,7 @@ export function buildAffiliateRedirectUrl(
   if (params.adults != null) sp.set('adults', String(params.adults));
   if (params.origin) sp.set('origin', params.origin);
   if (params.tripId) sp.set('tripId', params.tripId);
+  if (params.partner) sp.set('partner', params.partner);
   return `/api/affiliate/redirect?${sp.toString()}`;
 }
 

@@ -437,6 +437,47 @@ export function getAffiliateLinks(params: {
   ];
 }
 
+/** One partner deep link for the Book tab. Unknown pairs return null. */
+export function linkForBookPartner(
+  slug: string,
+  args: {
+    type: AffiliateType;
+    destination: string;
+    startDate?: string;
+    endDate?: string;
+    adults?: number;
+    origin?: string;
+  }
+): AffiliateLink | null {
+  const dest = args.destination.trim();
+  if (!dest) return null;
+  const adults = args.adults ?? 2;
+  const start = args.startDate ?? '';
+  const end = args.endDate ?? '';
+  switch (`${args.type}:${slug}`) {
+    case 'hotels:expedia':
+      return expediaHotelLink(dest, start, end, adults);
+    case 'hotels:booking':
+      return bookingHotelLink(dest, start, end, adults);
+    case 'tours:viator':
+      return viatorLink(dest);
+    case 'tours:expedia':
+      return expediaTourLink(dest);
+    case 'experiences:getyourguide':
+      return gygLink(dest);
+    case 'experiences:expedia':
+      return expediaActivityLink(dest);
+    case 'cars:expedia':
+      return expediaCarLink(dest, start, end);
+    case 'cars:rentalcars':
+      return rentalcarsLink(dest, start, end);
+    case 'insurance:worldnomads':
+      return worldNomadsLink(dest, start, end);
+    default:
+      return null;
+  }
+}
+
 // ── Legacy booking UI helpers ───────────────────────────────────────────────
 
 export interface LinkParams {

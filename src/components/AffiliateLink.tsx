@@ -34,6 +34,7 @@ export default function AffiliateLink({
   adults,
   origin,
   tripId,
+  partner,
   label,
   className,
   style,
@@ -46,6 +47,7 @@ export default function AffiliateLink({
     adults,
     origin,
     tripId,
+    partner,
   });
 
   return (

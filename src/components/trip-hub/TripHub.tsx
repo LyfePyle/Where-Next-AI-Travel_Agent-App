@@ -7,8 +7,7 @@
 import { useState, Suspense, useCallback, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getAffiliateLinks, type AffiliateLink as AffiliateLinkData } from '@/lib/affiliates';
-import AffiliateLink from '@/components/AffiliateLink';
+import BookTab from '@/components/trip-hub/BookTab';
 import {
   parseStoredSuggestions,
 } from '@/lib/trip-preview';
@@ -99,46 +98,6 @@ function bookingAmountCents(booking: Booking): number | null {
   if (typeof booking.total_amount_cents === 'number') return booking.total_amount_cents;
   if (typeof booking.total_amount === 'number') return booking.total_amount;
   return null;
-}
-
-function AffiliateCard({
-  link,
-  tripId,
-  stop,
-  adults,
-}: {
-  link: AffiliateLinkData;
-  tripId: string;
-  stop: TripStop;
-  adults: number;
-}) {
-  return (
-    <AffiliateLink
-      type={link.type}
-      destination={bookableDestinationFromStop(stop)}
-      startDate={stop.startDate}
-      endDate={stop.endDate}
-      adults={adults}
-      tripId={tripId}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        background: '#fff',
-        border: '1px solid #EAE3D5',
-        borderRadius: 10,
-        padding: '14px 16px',
-        textDecoration: 'none',
-        color: '#1C1917',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-      }}
-    >
-      <span style={{ fontSize: '1.25rem' }}>{link.emoji}</span>
-      <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>{link.label}</span>
-      <span style={{ fontSize: 11, color: '#78716C', fontFamily: 'monospace' }}>{link.partner}</span>
-      <span style={{ color: '#78716C', fontSize: 15 }}>→</span>
-    </AffiliateLink>
-  );
 }
 
 function ChecklistItem({ label }: { label: string }) {
@@ -922,35 +881,14 @@ function TripHubContent({ trip, booking, chatMessages = [], undoAvailable = fals
         )}
 
         {activeTab === 'book' && (
-          <>
-            <p style={{ fontSize: 14, color: '#78716C', marginBottom: '1.5rem', lineHeight: 1.65 }}>
-              Book with trusted partners — payment happens on their site. Where Next may earn a
-              small commission at no extra cost to you.
-            </p>
-            {stops.map((stop, i) => (
-              <div key={stop.id} style={{ marginBottom: '1.75rem' }}>
-                <SectionTitle>
-                  {stops.length > 1 ? `Stop ${i + 1}: ${stop.destination}` : 'Book your trip'}
-                </SectionTitle>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {getAffiliateLinks({
-                    destination: bookableDestinationFromStop(stop),
-                    startDate: stop.startDate || trip.start_date,
-                    endDate: stop.endDate || trip.end_date,
-                    adults: trip.adults ?? 2,
-                  }).map((link) => (
-                    <AffiliateCard
-                      key={`${stop.id}-${link.type}`}
-                      link={link}
-                      tripId={trip.id}
-                      stop={stop}
-                      adults={trip.adults ?? 2}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </>
+          <BookTab
+            tripId={trip.id}
+            adults={trip.adults ?? 2}
+            origin={tripOverview.from}
+            stops={displayStops}
+            overview={tripOverview}
+            stopPreviews={stopPreviews}
+          />
         )}
 
         {activeTab === 'documents' && (

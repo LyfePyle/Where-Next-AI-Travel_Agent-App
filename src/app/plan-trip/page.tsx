@@ -5,12 +5,27 @@
  * Origin → `from` param for flights. Destination → `stops` / `destination` for AI.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import StopsBuilder, { makeEmptyStop } from '@/components/StopsBuilder';
 import { parsePlanTripSearchParams } from '@/lib/plan-trip-params';
+import {
+  applyConfirmedPlace,
+  gateForValidation,
+  stopAlreadyConfirmed,
+  type PlaceValidationBody,
+} from '@/lib/place-confirmation';
 import { planTripStepNumber, type PlanTripStepId } from '@/lib/plan-trip-steps';
+import type { ValidatedPlace } from '@/lib/validate-place';
 import type { TripStop } from '@/types/trip';
+
+type ConfirmGate = {
+  kind: 'choose' | 'edit';
+  stopId: string;
+  label: string;
+  message: string;
+  candidates: ValidatedPlace[];
+};
 
 const VIBES = [
   { value: 'adventure', label: '🏔 Adventure' },
@@ -56,6 +71,8 @@ export default function PlanTripPage() {
   const [additionalDetails, setAdditionalDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [originError, setOriginError] = useState('');
+  const [placeGate, setPlaceGate] = useState<ConfirmGate | null>(null);
+  const pendingStopsRef = useRef<TripStop[] | null>(null);
   const [multiStops, setMultiStops] = useState<TripStop[]>(() => [
     makeEmptyStop(0),
     makeEmptyStop(4),
@@ -99,16 +116,83 @@ export default function PlanTripPage() {
     });
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function typedStops(): TripStop[] {
+    if (isSurprise) return [];
+    if (isMulti) {
+      const filled = multiStops.filter((stop) => stop.destination.trim());
+      if (filled.length > 0) return filled;
+    }
+    if (!destination.trim()) return [];
+    return [
+      {
+        id: 'stop-main',
+        destination: destination.trim(),
+        startDate: startDate || '',
+        endDate: endDate || '',
+      },
+    ];
+  }
 
-    if (!origin.trim()) {
-      setOriginError('Please enter your home city so we can calculate flights.');
+  function rememberConfirmed(stops: TripStop[]) {
+    if (isMulti && multiStops.some((stop) => stop.destination.trim())) {
+      setMultiStops((prev) =>
+        prev.map((stop) => stops.find((next) => next.id === stop.id) ?? stop)
+      );
       return;
     }
-    setOriginError('');
-    setSubmitting(true);
+    const only = stops[0];
+    if (only?.destination) setDestination(only.destination);
+  }
 
+  async function resolveTypedStops(
+    stops: TripStop[]
+  ): Promise<
+    | { ok: true; stops: TripStop[] }
+    | { ok: false; gate: ConfirmGate; stops: TripStop[] }
+  > {
+    const next = stops.map((stop) => ({ ...stop }));
+    for (const stop of next) {
+      if (stopAlreadyConfirmed(stop)) continue;
+      const res = await fetch('/api/places/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destination: stop.destination }),
+      });
+      const data = (await res.json().catch(() => ({}))) as PlaceValidationBody;
+      const gate = gateForValidation(data, stop.destination);
+      if (gate.type === 'confident') {
+        Object.assign(stop, applyConfirmedPlace(stop, gate.place));
+        continue;
+      }
+      if (gate.type === 'choose') {
+        return {
+          ok: false,
+          stops: next,
+          gate: {
+            kind: 'choose',
+            stopId: stop.id,
+            label: stop.destination,
+            message: 'Is this the place you meant?',
+            candidates: gate.candidates,
+          },
+        };
+      }
+      return {
+        ok: false,
+        stops: next,
+        gate: {
+          kind: 'edit',
+          stopId: stop.id,
+          label: stop.destination,
+          message: gate.message,
+          candidates: [],
+        },
+      };
+    }
+    return { ok: true, stops: next };
+  }
+
+  function pushPlan(resolvedStops: TripStop[]) {
     const params = new URLSearchParams();
     params.set('from', origin.trim());
 
@@ -121,45 +205,19 @@ export default function PlanTripPage() {
     }
 
     // Destination only applies to single + multi (a region is fine for multi).
-    if (!isSurprise) {
+    if (!isSurprise && resolvedStops.length > 0) {
       if (isMulti) {
-        const validStops = multiStops.filter((s) => s.destination.trim());
-        if (validStops.length > 0) {
-          params.set('stops', JSON.stringify(validStops));
-          params.set('destination', validStops.map((s) => s.destination).join(' → '));
-          const first = validStops[0];
-          const last = validStops[validStops.length - 1];
-          if (startDate) params.set('startDate', startDate);
-          else if (first.startDate) params.set('startDate', first.startDate);
-          if (endDate) params.set('endDate', endDate);
-          else if (last.endDate) params.set('endDate', last.endDate);
-        } else if (destination.trim()) {
-          params.set(
-            'stops',
-            JSON.stringify([
-              {
-                id: 'stop-main',
-                destination: destination.trim(),
-                startDate: startDate || '',
-                endDate: endDate || '',
-              },
-            ])
-          );
-          params.set('destination', destination.trim());
-        }
-      } else if (destination.trim()) {
-        params.set(
-          'stops',
-          JSON.stringify([
-            {
-              id: 'stop-main',
-              destination: destination.trim(),
-              startDate: startDate || '',
-              endDate: endDate || '',
-            },
-          ])
-        );
-        params.set('destination', destination.trim());
+        params.set('stops', JSON.stringify(resolvedStops));
+        params.set('destination', resolvedStops.map((s) => s.destination).join(' → '));
+        const first = resolvedStops[0];
+        const last = resolvedStops[resolvedStops.length - 1];
+        if (startDate) params.set('startDate', startDate);
+        else if (first.startDate) params.set('startDate', first.startDate);
+        if (endDate) params.set('endDate', endDate);
+        else if (last.endDate) params.set('endDate', last.endDate);
+      } else {
+        params.set('stops', JSON.stringify(resolvedStops));
+        params.set('destination', resolvedStops.map((s) => s.destination).join(' → '));
       }
     }
 
@@ -182,6 +240,58 @@ export default function PlanTripPage() {
     params.set('budgetAmount', String(budget));
 
     router.push(`/suggestions?${params.toString()}`);
+  }
+
+  async function continueWith(stops: TripStop[]) {
+    if (stops.length === 0) {
+      pushPlan([]);
+      return;
+    }
+    pendingStopsRef.current = stops;
+    const resolved = await resolveTypedStops(stops);
+    if (!resolved.ok) {
+      pendingStopsRef.current = resolved.stops;
+      rememberConfirmed(resolved.stops);
+      setPlaceGate(resolved.gate);
+      setSubmitting(false);
+      return;
+    }
+    rememberConfirmed(resolved.stops);
+    setPlaceGate(null);
+    pushPlan(resolved.stops);
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!origin.trim()) {
+      setOriginError('Please enter your home city so we can calculate flights.');
+      return;
+    }
+    setOriginError('');
+    setPlaceGate(null);
+    setSubmitting(true);
+    void continueWith(typedStops()).catch(() => {
+      setSubmitting(false);
+      setPlaceGate({
+        kind: 'edit',
+        stopId: '',
+        label: destination.trim() || 'that place',
+        message: "We couldn't check that place. Edit the name and try again.",
+        candidates: [],
+      });
+    });
+  }
+
+  function acceptCandidate(place: ValidatedPlace) {
+    const pending = pendingStopsRef.current;
+    if (!pending || !placeGate) return;
+    const next = pending.map((stop) =>
+      stop.id === placeGate.stopId ? applyConfirmedPlace(stop, place) : stop
+    );
+    setSubmitting(true);
+    setPlaceGate(null);
+    void continueWith(next);
   }
 
   const tripNights =
@@ -349,7 +459,10 @@ export default function PlanTripPage() {
                     : 'e.g. Thailand, Japan, New York… or leave blank'
                 }
                 value={destination}
-                onChange={(e) => setDestination(e.target.value)}
+                onChange={(e) => {
+                  setDestination(e.target.value);
+                  setPlaceGate(null);
+                }}
                 style={inputStyle}
               />
               {destination.trim() ? (
@@ -446,7 +559,10 @@ export default function PlanTripPage() {
             >
               <StopsBuilder
                 stops={multiStops}
-                onChange={setMultiStops}
+                onChange={(stops) => {
+                  setMultiStops(stops);
+                  setPlaceGate(null);
+                }}
                 maxStops={8}
                 totalNights={tripNights}
                 tripStart={startDate}
@@ -660,6 +776,75 @@ export default function PlanTripPage() {
               {additionalDetails.length}/400
             </div>
           </FormSection>
+
+          {placeGate && (
+            <div
+              style={{
+                marginBottom: 16,
+                padding: 16,
+                borderRadius: 12,
+                border: '1px solid #FDE68A',
+                background: '#FFFBEB',
+              }}
+            >
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#92400E' }}>
+                {placeGate.kind === 'choose'
+                  ? 'Is this the place you meant?'
+                  : placeGate.message}
+              </p>
+              {placeGate.kind === 'choose' && (
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: '#78716C' }}>
+                  {placeGate.label}
+                </p>
+              )}
+              {placeGate.kind === 'choose' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+                  {placeGate.candidates.map((candidate) => (
+                    <button
+                      key={`${candidate.lat},${candidate.lng}`}
+                      type="button"
+                      onClick={() => acceptCandidate(candidate)}
+                      style={{
+                        textAlign: 'left',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1px solid #FDE68A',
+                        background: '#fff',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      {candidate.place}, {candidate.country}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPlaceGate({
+                        kind: 'edit',
+                        stopId: placeGate.stopId,
+                        label: placeGate.label,
+                        message: `None of these match "${placeGate.label}". Edit the name and try again.`,
+                        candidates: [],
+                      })
+                    }
+                    style={{
+                      textAlign: 'left',
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      border: '1px solid #E7E5E4',
+                      background: '#fff',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      color: '#57534E',
+                    }}
+                  >
+                    None of these
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"

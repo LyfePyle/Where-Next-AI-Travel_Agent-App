@@ -24,6 +24,9 @@ export interface TripStop {
   order?: number;
   /** Optional user notes (Trip Hub) */
   notes?: string;
+  /** Confirmed place. When set with lng, the map does not re-geocode the text. */
+  lat?: number;
+  lng?: number;
 }
 
 export interface TripPlan {

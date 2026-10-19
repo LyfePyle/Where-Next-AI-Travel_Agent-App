@@ -1,0 +1,76 @@
+import type { TripStop } from '@/types/trip';
+import type { ValidatedPlace } from '@/lib/validate-place';
+
+export type PlaceValidationBody = {
+  ok?: boolean;
+  ambiguous?: boolean;
+  error?: string;
+  validated?: ValidatedPlace;
+  candidates?: ValidatedPlace[];
+};
+
+export type PlaceGate =
+  | { type: 'confident'; place: ValidatedPlace }
+  | { type: 'choose'; candidates: ValidatedPlace[] }
+  | { type: 'edit'; message: string };
+
+/** Coordinates saved on a stop after the user confirmed the place. */
+export function storedStopCoords(
+  stop: { lat?: number; lng?: number }
+): { lat: number; lon: number } | null {
+  if (
+    typeof stop.lat === 'number' &&
+    Number.isFinite(stop.lat) &&
+    typeof stop.lng === 'number' &&
+    Number.isFinite(stop.lng)
+  ) {
+    return { lat: stop.lat, lon: stop.lng };
+  }
+  return null;
+}
+
+export function stopAlreadyConfirmed(stop: TripStop): boolean {
+  return Boolean(storedStopCoords(stop) && stop.city?.trim() && stop.country?.trim());
+}
+
+/**
+ * Confident places skip the prompt. Ambiguous names ask. An unknown name
+ * asks the user to edit. Never treat a miss as a place we can save.
+ */
+export function gateForValidation(
+  result: PlaceValidationBody,
+  typedName: string
+): PlaceGate {
+  if (result.ok && result.validated && Number.isFinite(result.validated.lat)) {
+    return { type: 'confident', place: result.validated };
+  }
+  const candidates = (result.candidates ?? []).filter((c) => Number.isFinite(c.lat)).slice(0, 3);
+  if (result.ambiguous && candidates.length > 0) {
+    return { type: 'choose', candidates };
+  }
+  const label = typedName.trim() || 'that place';
+  return {
+    type: 'edit',
+    message: `We couldn't find "${label}". Edit the name and try again.`,
+  };
+}
+
+/** Write the confirmed city, country, coordinates, and display name onto a stop. */
+export function applyConfirmedPlace(stop: TripStop, place: ValidatedPlace): TripStop {
+  const city = (place.name || place.place).split(',')[0]?.trim() || place.place;
+  const region =
+    place.state?.trim() &&
+    place.state.trim().toLowerCase() !== city.toLowerCase()
+      ? place.state.trim()
+      : undefined;
+  const country = place.country.trim();
+  const destination = [city, region, country].filter(Boolean).join(', ');
+  return {
+    ...stop,
+    city,
+    country,
+    lat: place.lat,
+    lng: place.lng,
+    destination,
+  };
+}

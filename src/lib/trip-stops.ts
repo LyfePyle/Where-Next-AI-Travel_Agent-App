@@ -114,6 +114,12 @@ export function normalizeStop(
   if (city) stop.city = city;
   if (notes) stop.notes = notes;
   if (nights != null) stop.nights = nights;
+  const lat = typeof o.lat === 'number' && Number.isFinite(o.lat) ? o.lat : undefined;
+  const lng = typeof o.lng === 'number' && Number.isFinite(o.lng) ? o.lng : undefined;
+  if (lat != null && lng != null) {
+    stop.lat = lat;
+    stop.lng = lng;
+  }
   return stop;
 }
 

@@ -345,7 +345,22 @@ export default function StopsBuilder({
       : stops;
   const handleFieldChange = useCallback(
     (id: string, field: keyof TripStop, value: string) => {
-      onChange(stops.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
+      onChange(
+        stops.map((s) => {
+          if (s.id !== id) return s;
+          if (field === 'destination' && value !== s.destination) {
+            return {
+              ...s,
+              destination: value,
+              city: undefined,
+              country: undefined,
+              lat: undefined,
+              lng: undefined,
+            };
+          }
+          return { ...s, [field]: value };
+        })
+      );
     },
     [stops, onChange]
   );

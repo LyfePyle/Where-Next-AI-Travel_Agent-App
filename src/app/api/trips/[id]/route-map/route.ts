@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { geocodeCity } from '@/lib/geocode-city';
+import { storedStopCoords } from '@/lib/place-confirmation';
 import {
   deriveNightsFromStop,
   geocodeContextForStop,
@@ -58,6 +59,20 @@ export async function GET(
   const pins = await Promise.all(
     stops.map(async (stop, index) => {
       const { city, country } = geocodeContextForStop(stop, stops);
+      const stored = storedStopCoords(stop);
+      if (stored) {
+        return {
+          stopId: stop.id,
+          city,
+          country: country ?? stop.country,
+          destination: stop.destination,
+          lat: stored.lat,
+          lon: stored.lon,
+          nights: deriveNightsFromStop(stop),
+          order: index,
+          geocodeSource: 'stored',
+        };
+      }
       const coords = await geocodeCity(city, country, siblingCountries);
       return {
         stopId: stop.id,

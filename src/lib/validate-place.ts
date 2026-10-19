@@ -16,9 +16,15 @@ import {
 } from '@/lib/geocode-place';
 
 export interface ValidatedPlace {
+  /** City name, plus region when several places in one country matched. */
   place: string;
+  /** Geocoder name without the region suffix. */
+  name: string;
   country: string;
   countryCode?: string;
+  state?: string;
+  lat: number;
+  lng: number;
 }
 
 export type ValidatePlaceResult =
@@ -39,8 +45,12 @@ function toValidated(candidate: PlaceCandidate, includeState = false): Validated
     normalizePlaceKey(state) !== normalizePlaceKey(candidate.name);
   return {
     place: showState ? `${candidate.name}, ${state}` : candidate.name,
+    name: candidate.name,
     country: candidate.country,
     countryCode: candidate.countryCode,
+    state: state || undefined,
+    lat: candidate.lat,
+    lng: candidate.lon,
   };
 }
 
@@ -136,8 +146,11 @@ export async function validatePlace(
     ok: true,
     validated: {
       place: resolved.name,
+      name: resolved.name,
       country: resolved.country || countryName,
       countryCode: resolved.countryCode,
+      lat: resolved.lat,
+      lng: resolved.lon,
     },
   };
 }

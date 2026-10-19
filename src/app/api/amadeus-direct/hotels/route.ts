@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAmadeusHotelsEnabled } from '@/lib/amadeus-hotels-flag';
 
 // Your working Amadeus token
 const WORKING_TOKEN = 'S89nqNaVRlxGDcdLSLFGp0tGH9c4';
 
 export async function POST(request: NextRequest) {
+  if (!isAmadeusHotelsEnabled()) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     const { destination, checkin, checkout, adults = 2 } = await request.json();
     

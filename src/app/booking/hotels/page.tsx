@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { notFound, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, Star, Wifi, Car, Coffee, Dumbbell, Calendar } from 'lucide-react';
 import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
+import { isAmadeusHotelsEnabled } from '@/lib/amadeus-hotels-flag';
 
 // Helper functions for hotel data transformation
 const getCityCode = async (destination: string): Promise<string> => {
@@ -375,6 +376,10 @@ function HotelBookingPageContent() {
 }
 
 export default function HotelBookingPage() {
+  if (!isAmadeusHotelsEnabled()) {
+    notFound();
+  }
+
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

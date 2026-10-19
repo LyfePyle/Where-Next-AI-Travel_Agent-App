@@ -12,6 +12,7 @@ import {
   TripPlan,
 } from '@/types/trip';
 import { isPaymentsEnabled, openAffiliateRedirect } from '@/lib/payments';
+import { isAmadeusHotelsEnabled } from '@/lib/amadeus-hotels-flag';
 import { bookableDestinationFromStop } from '@/lib/bookable-place';
 import type { StopPreview, TripPreview } from '@/lib/trip-preview';
 
@@ -440,13 +441,15 @@ function StopCard({
 
         <div className="p-5">
           <StopPreviewSection preview={stopPreview} />
-          <HotelsSection
-            stop={stop}
-            adults={adults}
-            stopState={stopState}
-            onSearch={onHotelSearch}
-            onSelect={onHotelSelect}
-          />
+          {isAmadeusHotelsEnabled() && (
+            <HotelsSection
+              stop={stop}
+              adults={adults}
+              stopState={stopState}
+              onSearch={onHotelSearch}
+              onSelect={onHotelSelect}
+            />
+          )}
         </div>
       </div>
     </div>

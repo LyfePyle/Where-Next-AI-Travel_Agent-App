@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchHotels, transformHotelData, checkAmadeusConfig } from '@/lib/amadeus';
 import { cache } from '@/lib/cache';
+import { isAmadeusHotelsEnabled } from '@/lib/amadeus-hotels-flag';
+
+function disabledHotelsResponse() {
+  return NextResponse.json({ error: 'Not found' }, { status: 404 });
+}
 
 // Hotel search parameters interface
 interface HotelSearchParams {
@@ -57,6 +62,8 @@ function generateFallbackHotels(params: HotelSearchParams) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isAmadeusHotelsEnabled()) return disabledHotelsResponse();
+
   try {
     const params: HotelSearchParams = await request.json();
     
@@ -148,6 +155,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  if (!isAmadeusHotelsEnabled()) return disabledHotelsResponse();
+
   const { searchParams } = new URL(request.url);
   
   try {

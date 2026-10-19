@@ -51,7 +51,16 @@ export default function WalkingTourStopPhoto({
     );
   }
 
-  if (!imageUrl) return null;
+  if (!imageUrl) {
+    return (
+      <div
+        className="mb-4 flex h-44 md:h-52 w-full items-center justify-center rounded-xl border border-gray-100 bg-gray-50 text-2xl text-gray-300"
+        aria-hidden
+      >
+        <span>📍</span>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-4 overflow-hidden rounded-xl border border-gray-100">

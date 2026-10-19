@@ -21,7 +21,7 @@ const cacheExpiry = new Map<string, number>();
 function cacheKey(city: string, country?: string): string {
   const c = city.trim().toLowerCase();
   const co = (country ?? '').trim().toLowerCase();
-  return co ? `v4|${c}|${co}` : `v4|${c}`;
+  return co ? `v5|${c}|${co}` : `v5|${c}`;
 }
 
 /** Rough fallback coords when all geocoders miss (spread by hash). */

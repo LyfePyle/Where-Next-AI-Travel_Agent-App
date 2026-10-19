@@ -21,6 +21,8 @@ export interface GeocodeResult {
 
 export interface PlaceCandidate extends GeocodeResult {
   score: number;
+  /** Admin region from the geocoder (OpenWeather state, Nominatim state). */
+  state?: string;
 }
 
 const regionDisplay =
@@ -35,9 +37,15 @@ function displayCountry(country: string, countryCode?: string): string {
   return country;
 }
 
-function candidateKey(name: string, country: string, countryCode?: string): string {
+function candidateKey(
+  name: string,
+  country: string,
+  countryCode?: string,
+  state?: string
+): string {
   const code = (countryCode ?? country).toLowerCase();
-  return `${normalizePlaceKey(name)}|${code.slice(0, 2)}`;
+  const region = normalizePlaceKey(state ?? '');
+  return `${normalizePlaceKey(name)}|${code.slice(0, 2)}|${region}`;
 }
 
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org/search';
@@ -89,6 +97,22 @@ export function countryMatches(
   if (code && req.length === 2 && code === req) return true;
   if (code && isoNameMatches(req, code)) return true;
   return false;
+}
+
+/** Great-circle distance in kilometres. */
+export function distanceKm(
+  a: { lat: number; lon: number },
+  b: { lat: number; lon: number }
+): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
 interface NominatimRow {
@@ -165,17 +189,39 @@ function pickBestNominatimRow(rows: NominatimRow[], city: string, country?: stri
   );
 }
 
+interface OpenWeatherHit {
+  name: string;
+  country: string;
+  state?: string;
+  lat: number;
+  lon: number;
+}
+
+/**
+ * Exact name is +120 and a partial name ("Oaxaca City" for "oaxaca") is +60.
+ * OpenWeather already sorts by prominence, so a later exact-name hamlet must
+ * not beat the first hit when that first hit actually matches the query.
+ */
+const OPENWEATHER_FIRST_MATCH_TIEBREAK = 70;
+/** Nominatim and an OpenWeather hit are the same place inside this radius. */
+const SAME_PLACE_KM = 100;
+
 function openWeatherScore(
   row: { name: string; country: string; lat: number; lon: number },
   city: string,
-  country?: string
+  country: string | undefined,
+  index: number
 ): number {
   let score = 0;
   const cityKey = normalizePlaceKey(city);
   const nameKey = normalizePlaceKey(row.name);
+  const exact = nameKey === cityKey;
+  const partial = !exact && namesMatch(city, row.name);
 
-  if (nameKey === cityKey) score += 120;
-  else if (namesMatch(city, row.name)) score += 60;
+  if (exact) score += 120;
+  else if (partial) score += 60;
+
+  if (index === 0 && (exact || partial)) score += OPENWEATHER_FIRST_MATCH_TIEBREAK;
 
   if (country && row.country.length === 2) {
     const code = row.country.toLowerCase();
@@ -187,19 +233,46 @@ function openWeatherScore(
 }
 
 function pickBestOpenWeatherRow(
-  rows: Array<{ name: string; country: string; lat: number; lon: number }>,
+  rows: OpenWeatherHit[],
   city: string,
   country?: string
-) {
-  return rows.reduce((best, row) =>
-    openWeatherScore(row, city, country) > openWeatherScore(best, city, country) ? row : best
-  );
+): { row: OpenWeatherHit; index: number } {
+  let best = rows[0];
+  let bestIndex = 0;
+  let bestScore = openWeatherScore(rows[0], city, country, 0);
+  for (let i = 1; i < rows.length; i++) {
+    const score = openWeatherScore(rows[i], city, country, i);
+    if (score > bestScore) {
+      best = rows[i];
+      bestIndex = i;
+      bestScore = score;
+    }
+  }
+  return { row: best, index: bestIndex };
 }
 
-export async function geocodeOpenWeather(
+function toOpenWeatherResult(match: OpenWeatherHit, resolvedCountry?: string): GeocodeResult {
+  const matchCode = match.country.length === 2 ? match.country : undefined;
+  return {
+    name: match.name,
+    country: match.country.length === 2 ? resolvedCountry || match.country : match.country,
+    countryCode: matchCode,
+    lat: match.lat,
+    lon: match.lon,
+    source: 'openweather',
+  };
+}
+
+interface OpenWeatherChoice {
+  picked: GeocodeResult;
+  pickedIndex: number;
+  hits: OpenWeatherHit[];
+}
+
+async function loadOpenWeather(
   place: string,
   country?: string
-): Promise<GeocodeResult | null> {
+): Promise<OpenWeatherChoice | null> {
   const city = place.trim();
   if (!city) return null;
 
@@ -214,36 +287,35 @@ export async function geocodeOpenWeather(
     const res = await fetch(url, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
 
-    const data = (await res.json()) as Array<{
-      name: string;
-      country: string;
-      lat: number;
-      lon: number;
-    }>;
-
+    const data = (await res.json()) as OpenWeatherHit[];
     if (!Array.isArray(data) || data.length === 0) return null;
 
-    const match = pickBestOpenWeatherRow(data, city, resolvedCountry);
-    const matchCode = match.country.length === 2 ? match.country : undefined;
+    const { row, index } = pickBestOpenWeatherRow(data, city, resolvedCountry);
+    const matchCode = row.country.length === 2 ? row.country : undefined;
     if (
       resolvedCountry &&
       isLikelyCountryName(resolvedCountry) &&
-      !countryMatches(resolvedCountry, match.country, matchCode)
+      !countryMatches(resolvedCountry, row.country, matchCode)
     ) {
       return null;
     }
 
     return {
-      name: match.name,
-      country: match.country.length === 2 ? resolvedCountry || match.country : match.country,
-      countryCode: matchCode,
-      lat: match.lat,
-      lon: match.lon,
-      source: 'openweather',
+      picked: toOpenWeatherResult(row, resolvedCountry),
+      pickedIndex: index,
+      hits: data,
     };
   } catch {
     return null;
   }
+}
+
+export async function geocodeOpenWeather(
+  place: string,
+  country?: string
+): Promise<GeocodeResult | null> {
+  const choice = await loadOpenWeather(place, country);
+  return choice?.picked ?? null;
 }
 
 export async function geocodeNominatim(
@@ -296,22 +368,50 @@ export async function geocodeNominatim(
   }
 }
 
-/** Try OpenWeather, then Nominatim. Returns null only if both miss. */
+function openWeatherAgrees(
+  hit: GeocodeResult,
+  resolvedCountry: string | undefined
+): boolean {
+  return (
+    !resolvedCountry ||
+    !isLikelyCountryName(resolvedCountry) ||
+    countryMatches(resolvedCountry, hit.country, hit.countryCode)
+  );
+}
+
+/**
+ * OpenWeather first, Nominatim when OpenWeather misses.
+ * If our scorer's pick is not OpenWeather's own first hit, cross-check
+ * Nominatim and prefer the prominent place when the two disagree.
+ */
 export async function resolvePlace(
   place: string,
   country?: string
 ): Promise<GeocodeResult | null> {
   const resolvedCountry = country?.trim() || disambiguatedCountry(place.trim());
-  const ow = await geocodeOpenWeather(place, resolvedCountry);
-  if (
-    ow &&
-    (!resolvedCountry ||
-      !isLikelyCountryName(resolvedCountry) ||
-      countryMatches(resolvedCountry, ow.country, ow.countryCode))
-  ) {
-    return ow;
+  const ow = await loadOpenWeather(place, resolvedCountry);
+  if (!ow || !openWeatherAgrees(ow.picked, resolvedCountry)) {
+    return geocodeNominatim(place, resolvedCountry);
   }
-  return geocodeNominatim(place, resolvedCountry);
+
+  if (ow.pickedIndex === 0) return ow.picked;
+
+  const nomi = await geocodeNominatim(place, resolvedCountry);
+  if (!nomi) return ow.picked;
+  if (
+    resolvedCountry &&
+    isLikelyCountryName(resolvedCountry) &&
+    !countryMatches(resolvedCountry, nomi.country, nomi.countryCode)
+  ) {
+    return ow.picked;
+  }
+  if (distanceKm(ow.picked, nomi) <= SAME_PLACE_KM) return ow.picked;
+
+  const nearer = ow.hits
+    .filter((hit) => distanceKm(hit, nomi) <= SAME_PLACE_KM)
+    .sort((a, b) => distanceKm(a, nomi) - distanceKm(b, nomi))[0];
+  if (nearer) return toOpenWeatherResult(nearer, resolvedCountry);
+  return nomi;
 }
 
 async function searchOpenWeatherCandidates(
@@ -332,15 +432,10 @@ async function searchOpenWeatherCandidates(
     const res = await fetch(url, { next: { revalidate: 86400 } });
     if (!res.ok) return [];
 
-    const data = (await res.json()) as Array<{
-      name: string;
-      country: string;
-      lat: number;
-      lon: number;
-    }>;
+    const data = (await res.json()) as OpenWeatherHit[];
     if (!Array.isArray(data) || data.length === 0) return [];
 
-    return data.map((row) => {
+    return data.map((row, index) => {
       const countryCode = row.country.length === 2 ? row.country : undefined;
       const countryName = displayCountry(
         resolvedCountry || row.country,
@@ -350,10 +445,11 @@ async function searchOpenWeatherCandidates(
         name: row.name,
         country: countryName,
         countryCode,
+        state: row.state,
         lat: row.lat,
         lon: row.lon,
         source: 'openweather' as const,
-        score: openWeatherScore(row, city, resolvedCountry),
+        score: openWeatherScore(row, city, resolvedCountry, index),
       };
     });
   } catch {
@@ -402,6 +498,7 @@ async function searchNominatimCandidates(
         name,
         country: countryName,
         countryCode: addr?.country_code?.toUpperCase(),
+        state: addr?.state,
         lat: parseFloat(row.lat),
         lon: parseFloat(row.lon),
         source: 'nominatim' as const,
@@ -418,7 +515,12 @@ function mergeCandidates(lists: PlaceCandidate[][]): PlaceCandidate[] {
   const merged = new Map<string, PlaceCandidate>();
   for (const candidate of lists.flat()) {
     if (candidate.score < 40) continue;
-    const key = candidateKey(candidate.name, candidate.country, candidate.countryCode);
+    const key = candidateKey(
+      candidate.name,
+      candidate.country,
+      candidate.countryCode,
+      candidate.state
+    );
     const existing = merged.get(key);
     if (!existing || candidate.score > existing.score) {
       merged.set(key, candidate);

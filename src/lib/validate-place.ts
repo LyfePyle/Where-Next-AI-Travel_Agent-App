@@ -8,7 +8,12 @@ import {
   disambiguatedCountry,
   normalizePlaceKey,
 } from '@/lib/geocode-disambiguation';
-import { searchPlaceCandidates, type PlaceCandidate, resolvePlace } from '@/lib/geocode-place';
+import {
+  distanceKm,
+  searchPlaceCandidates,
+  type PlaceCandidate,
+  resolvePlace,
+} from '@/lib/geocode-place';
 
 export interface ValidatedPlace {
   place: string;
@@ -23,10 +28,17 @@ export type ValidatePlaceResult =
 
 const CONFIDENT_SCORE_GAP = 80;
 const CLOSE_SCORE_MARGIN = 40;
+/** Same country, but too far apart to be one city. Oaxaca City vs Sonora is ~2000 km. */
+const REGION_SPLIT_KM = 150;
 
-function toValidated(candidate: PlaceCandidate): ValidatedPlace {
+function toValidated(candidate: PlaceCandidate, includeState = false): ValidatedPlace {
+  const state = candidate.state?.trim();
+  const showState =
+    includeState &&
+    !!state &&
+    normalizePlaceKey(state) !== normalizePlaceKey(candidate.name);
   return {
-    place: candidate.name,
+    place: showState ? `${candidate.name}, ${state}` : candidate.name,
     country: candidate.country,
     countryCode: candidate.countryCode,
   };
@@ -92,7 +104,11 @@ export function pickConfidentMatch(
 
   const close = sorted.filter((c) => c.score >= top.score - CLOSE_SCORE_MARGIN);
   if (countryKeys(close).size <= 1) {
-    return { type: 'single', candidate: top };
+    const splitRegion = close.some(
+      (candidate) => candidate !== top && distanceKm(top, candidate) >= REGION_SPLIT_KM
+    );
+    if (!splitRegion) return { type: 'single', candidate: top };
+    return { type: 'ambiguous', candidates: close.slice(0, 5) };
   }
 
   return { type: 'ambiguous', candidates: close.slice(0, 5) };
@@ -161,7 +177,7 @@ export async function validateDestinationInput(
     return {
       ok: false,
       ambiguous: true,
-      candidates: picked.candidates.map(toValidated),
+      candidates: picked.candidates.map((candidate) => toValidated(candidate, true)),
       error: `Which ${city} did you mean? Pick one or add a country (e.g. "${city}, France").`,
     };
   }

@@ -1,7 +1,9 @@
 import {
+  buildPlacePhotoQuery,
   categoryFallbackPhoto,
   chooseStopPhoto,
   isWikipediaListOrDisambiguation,
+  isWikipediaPersonOrArtwork,
   pickWikipediaThumbnail,
   wikipediaTitleMatchesStop,
 } from '@/lib/stop-photo';
@@ -90,10 +92,85 @@ describe('pickWikipediaThumbnail', () => {
       z: {
         title: 'Eiffel Tower',
         index: 1,
+        description: 'Tower in Paris, France',
         thumbnail: { source: 'https://example.com/eiffel.jpg' },
       },
     };
     expect(pickWikipediaThumbnail(pages, 'Eiffel Tower')).toBe('https://example.com/eiffel.jpg');
+  });
+
+  it('does not use Lily Monteverde when the Costa Rica canton is also in the results', () => {
+    const pages = {
+      a: {
+        title: 'Lily Monteverde',
+        index: 1,
+        description: 'Filipino film producer and businesswoman (1938–2024)',
+        thumbnail: { source: 'https://example.com/two-women.jpg' },
+      },
+      b: {
+        title: 'Monteverde',
+        index: 2,
+        description: 'Canton in Puntarenas province, Costa Rica',
+        thumbnail: { source: 'https://example.com/monteverde-skyline.jpg' },
+      },
+      c: {
+        title: 'Alejandro Gómez Monteverde',
+        index: 3,
+        description: 'Mexican filmmaker (born 1977)',
+        thumbnail: { source: 'https://example.com/filmmaker.jpg' },
+      },
+    };
+    const url = pickWikipediaThumbnail(pages, 'Monteverde');
+    expect(url).toBe('https://example.com/monteverde-skyline.jpg');
+    expect(url).not.toContain('two-women');
+  });
+
+  it('does not use the Dominical mural when the Costa Rica town is also in the results', () => {
+    const pages = {
+      a: {
+        title: 'Sueño de una Tarde Dominical en la Alameda Central',
+        index: 1,
+        description: 'Mural created by Diego Rivera in Mexico City in 1946–1947',
+        thumbnail: { source: 'https://example.com/mural.jpg' },
+      },
+      b: {
+        title: 'Dominical, Puntarenas',
+        index: 2,
+        description: 'Town in Puntarenas, Costa Rica',
+        thumbnail: { source: 'https://example.com/dominical-town.jpg' },
+      },
+      c: {
+        title: 'Dominic Cooper',
+        index: 3,
+        description: 'English actor (born 1978)',
+        thumbnail: { source: 'https://example.com/actor.jpg' },
+      },
+    };
+    const url = pickWikipediaThumbnail(pages, 'Dominical');
+    expect(url).toBe('https://example.com/dominical-town.jpg');
+    expect(url).not.toContain('mural');
+  });
+
+  it('returns no photo when every match is a person or artwork', () => {
+    const pages = {
+      a: {
+        title: 'Lily Monteverde',
+        index: 1,
+        description: 'Filipino film producer and businesswoman (1938–2024)',
+        thumbnail: { source: 'https://example.com/two-women.jpg' },
+      },
+      b: {
+        title: 'Sueño de una Tarde Dominical en la Alameda Central',
+        index: 2,
+        description: 'Mural created by Diego Rivera',
+        thumbnail: { source: 'https://example.com/mural.jpg' },
+      },
+    };
+    expect(pickWikipediaThumbnail(pages, 'Monteverde')).toBeNull();
+    expect(chooseStopPhoto(null, pickWikipediaThumbnail(pages, 'Monteverde'))).toEqual({
+      imageUrl: null,
+      source: 'placeholder',
+    });
   });
 
   it('skips a disambiguation page even when it has a thumbnail', () => {
@@ -110,6 +187,34 @@ describe('pickWikipediaThumbnail', () => {
       },
     };
     expect(pickWikipediaThumbnail(pages, 'Mercury')).toBe('https://example.com/planet.jpg');
+  });
+});
+
+describe('buildPlacePhotoQuery', () => {
+  it('searches the city with its country', () => {
+    expect(buildPlacePhotoQuery('Monteverde', 'Costa Rica')).toBe('Monteverde Costa Rica');
+    expect(buildPlacePhotoQuery('Dominical', 'Costa Rica')).toBe('Dominical Costa Rica');
+  });
+
+  it('does not repeat a country already written in the city', () => {
+    expect(buildPlacePhotoQuery('Monteverde, Costa Rica', 'Costa Rica')).toBe(
+      'Monteverde, Costa Rica'
+    );
+  });
+});
+
+describe('isWikipediaPersonOrArtwork', () => {
+  it('flags a person and a mural, and keeps a volcano', () => {
+    expect(
+      isWikipediaPersonOrArtwork({
+        description: 'Filipino film producer and businesswoman (1938–2024)',
+      })
+    ).toBe(true);
+    expect(
+      isWikipediaPersonOrArtwork({ description: 'Mural created by Diego Rivera' })
+    ).toBe(true);
+    expect(isWikipediaPersonOrArtwork({ description: 'Volcano in Costa Rica' })).toBe(false);
+    expect(isWikipediaPersonOrArtwork({ description: 'Tower in Paris, France' })).toBe(false);
   });
 });
 

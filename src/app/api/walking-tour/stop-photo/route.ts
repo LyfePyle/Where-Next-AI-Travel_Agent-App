@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  buildPlacePhotoQuery,
   buildStopPhotoQuery,
   chooseStopPhoto,
   formatUnsplashUrl,
@@ -36,7 +37,7 @@ async function searchWikipedia(query: string, stopName: string): Promise<string 
     generator: 'search',
     gsrsearch: query,
     gsrlimit: String(WIKIPEDIA_SEARCH_LIMIT),
-    prop: 'pageimages',
+    prop: 'pageimages|description',
     piprop: 'thumbnail',
     pithumbsize: '800',
     format: 'json',
@@ -68,14 +69,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'stop and city are required' }, { status: 400 });
   }
 
-  const query = buildStopPhotoQuery(stopName, city, country);
+  const landmarkQuery = buildStopPhotoQuery(stopName, city, country);
+  const placeHero = stopName.toLowerCase() === city.toLowerCase();
+  const query = placeHero ? buildPlacePhotoQuery(city, country) : landmarkQuery;
 
   const unsplashUrl = await searchUnsplash(query);
   let wikipediaUrl: string | null = null;
   if (!unsplashUrl) {
-    wikipediaUrl = await searchWikipedia(`${stopName} ${city}`, stopName);
-    if (!wikipediaUrl && country) {
-      wikipediaUrl = await searchWikipedia(`${stopName} ${city} ${country}`, stopName);
+    if (placeHero) {
+      wikipediaUrl = await searchWikipedia(query, city);
+    } else {
+      wikipediaUrl = await searchWikipedia(`${stopName} ${city}`, stopName);
+      if (!wikipediaUrl && country) {
+        wikipediaUrl = await searchWikipedia(`${stopName} ${city} ${country}`, stopName);
+      }
     }
   }
   const { imageUrl, source } = chooseStopPhoto(unsplashUrl, wikipediaUrl);

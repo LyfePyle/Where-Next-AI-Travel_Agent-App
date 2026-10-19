@@ -12,6 +12,18 @@ export function buildStopPhotoQuery(
   return [stopName.trim(), city.trim()].filter(Boolean).join(' ');
 }
 
+/**
+ * Place hero query: city plus country (e.g. "Monteverde Costa Rica").
+ * A bare or doubled place name ranks people and artworks that share the name.
+ */
+export function buildPlacePhotoQuery(city: string, country?: string): string {
+  const place = city.trim();
+  const region = country?.trim() ?? '';
+  if (!place) return region;
+  if (!region || place.toLowerCase().includes(region.toLowerCase())) return place;
+  return `${place} ${region}`;
+}
+
 /** Wikipedia generator=search page cap — first 3 ranked results. */
 export const WIKIPEDIA_SEARCH_LIMIT = 3;
 
@@ -52,10 +64,34 @@ export function isWikipediaListOrDisambiguation(title: string): boolean {
   return /^list of\b/i.test(t) || /disambiguation/i.test(t);
 }
 
+/** Wikidata short description used on disambiguation pages that omit the word. */
+export function isWikipediaDisambiguationDescription(description?: string): boolean {
+  return /topics referred to by the same term/i.test(description ?? '');
+}
+
+const PERSON_OR_ARTWORK_DESCRIPTION =
+  /\b(born|filmmaker|film producer|actor|actress|singer|rapper|musician|painter|sculptor|artist)\b|\(\s*(?:born\s+)?\d{4}\s*[–-]\s*(?:\d{4}|present)\s*\)|\b(mural|painting|sculpture|artwork|studio album)\b/i;
+
+const PERSON_OR_ARTWORK_CATEGORY =
+  /\b(births|deaths|living people|painters|paintings|actors|actresses|musicians|sculptors|artworks|albums)\b/i;
+
+/** People and artworks that share a place name (Lily Monteverde, the Dominical mural). */
+export function isWikipediaPersonOrArtwork(page: {
+  description?: string;
+  categories?: Array<{ title?: string }>;
+}): boolean {
+  if (PERSON_OR_ARTWORK_DESCRIPTION.test(page.description ?? '')) return true;
+  return (page.categories ?? []).some((category) =>
+    PERSON_OR_ARTWORK_CATEGORY.test(category.title ?? '')
+  );
+}
+
 export type WikipediaSearchPage = {
   title?: string;
   index?: number;
+  description?: string;
   thumbnail?: { source?: string };
+  categories?: Array<{ title?: string }>;
 };
 
 /**
@@ -79,6 +115,8 @@ export function pickWikipediaThumbnail(
     if (!source) continue;
     const title = page.title ?? '';
     if (isWikipediaListOrDisambiguation(title)) continue;
+    if (isWikipediaDisambiguationDescription(page.description)) continue;
+    if (isWikipediaPersonOrArtwork(page)) continue;
     if (!wikipediaTitleMatchesStop(title, stopName)) continue;
     return source;
   }

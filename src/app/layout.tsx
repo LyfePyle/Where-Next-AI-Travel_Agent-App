@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TripCartProvider } from "@/components/TripCartDrawer";
-import TripCartDrawer from "@/components/TripCartDrawer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppProvider } from "@/contexts/AppContext";
 import GlobalNav from "@/components/GlobalNav";
@@ -45,7 +44,6 @@ export default function RootLayout({
             <TripCartProvider>
               <PendingTripSaveResume />
               {children}
-              <TripCartDrawer />
             </TripCartProvider>
           </AppProvider>
         </AuthProvider>

@@ -13,6 +13,10 @@ type RateLimitOptions = {
 
 const memoryStore = new Map<string, { count: number; resetAt: number }>();
 
+export function clearRateLimitStore(): void {
+  memoryStore.clear();
+}
+
 export function rateLimit({ key, limit, windowMs }: RateLimitOptions): RateLimitResult {
   const now = Date.now();
   const entry = memoryStore.get(key);

@@ -1,6 +1,7 @@
 import {
   applyConfirmedPlace,
   gateForValidation,
+  stopFromPickedSuggestion,
   storedStopCoords,
 } from '@/lib/place-confirmation';
 import { bookableDestinationFromStop } from '@/lib/bookable-place';
@@ -105,5 +106,51 @@ describe('stored coordinates', () => {
   it('leaves older stops without coordinates for live geocoding', () => {
     const older = normalizeStop({ destination: 'oaxaca' }, 0);
     expect(storedStopCoords(older!)).toBeNull();
+  });
+});
+
+describe('stopFromPickedSuggestion', () => {
+  it('writes city, country, display name, and coordinates the same way as a confirmed place', () => {
+    const saved = stopFromPickedSuggestion(stop('zip'), {
+      label: 'Zipolite, Oaxaca, Mexico',
+      city: 'Zipolite',
+      region: 'Oaxaca',
+      country: 'Mexico',
+      lat: 15.66,
+      lng: -96.52,
+      storable: true,
+    });
+    const viaConfirm = applyConfirmedPlace(stop('zip'), {
+      place: 'Zipolite',
+      name: 'Zipolite',
+      country: 'Mexico',
+      state: 'Oaxaca',
+      lat: 15.66,
+      lng: -96.52,
+    });
+    expect(saved).toEqual(viaConfirm);
+    expect(saved).toMatchObject({
+      city: 'Zipolite',
+      country: 'Mexico',
+      destination: 'Zipolite, Oaxaca, Mexico',
+      lat: 15.66,
+      lng: -96.52,
+    });
+  });
+
+  it('does not store coordinates from a non-storable row', () => {
+    const saved = stopFromPickedSuggestion(stop('van'), {
+      label: 'Vancouver, British Columbia, Canada',
+      city: 'Vancouver',
+      region: 'British Columbia',
+      country: 'Canada',
+      lat: 49.26,
+      lng: -123.11,
+      storable: false,
+    });
+    expect(saved.destination).toBe('Vancouver, British Columbia, Canada');
+    expect(saved.city).toBeUndefined();
+    expect(saved.lat).toBeUndefined();
+    expect(saved.lng).toBeUndefined();
   });
 });

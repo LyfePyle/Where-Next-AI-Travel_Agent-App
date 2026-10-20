@@ -14,6 +14,9 @@ import {
   nightsFingerprint,
   reconcileStopNights,
 } from '@/lib/split-stop-nights';
+import PlaceSuggestInput from '@/components/PlaceSuggestInput';
+import type { PlaceBias, PlaceSuggestion } from '@/lib/place-suggest';
+import { stopFromPickedSuggestion } from '@/lib/place-confirmation';
 import { TripStop } from '@/types/trip';
 
 // ---------------------------------------------------------------------------
@@ -84,6 +87,8 @@ function StopCard({
   index,
   total,
   onChange,
+  onPickPlace,
+  bias,
   onRemove,
   onMoveUp,
   onMoveDown,
@@ -102,6 +107,8 @@ function StopCard({
   index: number;
   total: number;
   onChange: (id: string, field: keyof TripStop, value: string) => void;
+  onPickPlace?: (id: string, suggestion: PlaceSuggestion) => void;
+  bias?: PlaceBias | null;
   onRemove: (id: string) => void;
   onMoveUp: (id: string) => void;
   onMoveDown: (id: string) => void;
@@ -205,15 +212,13 @@ function StopCard({
           </div>
 
           <div className="mb-3">
-            <input
-              type="text"
+            <PlaceSuggestInput
+              aria-label={`Stop ${index + 1} destination`}
               placeholder={placeholder}
               value={stop.destination}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (canReceive) onDropOnStop?.(stop.id);
-              }}
-              onChange={(e) => onChange(stop.id, 'destination', e.target.value)}
+              bias={bias}
+              onChange={(value) => onChange(stop.id, 'destination', value)}
+              onPick={(suggestion) => onPickPlace?.(stop.id, suggestion)}
               className={`w-full px-3.5 py-2.5 rounded-xl border text-sm text-slate-900 bg-white placeholder:text-slate-400 outline-none transition-all ${
                 error
                   ? 'border-rose-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
@@ -343,6 +348,34 @@ export default function StopsBuilder({
           tripStart,
         })
       : stops;
+  const biasForStop = useCallback(
+    (id: string): PlaceBias | null => {
+      const others = stops.filter(
+        (s) =>
+          s.id !== id &&
+          typeof s.lat === 'number' &&
+          Number.isFinite(s.lat) &&
+          typeof s.lng === 'number' &&
+          Number.isFinite(s.lng)
+      );
+      if (others.length === 0) return null;
+      return {
+        lat: others.reduce((sum, s) => sum + (s.lat as number), 0) / others.length,
+        lng: others.reduce((sum, s) => sum + (s.lng as number), 0) / others.length,
+      };
+    },
+    [stops]
+  );
+
+  const handlePlacePick = useCallback(
+    (id: string, suggestion: PlaceSuggestion) => {
+      onChange(
+        stops.map((s) => (s.id === id ? stopFromPickedSuggestion(s, suggestion) : s))
+      );
+    },
+    [stops, onChange]
+  );
+
   const handleFieldChange = useCallback(
     (id: string, field: keyof TripStop, value: string) => {
       onChange(
@@ -484,6 +517,8 @@ export default function StopsBuilder({
           index={index}
           total={list.length}
           onChange={handleFieldChange}
+          onPickPlace={handlePlacePick}
+          bias={biasForStop(stop.id)}
           onRemove={handleRemove}
           onMoveUp={handleMoveUp}
           onMoveDown={handleMoveDown}

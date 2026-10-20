@@ -55,6 +55,41 @@ export function gateForValidation(
   };
 }
 
+type PickedSuggestion = {
+  label: string;
+  city: string;
+  region?: string;
+  country: string;
+  lat: number;
+  lng: number;
+  storable: boolean;
+};
+
+/**
+ * A picked dropdown row is written with the same fields as a confirmed place.
+ * A non-storable row only fills the text. Its coordinates are never saved.
+ */
+export function stopFromPickedSuggestion(stop: TripStop, suggestion: PickedSuggestion): TripStop {
+  if (!suggestion.storable) {
+    return {
+      ...stop,
+      destination: suggestion.label,
+      city: undefined,
+      country: undefined,
+      lat: undefined,
+      lng: undefined,
+    };
+  }
+  return applyConfirmedPlace(stop, {
+    place: suggestion.city,
+    name: suggestion.city,
+    country: suggestion.country,
+    state: suggestion.region,
+    lat: suggestion.lat,
+    lng: suggestion.lng,
+  });
+}
+
 /** Write the confirmed city, country, coordinates, and display name onto a stop. */
 export function applyConfirmedPlace(stop: TripStop, place: ValidatedPlace): TripStop {
   const city = (place.name || place.place).split(',')[0]?.trim() || place.place;

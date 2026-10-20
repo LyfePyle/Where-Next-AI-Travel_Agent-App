@@ -7,12 +7,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import PlaceSuggestInput from '@/components/PlaceSuggestInput';
 import StopsBuilder, { makeEmptyStop } from '@/components/StopsBuilder';
+import type { PlaceSuggestion } from '@/lib/place-suggest';
 import { parsePlanTripSearchParams } from '@/lib/plan-trip-params';
 import {
   applyConfirmedPlace,
   gateForValidation,
   stopAlreadyConfirmed,
+  stopFromPickedSuggestion,
   type PlaceValidationBody,
 } from '@/lib/place-confirmation';
 import { planTripStepNumber, type PlanTripStepId } from '@/lib/plan-trip-steps';
@@ -62,6 +65,7 @@ export default function PlanTripPage() {
   const [tripStyle, setTripStyle] = useState<TripStyle>('single');
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
+  const [confirmedStop, setConfirmedStop] = useState<TripStop | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [adults, setAdults] = useState(2);
@@ -123,6 +127,13 @@ export default function PlanTripPage() {
       if (filled.length > 0) return filled;
     }
     if (!destination.trim()) return [];
+    if (
+      confirmedStop &&
+      confirmedStop.destination === destination.trim() &&
+      stopAlreadyConfirmed(confirmedStop)
+    ) {
+      return [{ ...confirmedStop, startDate: startDate || '', endDate: endDate || '' }];
+    }
     return [
       {
         id: 'stop-main',
@@ -412,12 +423,13 @@ export default function PlanTripPage() {
             subtitle="Your home city — we use this to find flights"
           >
             <div>
-              <input
-                type="text"
+              <PlaceSuggestInput
+                aria-label="Home city"
                 placeholder="e.g. Vancouver, London, Sydney…"
                 value={origin}
-                onChange={(e) => {
-                  setOrigin(e.target.value);
+                useIpBias
+                onChange={(value) => {
+                  setOrigin(value);
                   setOriginError('');
                 }}
                 style={{
@@ -451,17 +463,31 @@ export default function PlanTripPage() {
               }
               optional
             >
-              <input
-                type="text"
+              <PlaceSuggestInput
+                aria-label="Destination"
                 placeholder={
                   isMulti
                     ? 'e.g. Southeast Asia, Italy, Japan… or leave blank'
                     : 'e.g. Thailand, Japan, New York… or leave blank'
                 }
                 value={destination}
-                onChange={(e) => {
-                  setDestination(e.target.value);
+                onChange={(value) => {
+                  setDestination(value);
+                  setConfirmedStop(null);
                   setPlaceGate(null);
+                }}
+                onPick={(suggestion: PlaceSuggestion) => {
+                  setConfirmedStop(
+                    stopFromPickedSuggestion(
+                      {
+                        id: 'stop-main',
+                        destination: '',
+                        startDate: startDate || '',
+                        endDate: endDate || '',
+                      },
+                      suggestion
+                    )
+                  );
                 }}
                 style={inputStyle}
               />

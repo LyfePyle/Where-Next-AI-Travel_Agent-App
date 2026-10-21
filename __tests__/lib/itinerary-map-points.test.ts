@@ -75,6 +75,35 @@ describe('itineraryDayMapPoints', () => {
     ]);
   });
 
+  it('drops a block pin in another country when the stop has stored coordinates', () => {
+    const points = itineraryDayMapPoints(
+      {
+        id: 'day-dom',
+        blocks: [
+          block({
+            id: 'wrong',
+            title: 'Dominical beach',
+            lat: 19.43,
+            lng: -99.13,
+          }),
+        ],
+      },
+      { lat: 9.254, lon: -83.861, city: 'Dominical' },
+      { lat: 9.254, lng: -83.861 }
+    );
+
+    expect(points).toEqual([
+      {
+        id: 'city-day-dom',
+        lat: 9.254,
+        lng: -83.861,
+        label: 'Dominical',
+        sublabel: 'City center',
+        kind: 'city',
+      },
+    ]);
+  });
+
   it('returns an empty list when there is no day and no city pin', () => {
     expect(itineraryDayMapPoints(null, null)).toEqual([]);
   });

@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { shortStopLabel } from '@/lib/place-names';
 import { itineraryDayMapPoints } from '@/lib/itinerary-map-points';
+import { storedStopCoords } from '@/lib/place-confirmation';
 import { useRouteMapPins } from '@/components/maps/useRouteMapPins';
 import type { TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
@@ -45,18 +46,30 @@ export default function TripItineraryMap({
   highlightedPointId = null,
   onSelectDay,
 }: TripItineraryMapProps) {
-  const { pins, loading, error } = useRouteMapPins(tripId, stops);
+  const { pins, unresolved, loading, error } = useRouteMapPins(tripId, stops);
   const selectedDay = days.find((d) => d.id === selectedDayId) ?? null;
   const selectedStop = stops.find((s) => s.id === selectedDay?.stop_id) ?? stops[0];
-  const cityPin = pins.find((p) => p.stopId === selectedStop?.id) ?? null;
+  const stored = selectedStop ? storedStopCoords(selectedStop) : null;
+  const apiPin = pins.find((p) => p.stopId === selectedStop?.id) ?? null;
+  const cityName =
+    selectedStop?.city?.trim() ||
+    selectedStop?.destination.split(',')[0]?.trim() ||
+    apiPin?.city ||
+    'Stop';
+  const cityPin = stored
+    ? { lat: stored.lat, lon: stored.lon, city: cityName }
+    : apiPin
+      ? { lat: apiPin.lat, lon: apiPin.lon, city: apiPin.city }
+      : null;
 
   const points = useMemo(
     () =>
       itineraryDayMapPoints(
         selectedDay,
-        cityPin ? { lat: cityPin.lat, lon: cityPin.lon, city: cityPin.city } : null
+        cityPin,
+        stored ? { lat: stored.lat, lng: stored.lon } : null
       ),
-    [selectedDay, cityPin]
+    [selectedDay, cityPin, stored]
   );
 
   const orderedDays = useMemo(
@@ -157,6 +170,9 @@ export default function TripItineraryMap({
         {error && !loading && points.length === 0 && (
           <p style={{ fontSize: 13, color: '#B91C1C', margin: '8px 0' }}>{error}</p>
         )}
+        {!loading && !error && points.length === 0 && (
+          <p style={{ fontSize: 13, color: '#A8A29E', margin: '8px 0' }}>Location not found</p>
+        )}
         {points.length > 0 && (
           <LeafletTripMap
             points={points}
@@ -165,9 +181,9 @@ export default function TripItineraryMap({
             height={200}
           />
         )}
-        {!loading && points.length === 0 && (
-          <p style={{ fontSize: 13, color: '#A8A29E', margin: '8px 0' }}>
-            Could not plot this day on the map.
+        {!loading && points.length > 0 && unresolved.some((s) => s.stopId === selectedStop?.id) && (
+          <p style={{ fontSize: 12, color: '#A8A29E', margin: '8px 0 0' }}>
+            Location not found for {cityName}
           </p>
         )}
       </div>

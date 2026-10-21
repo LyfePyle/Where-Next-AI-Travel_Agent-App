@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { storedStopCoords } from '@/lib/place-confirmation';
 import { normalizeTripStopsFromRow } from '@/lib/trip-stops';
 import {
   extractTripItineraryContext,
@@ -109,13 +110,15 @@ export async function POST(
   const context = extractTripItineraryContext(trip);
   const city = cityFromStop(stop);
   const country = countryFromStop(stop);
+  const stored = storedStopCoords(stop);
+  const cityCenter = stored ? { lat: stored.lat, lng: stored.lon } : null;
 
   try {
     if (locatingExisting) {
       const parsed = (body.blocks as unknown[])
         .map((b) => parseItineraryBlock(b))
         .filter((b): b is ItineraryBlock => b !== null);
-      const blocks = await locateSuggestionBlocks(parsed, city, country);
+      const blocks = await locateSuggestionBlocks(parsed, city, country, cityCenter);
       return NextResponse.json({ ok: true, suggestion: { title: '', blocks, stopCount: blocks.length, extraStopNames: [] } });
     }
 
@@ -124,7 +127,7 @@ export async function POST(
         normalizeStop(raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}, i)
       );
       const suggestion = suggestionFromStops('Walking tour', tourStops);
-      suggestion.blocks = await locateSuggestionBlocks(suggestion.blocks, city, country);
+      suggestion.blocks = await locateSuggestionBlocks(suggestion.blocks, city, country, cityCenter);
       return NextResponse.json({ ok: true, suggestion });
     }
 
@@ -143,6 +146,7 @@ export async function POST(
       country,
       vibes: context.vibes,
       additionalDetails: context.additionalDetails,
+      cityCenter,
     });
     return NextResponse.json({ ok: true, suggestion });
   } catch (err) {

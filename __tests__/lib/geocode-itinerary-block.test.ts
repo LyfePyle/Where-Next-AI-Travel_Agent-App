@@ -121,4 +121,19 @@ describe('attachCoordsToBlocks', () => {
     expect(dinner.lat).toBeUndefined();
     expect(dinner.lng).toBeUndefined();
   });
+
+  it('does not geocode the city when the stop already has coordinates', async () => {
+    const geocodeCityFn = jest.fn(async () => PARIS);
+    await attachCoordsToBlocks(
+      [block({ id: 'a', title: 'Beach', place: 'Playa Dominical' })],
+      'Dominical',
+      'Costa Rica',
+      {
+        cityCenter: { lat: 9.254, lng: -83.861 },
+        geocodeCityFn,
+        geocodeVenueFn: async () => null,
+      }
+    );
+    expect(geocodeCityFn).not.toHaveBeenCalled();
+  });
 });

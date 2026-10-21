@@ -9,7 +9,12 @@ import {
   regenerateItineraryDay,
   withBlockIds,
 } from '@/lib/generate-itinerary-days';
-import { attachCoordsToBlocks, attachCoordsToGeneratedDays } from '@/lib/geocode-itinerary-block';
+import {
+  attachCoordsToBlocks,
+  attachCoordsToGeneratedDays,
+  type AttachCoordsDeps,
+} from '@/lib/geocode-itinerary-block';
+import { storedStopCoords } from '@/lib/place-confirmation';
 import { buildTourDaySuggestion } from '@/lib/itinerary-tour-suggest';
 import type { ItineraryBlock, TripItineraryDay } from '@/types/itinerary';
 import type { TripStop } from '@/types/trip';
@@ -40,6 +45,13 @@ function cityFromStop(stop: TripStop): string {
 
 function countryFromStop(stop: TripStop): string {
   return stop.country || stop.destination.split(',').pop()?.trim() || '';
+}
+
+/** Use coordinates already saved on the stop so generation does not geocode the city again. */
+function storedCenterDeps(stop: TripStop): AttachCoordsDeps {
+  const stored = storedStopCoords(stop);
+  if (!stored) return {};
+  return { cityCenter: { lat: stored.lat, lng: stored.lon } };
 }
 
 function dateForStopDay(stop: TripStop, dayIndex: number): string | null {
@@ -271,7 +283,8 @@ export async function generateItineraryForStop(
       })
     ),
     cityFromStop(stop),
-    countryFromStop(stop)
+    countryFromStop(stop),
+    storedCenterDeps(stop)
   );
 
   await deleteItineraryForStop(supabase, tripId, stop.id);
@@ -440,7 +453,8 @@ async function restoreRequestedBlocks(
         ? await attachCoordsToBlocks(
             [restored],
             cityFromStop(stop),
-            countryFromStop(stop)
+            countryFromStop(stop),
+            storedCenterDeps(stop)
           )
         : [restored];
 
@@ -518,7 +532,8 @@ export async function applyItineraryToolCalls(
             }),
           ]),
           cityFromStop(stop),
-          countryFromStop(stop)
+          countryFromStop(stop),
+          storedCenterDeps(stop)
         );
 
         await upsertDayRows(supabase, tripId, stop, [
@@ -553,7 +568,8 @@ export async function applyItineraryToolCalls(
         const [block] = await attachCoordsToBlocks(
           [parsed],
           stopForBlock ? cityFromStop(stopForBlock) : '',
-          stopForBlock ? countryFromStop(stopForBlock) : ''
+          stopForBlock ? countryFromStop(stopForBlock) : '',
+          stopForBlock ? storedCenterDeps(stopForBlock) : {}
         );
 
         const day = current.find((d) => d.stop_id === stopId && d.day_index === dayIndex);

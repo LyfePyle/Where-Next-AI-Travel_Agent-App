@@ -3,7 +3,7 @@
  */
 
 import OpenAI from 'openai';
-import { attachCoordsToBlocks } from '@/lib/geocode-itinerary-block';
+import { attachCoordsToBlocks, type LatLng } from '@/lib/geocode-itinerary-block';
 import { generateSingleTour, generateTourOptions, type TourStop } from '@/lib/tour-generate-core';
 import { tourStopsToItineraryBlocks } from '@/lib/tour-to-itinerary-blocks';
 import type { ItineraryBlock } from '@/types/itinerary';
@@ -29,9 +29,15 @@ function preferenceLine(vibes?: string | null, additionalDetails?: string | null
 async function locateBlocks(
   blocks: ItineraryBlock[],
   city: string,
-  country: string
+  country: string,
+  cityCenter?: LatLng | null
 ): Promise<ItineraryBlock[]> {
-  return attachCoordsToBlocks(blocks, city, country);
+  return attachCoordsToBlocks(
+    blocks,
+    city,
+    country,
+    cityCenter ? { cityCenter } : {}
+  );
 }
 
 export function suggestionFromStops(
@@ -56,6 +62,7 @@ export async function buildTourDaySuggestion(input: {
   vibes?: string | null;
   additionalDetails?: string | null;
   geocode?: boolean;
+  cityCenter?: LatLng | null;
 }): Promise<TourDaySuggestion> {
   if (!openai) throw new Error('OpenAI not configured');
   const { title, stops } = await generateSingleTour(
@@ -68,7 +75,7 @@ export async function buildTourDaySuggestion(input: {
   if (input.geocode === false) return suggestion;
   return {
     ...suggestion,
-    blocks: await locateBlocks(suggestion.blocks, input.city, input.country),
+    blocks: await locateBlocks(suggestion.blocks, input.city, input.country, input.cityCenter),
   };
 }
 
@@ -93,7 +100,8 @@ export async function buildTourDayAlternatives(input: {
 export async function locateSuggestionBlocks(
   blocks: ItineraryBlock[],
   city: string,
-  country: string
+  country: string,
+  cityCenter?: LatLng | null
 ): Promise<ItineraryBlock[]> {
-  return locateBlocks(blocks, city, country);
+  return locateBlocks(blocks, city, country, cityCenter);
 }

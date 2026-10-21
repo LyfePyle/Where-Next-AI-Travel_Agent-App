@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { TripStop, tripDestinationSummary, tripStartDate, tripEndDate } from '@/types/trip';
+import { confirmUnpinnedStops } from '@/lib/confirm-stops-at-save';
 import {
   attachSuggestionPlaceToStops,
   serializeStopsForDb,
@@ -76,7 +77,8 @@ export async function POST(req: NextRequest) {
       stops,
       suggestionPlaceFields(body.suggestion)
     );
-    const stopsForDb = serializeStopsForDb(placedStops) ?? placedStops;
+    const confirmedStops = await confirmUnpinnedStops(placedStops).catch(() => placedStops);
+    const stopsForDb = serializeStopsForDb(confirmedStops) ?? confirmedStops;
 
     const destination = body.title ?? tripDestinationSummary(stops);
     const startDate = tripStartDate(stops);

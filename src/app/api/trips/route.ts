@@ -11,6 +11,7 @@ import {
   serializeStopsForDb,
   suggestionPlaceFields,
 } from '@/lib/trip-stops';
+import { confirmUnpinnedStops } from '@/lib/confirm-stops-at-save';
 import type { TripStop } from '@/types/trip';
 
 type TripPayload = {
@@ -119,7 +120,7 @@ export async function POST(req: NextRequest) {
         : null;
     const vibe = body.vibe ?? strField(suggestion.vibe) ?? null;
 
-    const resolvedStops: TripStop[] = attachSuggestionPlaceToStops(
+    const placedStops: TripStop[] = attachSuggestionPlaceToStops(
       Array.isArray(body.stops) && body.stops.length > 0
         ? body.stops
         : Array.isArray(suggestion.stops) &&
@@ -141,6 +142,7 @@ export async function POST(req: NextRequest) {
             : [],
       suggestionPlaceFields(suggestion)
     );
+    const resolvedStops = await confirmUnpinnedStops(placedStops).catch(() => placedStops);
 
     const stopsForDb = serializeStopsForDb(resolvedStops);
 

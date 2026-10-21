@@ -11,6 +11,7 @@ import {
   tripKnownNights,
 } from '@/lib/trip-stops';
 import { buildMultiStopSuggestionsBlobAsync, isStoredSuggestionsEmpty } from '@/lib/trip-preview';
+import { confirmUnpinnedStops } from '@/lib/confirm-stops-at-save';
 
 interface SavedTrip {
   id: string;
@@ -247,12 +248,13 @@ export async function POST(request: NextRequest) {
     // multi-city trip). Otherwise split the destination string conservatively
     // so "Singapore, Bali & Yogyakarta" becomes 3 stops while "Bangkok,
     // Thailand" stays one.
-    const stops = attachSuggestionPlaceToStops(
+    const placedStops = attachSuggestionPlaceToStops(
       Array.isArray(body.stops) && body.stops.length > 0
         ? body.stops
         : parseDestinationToStops(destination, startDate || '', endDate || ''),
       suggestionPlaceFields(body.suggestion)
     );
+    const stops = await confirmUnpinnedStops(placedStops).catch(() => placedStops);
 
     const stopsForDb = serializeStopsForDb(stops);
 

@@ -59,7 +59,7 @@ export function bookableDestinationFromStop(stop: {
 
 /**
  * Resolve a free-text destination to a partner-searchable place.
- * Hash/fallback geocode coords are not a real place — try title guesses, then keep original.
+ * A geocode miss is not a real place — try title guesses, then keep the original text.
  */
 export async function resolveBookableDestination(
   raw: string,
@@ -70,7 +70,7 @@ export async function resolveBookableDestination(
 
   for (const guess of bookablePlaceGuesses(trimmed)) {
     const coords = await geocodeCity(guess, country);
-    if (coords.source === 'fallback') continue;
+    if (!coords) continue;
     const name = coords.name?.trim();
     if (!name) continue;
     return bookableLabel(name, coords.country || country);

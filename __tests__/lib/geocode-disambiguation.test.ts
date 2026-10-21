@@ -96,6 +96,23 @@ describe('countryMatches ISO vs full name', () => {
   });
 });
 
+describe('mixed-country trips keep each stop’s country', () => {
+  it('does not let a Mexico sibling pull Dominical out of Costa Rica', () => {
+    expect(
+      resolveGeocodeCountry('Dominical', 'Costa Rica', ['Mexico', 'Thailand'])
+    ).toBe('Costa Rica');
+  });
+
+  it('keeps stored countries on a Mexico, Costa Rica, Thailand trip', () => {
+    const enriched = enrichStopCountries([
+      stop('Zipolite', 'Mexico'),
+      stop('Dominical', 'Costa Rica'),
+      stop('Khao Sok', 'Thailand'),
+    ]);
+    expect(enriched.map((s) => s.country)).toEqual(['Mexico', 'Costa Rica', 'Thailand']);
+  });
+});
+
 describe('hard overrides still win', () => {
   it('forces Penang to Malaysia even if a sibling says otherwise', () => {
     expect(resolveGeocodeCountry('Penang', 'Indonesia', ['Indonesia'])).toBe(

@@ -1,5 +1,6 @@
 /**
- * City-level geocoding: OpenWeather first, Nominatim fallback, hash fallback last.
+ * City-level geocoding: OpenWeather first, Nominatim second.
+ * A miss returns null. Callers show no pin rather than a made-up coordinate.
  * In-memory cache avoids repeat lookups for the same city/country pair.
  */
 
@@ -11,7 +12,7 @@ export interface CityCoords {
   lon: number;
   name: string;
   country?: string;
-  source: 'openweather' | 'nominatim' | 'fallback';
+  source: 'openweather' | 'nominatim';
 }
 
 const coordsCache = new Map<string, CityCoords>();
@@ -24,25 +25,13 @@ function cacheKey(city: string, country?: string): string {
   return co ? `v5|${c}|${co}` : `v5|${c}`;
 }
 
-/** Rough fallback coords when all geocoders miss (spread by hash). */
-function fallbackCoords(city: string, country?: string): CityCoords {
-  const seed = (city + (country ?? '')).split('').reduce((a, ch) => a + ch.charCodeAt(0), 0);
-  return {
-    lat: 20 + (seed % 40) - 10,
-    lon: ((seed * 7) % 360) - 180,
-    name: city,
-    country,
-    source: 'fallback',
-  };
-}
-
 export async function geocodeCity(
   city: string,
   country?: string,
   siblingCountries: string[] = []
-): Promise<CityCoords> {
+): Promise<CityCoords | null> {
   const place = city.trim();
-  if (!place) return fallbackCoords('Unknown');
+  if (!place) return null;
 
   const resolvedCountry = resolveGeocodeCountry(place, country, siblingCountries);
   const key = cacheKey(place, resolvedCountry);
@@ -67,8 +56,5 @@ export async function geocodeCity(
   console.warn(
     `geocodeCity: no results for "${place}"${resolvedCountry ? `, ${resolvedCountry}` : ''}`
   );
-  const fb = fallbackCoords(place, resolvedCountry);
-  coordsCache.set(key, fb);
-  cacheExpiry.set(key, Date.now() + CACHE_TTL_MS);
-  return fb;
+  return null;
 }

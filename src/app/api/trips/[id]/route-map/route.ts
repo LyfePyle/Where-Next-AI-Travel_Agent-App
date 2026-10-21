@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { geocodeCity } from '@/lib/geocode-city';
-import { storedStopCoords } from '@/lib/place-confirmation';
-import {
-  deriveNightsFromStop,
-  geocodeContextForStop,
-  normalizeTripStopsFromRow,
-} from '@/lib/trip-stops';
+import { buildRouteMapPins } from '@/lib/route-map-pins';
+import { normalizeTripStopsFromRow } from '@/lib/trip-stops';
 
 async function supabaseServer() {
   const cookieStore = await cookies();
@@ -52,41 +48,16 @@ export async function GET(
     return NextResponse.json({ pins: [] });
   }
 
-  const siblingCountries = stops
-    .map((s) => s.country)
-    .filter((c): c is string => Boolean(c?.trim()));
+  const { pins, unresolved } = await buildRouteMapPins(stops, async (city, country) => {
+    const coords = await geocodeCity(city, country);
+    if (!coords) return null;
+    return {
+      lat: coords.lat,
+      lon: coords.lon,
+      country: coords.country,
+      source: coords.source,
+    };
+  });
 
-  const pins = await Promise.all(
-    stops.map(async (stop, index) => {
-      const { city, country } = geocodeContextForStop(stop, stops);
-      const stored = storedStopCoords(stop);
-      if (stored) {
-        return {
-          stopId: stop.id,
-          city,
-          country: country ?? stop.country,
-          destination: stop.destination,
-          lat: stored.lat,
-          lon: stored.lon,
-          nights: deriveNightsFromStop(stop),
-          order: index,
-          geocodeSource: 'stored',
-        };
-      }
-      const coords = await geocodeCity(city, country, siblingCountries);
-      return {
-        stopId: stop.id,
-        city,
-        country: country ?? coords.country,
-        destination: stop.destination,
-        lat: coords.lat,
-        lon: coords.lon,
-        nights: deriveNightsFromStop(stop),
-        order: index,
-        geocodeSource: coords.source,
-      };
-    })
-  );
-
-  return NextResponse.json({ pins });
+  return NextResponse.json({ pins, unresolved });
 }

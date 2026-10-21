@@ -90,6 +90,11 @@ export async function geocodeVenue(
 export interface AttachCoordsDeps {
   geocodeCityFn?: (city: string, country: string) => Promise<LatLng | null>;
   geocodeVenueFn?: (venue: string, city: string, country: string) => Promise<LatLng | null>;
+  /**
+   * Stop coordinates already saved on the trip. When set, venue checks use this
+   * point and the city is not geocoded again.
+   */
+  cityCenter?: LatLng | null;
 }
 
 const venueCache = new Map<string, LatLng | null>();
@@ -100,7 +105,7 @@ function venueKey(venue: string, city: string, country: string): string {
 
 async function defaultCityGeocode(city: string, country: string): Promise<LatLng | null> {
   const result = await geocodeCity(city, country);
-  if (result.source === 'fallback') return null;
+  if (!result) return null;
   return { lat: result.lat, lng: result.lon };
 }
 
@@ -174,7 +179,12 @@ export async function attachCoordsToBlocks<T extends Partial<ItineraryBlock> & {
   deps: AttachCoordsDeps = {}
 ): Promise<T[]> {
   const geocodeCityFn = deps.geocodeCityFn ?? defaultCityGeocode;
-  const cityCenter = city.trim() ? await geocodeCityFn(city, country) : null;
+  const cityCenter =
+    deps.cityCenter !== undefined
+      ? deps.cityCenter
+      : city.trim()
+        ? await geocodeCityFn(city, country)
+        : null;
 
   const next: T[] = [];
   for (const block of blocks) {

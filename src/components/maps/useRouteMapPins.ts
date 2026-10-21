@@ -14,8 +14,14 @@ export interface RouteMapPin {
   order: number;
 }
 
+export interface UnresolvedMapStop {
+  stopId: string;
+  city: string;
+}
+
 export function useRouteMapPins(tripId: string, stops: TripStop[]) {
   const [pins, setPins] = useState<RouteMapPin[]>([]);
+  const [unresolved, setUnresolved] = useState<UnresolvedMapStop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +30,7 @@ export function useRouteMapPins(tripId: string, stops: TripStop[]) {
   const fetchPins = useCallback(async () => {
     if (stops.length === 0) {
       setPins([]);
+      setUnresolved([]);
       setLoading(false);
       return;
     }
@@ -35,12 +42,15 @@ export function useRouteMapPins(tripId: string, stops: TripStop[]) {
       if (!res.ok) {
         setError(data.error || 'Could not load map');
         setPins([]);
+        setUnresolved([]);
         return;
       }
       setPins(data.pins ?? []);
+      setUnresolved(data.unresolved ?? []);
     } catch {
       setError('Could not load route map');
       setPins([]);
+      setUnresolved([]);
     } finally {
       setLoading(false);
     }
@@ -50,5 +60,5 @@ export function useRouteMapPins(tripId: string, stops: TripStop[]) {
     void fetchPins();
   }, [fetchPins, stopsKey]);
 
-  return { pins, loading, error };
+  return { pins, unresolved, loading, error };
 }

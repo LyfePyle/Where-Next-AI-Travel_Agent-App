@@ -99,10 +99,10 @@ export function majorityTripCountry(countries: string[]): string | undefined {
 
 /**
  * Resolve the country string to pass into geocoding for a city/stop.
- * Hard overrides (Penang) always win. Names that collide with a country
- * (Liberia) prefer sibling-trip context, then an explicit *other* country,
- * then a Costa Rica default — unless the user clearly meant the country
- * (explicit country === city name, no other-country siblings).
+ * Hard overrides (Penang) always win. A stored country wins over siblings.
+ * The one exception is a city/country homonym (Liberia stored as "Liberia"
+ * beside Costa Rica stops): siblings may still mean the city. With no stored
+ * country, siblings fill in, then the ambiguous-city default.
  */
 export function resolveGeocodeCountry(
   city: string,
@@ -116,13 +116,14 @@ export function resolveGeocodeCountry(
   const ambiguousDefault = ambiguousCityDefaultCountry(city);
   const fromSiblings = majorityTripCountry(siblingCountries);
   const explicit = explicitCountry?.trim();
+  const explicitIsOtherCountry = Boolean(
+    explicit && isLikelyCountryName(explicit) && normalizePlaceKey(explicit) !== cityKey
+  );
 
   if (ambiguousDefault) {
+    if (explicitIsOtherCountry) return explicit;
     if (fromSiblings && normalizePlaceKey(fromSiblings) !== cityKey) {
       return fromSiblings;
-    }
-    if (explicit && isLikelyCountryName(explicit) && normalizePlaceKey(explicit) !== cityKey) {
-      return explicit;
     }
     if (explicit && isLikelyCountryName(explicit) && normalizePlaceKey(explicit) === cityKey) {
       return explicit;

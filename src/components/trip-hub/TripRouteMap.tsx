@@ -31,7 +31,7 @@ interface TripRouteMapProps {
 }
 
 export default function TripRouteMap({ tripId, stops }: TripRouteMapProps) {
-  const { pins, loading, error } = useRouteMapPins(tripId, stops);
+  const { pins, unresolved, loading, error } = useRouteMapPins(tripId, stops);
 
   if (stops.length === 0) return null;
 
@@ -90,7 +90,12 @@ export default function TripRouteMap({ tripId, stops }: TripRouteMapProps) {
 
         {!loading && sorted.length === 0 && !error && (
           <p style={{ fontSize: 13, color: '#A8A29E', margin: '8px 0' }}>
-            Could not plot stops on map.
+            Location not found
+          </p>
+        )}
+        {!loading && unresolved.length > 0 && sorted.length > 0 && (
+          <p style={{ fontSize: 12, color: '#A8A29E', margin: '8px 0 4px' }}>
+            Location not found for {unresolved.map((s) => s.city).join(', ')}
           </p>
         )}
       </div>

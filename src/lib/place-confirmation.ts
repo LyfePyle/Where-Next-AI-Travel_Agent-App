@@ -90,6 +90,22 @@ export function stopFromPickedSuggestion(stop: TripStop, suggestion: PickedSugge
   });
 }
 
+/**
+ * Editing the text after a pick is a new name. Coordinates from the previous
+ * pick are cleared and are not put back.
+ */
+export function stopAfterDestinationEdit(stop: TripStop, value: string): TripStop {
+  if (value === stop.destination) return { ...stop, destination: value };
+  return {
+    ...stop,
+    destination: value,
+    city: undefined,
+    country: undefined,
+    lat: undefined,
+    lng: undefined,
+  };
+}
+
 /** Write the confirmed city, country, coordinates, and display name onto a stop. */
 export function applyConfirmedPlace(stop: TripStop, place: ValidatedPlace): TripStop {
   const city = (place.name || place.place).split(',')[0]?.trim() || place.place;

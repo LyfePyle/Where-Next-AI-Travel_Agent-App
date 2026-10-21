@@ -190,15 +190,18 @@ function assignCountriesToCities(
   return cityNames.map((cityName, index) => {
     const urlMatch = urlByCity.get(cityName.toLowerCase().trim());
     if (urlMatch?.country) {
+      const destination = urlMatch.destination?.trim();
       return normalizeStop(
         {
           id: urlMatch.id || `city-${index}`,
-          destination: urlMatch.destination || `${cityName}, ${urlMatch.country}`,
-          city: cityName,
+          destination: destination || `${cityName}, ${urlMatch.country}`,
+          city: urlMatch.city?.trim() || cityName,
           country: urlMatch.country,
           startDate: urlMatch.startDate,
           endDate: urlMatch.endDate,
           order: index,
+          lat: urlMatch.lat,
+          lng: urlMatch.lng,
         },
         index
       )!;
@@ -355,6 +358,8 @@ export function buildStopsFromSelection(
         startDate: '',
         endDate: '',
         order: i,
+        lat: c.lat,
+        lng: c.lng,
       },
       i
     );

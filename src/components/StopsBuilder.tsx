@@ -16,7 +16,7 @@ import {
 } from '@/lib/split-stop-nights';
 import PlaceSuggestInput from '@/components/PlaceSuggestInput';
 import type { PlaceBias, PlaceSuggestion } from '@/lib/place-suggest';
-import { stopFromPickedSuggestion } from '@/lib/place-confirmation';
+import { stopAfterDestinationEdit, stopFromPickedSuggestion } from '@/lib/place-confirmation';
 import { TripStop } from '@/types/trip';
 
 // ---------------------------------------------------------------------------
@@ -381,15 +381,8 @@ export default function StopsBuilder({
       onChange(
         stops.map((s) => {
           if (s.id !== id) return s;
-          if (field === 'destination' && value !== s.destination) {
-            return {
-              ...s,
-              destination: value,
-              city: undefined,
-              country: undefined,
-              lat: undefined,
-              lng: undefined,
-            };
+          if (field === 'destination') {
+            return stopAfterDestinationEdit(s, value);
           }
           return { ...s, [field]: value };
         })

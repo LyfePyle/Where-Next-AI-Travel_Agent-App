@@ -1,6 +1,7 @@
 import {
   applyConfirmedPlace,
   gateForValidation,
+  stopAfterDestinationEdit,
   stopFromPickedSuggestion,
   storedStopCoords,
 } from '@/lib/place-confirmation';
@@ -136,6 +137,36 @@ describe('stopFromPickedSuggestion', () => {
       lat: 15.66,
       lng: -96.52,
     });
+  });
+
+  it('clears coordinates when the text is edited after a pick', () => {
+    const picked = stopFromPickedSuggestion(stop('zip'), {
+      label: 'Zipolite, Oaxaca, Mexico',
+      city: 'Zipolite',
+      region: 'Oaxaca',
+      country: 'Mexico',
+      lat: 15.66,
+      lng: -96.52,
+      storable: true,
+    });
+    const edited = stopAfterDestinationEdit(picked, 'Zipolite beach');
+    expect(edited.destination).toBe('Zipolite beach');
+    expect(edited.city).toBeUndefined();
+    expect(edited.country).toBeUndefined();
+    expect(edited.lat).toBeUndefined();
+    expect(edited.lng).toBeUndefined();
+  });
+
+  it('keeps coordinates when the destination text is unchanged', () => {
+    const picked = applyConfirmedPlace(stop('zip'), {
+      place: 'Zipolite',
+      name: 'Zipolite',
+      country: 'Mexico',
+      state: 'Oaxaca',
+      lat: 15.66,
+      lng: -96.52,
+    });
+    expect(stopAfterDestinationEdit(picked, picked.destination).lat).toBe(15.66);
   });
 
   it('does not store coordinates from a non-storable row', () => {

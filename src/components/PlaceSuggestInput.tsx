@@ -175,6 +175,11 @@ export default function PlaceSuggestInput({
                 }}
               >
                 {suggestion.label}
+                {suggestion.type && suggestion.type !== 'City' && suggestion.type !== 'Town' ? (
+                  <span style={{ marginLeft: 8, fontSize: 11, letterSpacing: '0.02em', color: '#78716C' }}>
+                    {suggestion.type}
+                  </span>
+                ) : null}
               </button>
             </li>
           ))}

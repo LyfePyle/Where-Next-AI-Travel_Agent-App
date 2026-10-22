@@ -9,6 +9,29 @@ import {
   type PlaceSuggestion,
 } from '@/lib/place-suggest';
 
+function feature(
+  name: string,
+  state: string,
+  country: string,
+  lng: number,
+  lat: number,
+  osmKey: string,
+  osmValue: string,
+  type: string
+) {
+  return {
+    geometry: { coordinates: [lng, lat] },
+    properties: {
+      name,
+      state,
+      country,
+      type,
+      osm_key: osmKey,
+      osm_value: osmValue,
+    },
+  };
+}
+
 function item(
   partial: Partial<PlaceSuggestion> & Pick<PlaceSuggestion, 'city' | 'country'>
 ): PlaceSuggestion {
@@ -113,8 +136,140 @@ describe('suggestionsFromPhoton', () => {
       },
     ]);
     expect(hits.map((h) => h.city)).toEqual(['Zipolite', 'Khao Sok National Park']);
+    expect(hits[0].type).toBe('Hamlet');
+    expect(hits[1].type).toBe('National park');
     expect(hits[1].label).toBe('Khao Sok National Park, Surat Thani, Thailand');
     expect(hits.every((h) => h.storable)).toBe(true);
+  });
+
+  it('keeps both Vancouvers and drops facilities that used the locality layer', () => {
+    const features = [
+      feature('Vancouver', 'British Columbia', 'Canada', -123.11, 49.26, 'place', 'city', 'city'),
+      feature(
+        'Vancouver Fire and Rescue Services Training Grounds',
+        'British Columbia',
+        'Canada',
+        -123.08,
+        49.27,
+        'landuse',
+        'industrial',
+        'locality'
+      ),
+      feature(
+        'Vancouver Transit Centre',
+        'British Columbia',
+        'Canada',
+        -123.14,
+        49.2,
+        'landuse',
+        'industrial',
+        'locality'
+      ),
+      feature(
+        'Vancouver Airport Fuel Facilities Corporation Fuel Receiving Facility',
+        'British Columbia',
+        'Canada',
+        -123.05,
+        49.14,
+        'landuse',
+        'industrial',
+        'locality'
+      ),
+      feature(
+        'Vancouver Landfill Gas Conditioning Facility',
+        'British Columbia',
+        'Canada',
+        -123.02,
+        49.1,
+        'landuse',
+        'industrial',
+        'locality'
+      ),
+      feature('Vancouver', 'Washington', 'United States', -122.67, 45.63, 'place', 'city', 'city'),
+    ];
+    const merged = mergePlaceSuggestions('vancou', suggestionsFromPhoton(features), {
+      lat: 49.28,
+      lng: -123.12,
+    });
+    expect(merged.map((row) => row.label)).toEqual([
+      'Vancouver, British Columbia, Canada',
+      'Vancouver, Washington, United States',
+    ]);
+    const text = merged.map((row) => row.label).join(' ');
+    expect(text).not.toMatch(/Facility|Training Grounds|Transit Centre|Landfill/i);
+  });
+
+  it('keeps Monteverde district, drops a province and a mall, and tags an area', () => {
+    const hits = suggestionsFromPhoton([
+      {
+        geometry: { coordinates: [-84.82, 10.28] },
+        properties: {
+          name: 'Monteverde',
+          state: 'Puntarenas Province',
+          country: 'Costa Rica',
+          osm_key: 'boundary',
+          osm_value: 'administrative',
+          extra: { admin_level: '8' },
+        },
+      },
+      {
+        geometry: { coordinates: [-84.0, 9.9] },
+        properties: {
+          name: 'Puntarenas',
+          state: 'Puntarenas Province',
+          country: 'Costa Rica',
+          osm_key: 'boundary',
+          osm_value: 'administrative',
+          extra: { admin_level: '4' },
+        },
+      },
+      feature('Vancouver Mall', 'Washington', 'United States', -122.59, 45.65, 'place', 'suburb', 'district'),
+      feature('Vancouver Heights', 'Washington', 'United States', -122.6, 45.62, 'place', 'suburb', 'district'),
+      {
+        geometry: { coordinates: [-122.67, 45.63] },
+        properties: {
+          name: 'Vancouver',
+          state: 'Washington',
+          country: 'United States',
+          osm_key: 'boundary',
+          osm_value: 'administrative',
+          extra: { admin_level: '8' },
+        },
+      },
+    ]);
+    expect(hits.map((row) => [row.city, row.type])).toEqual([
+      ['Monteverde', 'District'],
+      ['Vancouver Heights', 'Area'],
+      ['Vancouver', 'District'],
+    ]);
+    const merged = mergePlaceSuggestions('monteverde', hits, { lat: 9.43, lng: -84.16 });
+    expect(merged[0]).toMatchObject({
+      city: 'Monteverde',
+      country: 'Costa Rica',
+      type: 'District',
+    });
+    expect(mergePlaceSuggestions('vancou', hits).map((row) => row.city)).toEqual(['Vancouver Heights']);
+  });
+
+  it('ranks a district behind a city or town', () => {
+    const district = item({
+      city: 'Monteverde',
+      region: 'Puntarenas',
+      country: 'Costa Rica',
+      lat: 10.28,
+      lng: -84.82,
+      type: 'District',
+    });
+    const town = item({
+      city: 'Monteverde',
+      region: 'Puntarenas',
+      country: 'Costa Rica',
+      lat: 8.0,
+      lng: -83.0,
+      type: 'Town',
+    });
+    const ordered = orderSuggestionsByBias([district, town], { lat: 10.28, lng: -84.82 });
+    expect(ordered.map((row) => row.type)).toEqual(['Town', 'District']);
   });
 
   it('rejects streets', () => {
@@ -136,5 +291,6 @@ describe('photonSearchUrl', () => {
     );
     expect(url.searchParams.getAll('layer')).not.toContain('street');
     expect(url.searchParams.getAll('layer')).not.toContain('house');
+    expect(url.searchParams.get('limit')).toBe('20');
   });
 });

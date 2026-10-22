@@ -54,6 +54,39 @@ describe('PlaceSuggestInput', () => {
     expect(onPick).toHaveBeenCalledWith(rows[1]);
   });
 
+  it('tags a national park and leaves a city untagged', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        suggestions: [
+          {
+            label: 'Vancouver, British Columbia, Canada',
+            city: 'Vancouver',
+            region: 'British Columbia',
+            country: 'Canada',
+            lat: 49.26,
+            lng: -123.11,
+            storable: true,
+            type: 'City',
+          },
+          {
+            label: 'Khao Sok National Park, Surat Thani, Thailand',
+            city: 'Khao Sok National Park',
+            region: 'Surat Thani',
+            country: 'Thailand',
+            lat: 8.94,
+            lng: 98.53,
+            storable: true,
+            type: 'National park',
+          },
+        ],
+      }),
+    });
+    render(<PlaceSuggestInput aria-label="Destination" value="kha" onChange={jest.fn()} />);
+    expect(await screen.findByText('National park')).toBeInTheDocument();
+    expect(screen.queryByText('City')).not.toBeInTheDocument();
+  });
+
   it('shows OpenStreetMap attribution', async () => {
     render(<PlaceSuggestInput aria-label="Destination" value="van" onChange={jest.fn()} />);
     expect(await screen.findByText('© OpenStreetMap contributors')).toBeInTheDocument();

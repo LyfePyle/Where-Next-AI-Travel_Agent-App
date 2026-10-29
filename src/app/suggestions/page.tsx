@@ -18,6 +18,7 @@ import {
 } from '@/lib/suggestion-drilldown';
 import { redirectToLoginForTripSave } from '@/lib/pending-trip-save';
 import { planTripHrefFromSearchParams } from '@/lib/plan-trip-params';
+import SuggestionsChat from '@/components/suggestions/SuggestionsChat';
 
 function getItineraryTeaser(suggestion: TripSuggestion): string[] {
   if (suggestion.itineraryTeaser?.length) {
@@ -284,6 +285,7 @@ function SuggestionsContent() {
       startDate,
       endDate: effectiveEndDate,
       vibe: vibe || vibes[0] || undefined,
+      additionalDetails: additionalDetails || undefined,
       suggestion: suggestionPayload,
       stops: serialized,
     };
@@ -339,6 +341,7 @@ function SuggestionsContent() {
     kids,
     vibe,
     vibes,
+    additionalDetails,
   ]);
 
   useEffect(() => {
@@ -557,6 +560,8 @@ function SuggestionsContent() {
             </p>
           )}
           
+          <SuggestionsChat destination={destination} />
+
           {/* Additional Details */}
           {additionalDetails && (
             <div className="mt-4 bg-blue-50 p-3 rounded-lg">
@@ -857,6 +862,7 @@ function SuggestionsContent() {
                           startDate: startDate || undefined,
                           endDate: endDate || undefined,
                           vibe: vibe || vibes[0] || undefined,
+                          additionalDetails: additionalDetails || undefined,
                           suggestion,
                           stops: resolvedStops,
                         };

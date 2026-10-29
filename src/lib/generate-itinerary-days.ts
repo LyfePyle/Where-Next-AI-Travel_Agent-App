@@ -83,7 +83,9 @@ function buildUserPrompt(input: StopGenerationInput): string {
     `Country: ${input.country.trim()}`,
     `Nights: ${input.nights}`,
     input.vibes ? `Trip vibes: ${input.vibes}` : null,
-    input.additionalDetails ? `Traveler notes: ${input.additionalDetails}` : null,
+    input.additionalDetails
+      ? `Traveler notes: ${input.additionalDetails}\nApply only the notes that fit this stop. Do not force a must-do from another place onto this day.`
+      : null,
     input.isFirstStop ? 'This is the first stop on the trip (account for arrival).' : null,
     input.isLastStop ? 'This is the final stop on the trip (account for departure on the last day).' : null,
     input.prevCity ? `Arriving from: ${input.prevCity}` : null,
